@@ -1,0 +1,18 @@
+{
+  "files": {
+    "main.css": "/static/css/main.c4503567.css",
+    "main.js": "/static/js/main.6fa94128.js",
+    "static/media/markus-spiske-2siq7rVFeZs-unsplash.jpg": "/static/media/markus-spiske-2siq7rVFeZs-unsplash.3fe1b2846c1eb99e4554.jpg",
+    "static/media/f1.png": "/static/media/f1.a9faa1c922e8102bfcc2.png",
+    "static/media/wfyd.jpg": "/static/media/wfyd.c8d0f02d101727320900.jpg",
+    "static/media/skyrim.png": "/static/media/skyrim.d70d31ea93982d000406.png",
+    "static/media/halo.png": "/static/media/halo.e44a37165d08735f23ab.png",
+    "index.html": "/index.html",
+    "main.c4503567.css.map": "/static/css/main.c4503567.css.map",
+    "main.6fa94128.js.map": "/static/js/main.6fa94128.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.c4503567.css",
+    "static/js/main.6fa94128.js"
+  ]
+}
