@@ -8,10 +8,13 @@ const {
 } = require("../models/index");
 
 postsRouter.get("/", async (req, res) => {
+  const order = req.query.order;
+  const sortBy = req.query.sortBy;
   const offset = req.query.offset || null;
   const limit = req.query.limit || 10;
   const totalCount = await Post.count({});
-  const posts = await Post.findAll({
+
+  const options = {
     order: [["createdAt", "DESC"]],
     offset,
     limit,
@@ -19,7 +22,11 @@ postsRouter.get("/", async (req, res) => {
       { model: User, attributes: ["username"] },
       { model: Subreddit, attributes: ["name"] },
     ],
-  });
+  };
+
+  if (order && sortBy) options.order = [[sortBy, order]];
+
+  const posts = await Post.findAll(options);
   return res.send({ posts, totalCount });
 });
 
@@ -36,19 +43,27 @@ postsRouter.get("/:id", async (req, res) => {
   const includedCommentsTree = a;
   console.log("@@@@@@@@@@@@@@@@@@options: ii ", includedCommentsTree);
 
+  const order = req.query.order;
+  const sortBy = req.query.sortBy;
+
   const options = {
     include: {
       model: Comment,
       where: { directReplyToPost: true },
       include: includedCommentsTree,
+      required: false,
     },
+    order: [[Comment, sortBy || "upVotes", order || "DESC"]],
   };
+  console.log("@@@@", order, sortBy);
+  //if (order && sortBy) options.order = [];
 
-  console.log("@@@@@@@@@@@@@@@@@@options:  ", options);
+  console.log("@@@@@@@@@@@@@@@@@@options:  ", options.include);
 
   // options.include.include =
-  const post = await Post.findByPk(req.params.id, options);
-
+  const post = await Post.findByPk(req.params.id, options).catch((e) =>
+    console.log("error@@@@@@@@@@@", e)
+  );
   return res.send(post);
 });
 
