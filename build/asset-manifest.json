@@ -1,18 +1,18 @@
 {
   "files": {
-    "main.css": "/static/css/main.ec8c4e56.css",
-    "main.js": "/static/js/main.b3f95505.js",
+    "main.css": "/static/css/main.c751e08f.css",
+    "main.js": "/static/js/main.a80d0c07.js",
     "static/media/markus-spiske-2siq7rVFeZs-unsplash.jpg": "/static/media/markus-spiske-2siq7rVFeZs-unsplash.3fe1b2846c1eb99e4554.jpg",
     "static/media/f1.png": "/static/media/f1.a9faa1c922e8102bfcc2.png",
     "static/media/wfyd.jpg": "/static/media/wfyd.c8d0f02d101727320900.jpg",
     "static/media/skyrim.png": "/static/media/skyrim.d70d31ea93982d000406.png",
     "static/media/halo.png": "/static/media/halo.e44a37165d08735f23ab.png",
     "index.html": "/index.html",
-    "main.ec8c4e56.css.map": "/static/css/main.ec8c4e56.css.map",
-    "main.b3f95505.js.map": "/static/js/main.b3f95505.js.map"
+    "main.c751e08f.css.map": "/static/css/main.c751e08f.css.map",
+    "main.a80d0c07.js.map": "/static/js/main.a80d0c07.js.map"
   },
   "entrypoints": [
-    "static/css/main.ec8c4e56.css",
-    "static/js/main.b3f95505.js"
+    "static/css/main.c751e08f.css",
+    "static/js/main.a80d0c07.js"
   ]
 }
