@@ -92,6 +92,7 @@ postsRouter.post("/", async (req, res) => {
     return res.status(401).send("you have to be logged in to create new posts");
   }
 });
+
 /*
 postsRouter.delete("/", async (req, res) => {
   res.json(done);

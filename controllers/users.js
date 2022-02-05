@@ -5,6 +5,13 @@ require("express-async-errors");
 
 usersRouter.post("/", async (request, response) => {
   const { body } = request;
+
+  const userFound = await User.findOne({ where: { username: body.username } });
+  console.log("user founi", userFound);
+  if (userFound) {
+    return response.status(400).json({ error: "username already taken" });
+  }
+
   if (!(body.username && body.password)) {
     return response.status(400).json({ error: "username or password missing" });
   }
@@ -21,10 +28,10 @@ usersRouter.post("/", async (request, response) => {
     username: body.username,
     passwordHash,
   }).catch((e) => {
-    return res.status(400).json("error when creating user");
+    return response.status(400).json("error when creating user");
   });
 
-  response.status(200).json({ user, passwordHash });
+  response.status(200).json("new user created");
 });
 /*
 usersRouter.get("/", async (req, res) => {
