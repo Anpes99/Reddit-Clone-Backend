@@ -1,4 +1,4 @@
-const io = require("socket.io")(4000, {
+/*const io = require("socket.io")(3001, {
   cors: {
     origin: [
       "http://localhost:3001",
@@ -6,7 +6,8 @@ const io = require("socket.io")(4000, {
       "https://reddit1000.herokuapp.com/",
     ],
   },
-});
+});*/
+const { io } = require("../index");
 const {
   User,
   Comment,
