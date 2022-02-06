@@ -8,17 +8,18 @@ const {
 } = require("../models/index");
 
 commentRouter.post("/", async (req, res) => {
+  console.log("@@@@@", req.user);
+  if (!req?.user?.id) {
+    return res
+      .status(401)
+      .json({ error: "Authentication token expired or invalid." });
+  }
+
   const { text, directReplyToPost, subredditId, userId, commentId, postId } =
     req.body;
   console.log(typeof directReplyToPost);
   if (
-    !(
-      text &&
-      typeof directReplyToPost === "boolean" &&
-      subredditId &&
-      userId &&
-      postId
-    )
+    !(text && typeof directReplyToPost === "boolean" && subredditId && postId)
   ) {
     return res.status(400).json("Please include required information");
   }
@@ -27,7 +28,7 @@ commentRouter.post("/", async (req, res) => {
     directReplyToPost,
     commentId,
     subredditId,
-    userId,
+    userId: req.user.id,
     postId,
   }).catch((e) => {
     return res

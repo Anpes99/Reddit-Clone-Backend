@@ -1,13 +1,16 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const loginRouter = require("express").Router();
-const User = require("../models/User");
+const { User, Subreddit, UserSubreddits } = require("../models/index");
 
 loginRouter.post("/", async (request, response) => {
   const { body } = request;
   console.log(body);
   try {
-    const user = await User.findOne({ where: { username: body.username } });
+    const user = await User.findOne({
+      where: { username: body.username },
+      include: { model: Subreddit, required: false },
+    });
     console.log("usre", user);
     const passwordCorrect =
       user === null
@@ -27,13 +30,12 @@ loginRouter.post("/", async (request, response) => {
     const token = jwt.sign(userForToken, process.env.SECRET, {
       expiresIn: 60 * 60 * 24,
     });
-
+    console.log(user);
     response.status(200).send({
       token,
       username: user.username,
-      name: user.name,
-      id: user._id,
-      favourites: user.favourites,
+      id: user.id,
+      subreddits: user.subreddits.map((subreddit) => subreddit.id),
     });
   } catch (error) {
     console.log("error2:", error);

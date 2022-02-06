@@ -29,6 +29,10 @@ Post.init(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    imageUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     sequelize,

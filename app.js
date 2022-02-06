@@ -12,6 +12,8 @@ const middleware = require("./utils/middleware");
 const postsRouter = require("./controllers/posts");
 const newsRouter = require("./controllers/news");
 const commentRouter = require("./controllers/comments");
+const subredditsRouter = require("./controllers/subreddits");
+const utilsRouter = require("./controllers/utils");
 const path = require("path");
 
 connectToDatabase();
@@ -24,6 +26,8 @@ app.use("/api/users", usersRouter);
 app.use("/api/posts", postsRouter);
 app.use("/api/comments", commentRouter);
 app.use("/api/news", newsRouter);
+app.use("/api/subreddits", subredditsRouter);
+app.use("/api/utils", utilsRouter);
 if (config.NODE_ENV === "production") {
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "build", "index.html"));

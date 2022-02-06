@@ -12,11 +12,10 @@ Subreddit.hasMany(Post);
 Subreddit.belongsToMany(User, { through: UserSubreddits });
 User.belongsToMany(Subreddit, { through: UserSubreddits });
 
-Comment.belongsTo(Post);
-Comment.belongsTo(Comment);
-Post.belongsTo(User);
 Post.belongsTo(Subreddit);
+Comment.belongsTo(Post);
 Comment.belongsTo(User);
+Post.belongsTo(User);
 
 module.exports = {
   User,

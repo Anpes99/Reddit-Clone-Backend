@@ -47,12 +47,15 @@ postsRouter.get("/:id", async (req, res) => {
   const sortBy = req.query.sortBy;
 
   const options = {
-    include: {
-      model: Comment,
-      where: { directReplyToPost: true },
-      include: includedCommentsTree,
-      required: false,
-    },
+    include: [
+      {
+        model: Comment,
+        where: { directReplyToPost: true },
+        include: includedCommentsTree,
+        required: false,
+      },
+      { model: Subreddit, required: false },
+    ],
     order: [[Comment, sortBy || "upVotes", order || "DESC"]],
   };
   console.log("@@@@", order, sortBy);
@@ -64,24 +67,37 @@ postsRouter.get("/:id", async (req, res) => {
   const post = await Post.findByPk(req.params.id, options).catch((e) =>
     console.log("error@@@@@@@@@@@", e)
   );
-  return res.send(post);
+
+  const totalComments = await Comment.count({
+    where: { postId: req.params.id },
+  });
+
+  return res.send({ post, totalComments });
 });
 
 postsRouter.post("/", async (req, res) => {
   console.log(req.user);
-  const { title, text, subredditId } = req.body;
+  const { title, text, subredditName, imageUrl } = req.body;
 
-  if (!title || !text || !subredditId) {
+  const subreddit = await Subreddit.findOne({
+    where: { name: subredditName },
+    required: true,
+  });
+  console.log("sub", subreddit);
+
+  if (!title || !text || !subreddit?.id) {
     return res
       .status(400)
       .json("missing information. Please include all required information.");
   }
+
   if (req.user.id) {
     const post = await Post.create({
       title: title,
       text: text,
+      imageUrl,
       userId: req.user.id,
-      subredditId: subredditId,
+      subredditId: subreddit.id,
     }).catch((e) => {
       console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ error:  ", e);
       return res.status(400).json("error when creating new post:");

@@ -49,6 +49,28 @@ io.on("connection", (socket) => {
     });
     io.emit("post_received_dislikes", postId);
   });
+
+  socket.on("likeComment", async (commentId) => {
+    try {
+      const comment = await Comment.findByPk(commentId);
+      const result = await comment.increment("upVotes", { by: 1 });
+
+      io.emit("comment_received_likes", commentId);
+    } catch (e) {
+      console.log("something went wrong when updating upVotes");
+    }
+  });
+
+  socket.on("dislikeComment", async (commentId) => {
+    try {
+      const comment = await Comment.findByPk(commentId);
+      const result = await comment.increment("downVotes", { by: 1 });
+
+      io.emit("comment_received_dislikes", commentId);
+    } catch (e) {
+      console.log("something went wrong when updating downVotes");
+    }
+  });
 });
 
 const PORT = config.PORT || 3001;

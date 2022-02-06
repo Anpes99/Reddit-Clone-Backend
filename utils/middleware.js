@@ -13,14 +13,26 @@ const tokenExtractor = (request, response, next) => {
   next();
 };
 
-const userExtractor = (request, response, next) => {
-  const authorization = request.headers.authorization;
+const userExtractor = (req, res, next) => {
+  console.log("here");
+
+  const authorization = req.get("authorization");
+
+  console.log(authorization);
+
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     const token = authorization.substring(7);
-
-    const decodedToken = jwt.verify(token, process.env.SECRET);
-    request.user = { username: decodedToken.username, id: decodedToken.id };
+    console.log("here");
+    try {
+      console.log(authorization);
+      const decodedToken = jwt.verify(token, process.env.SECRET);
+      console.log("@@@@@", decodedToken);
+      req.user = { username: decodedToken.username, id: decodedToken.id };
+    } catch (e) {
+      console.log("@@@@@", e);
+    }
   }
+  console.log("here");
 
   next();
 };

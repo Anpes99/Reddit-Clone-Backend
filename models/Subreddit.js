@@ -14,6 +14,7 @@ Subreddit.init(
     name: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
     text: {
       type: DataTypes.STRING,
