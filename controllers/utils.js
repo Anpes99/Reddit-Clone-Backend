@@ -1,4 +1,4 @@
-const { generateUploadURL } = require("../s3.js");
+const { generateUploadURL } = require("../utils/s3.js");
 const utilsRouter = require("express").Router();
 
 utilsRouter.get("/s3Url", async (req, res) => {
