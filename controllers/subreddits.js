@@ -56,10 +56,9 @@ subredditsRouter.delete("/:subredditId/user", async (req, res) => {
 
 subredditsRouter.get("/", async (req, res) => {
   const name = req.query.name;
-  const subreddit = await Subreddit.findAll({
-    where: { name: name },
-    required: true,
-  });
+  const options = {};
+  if (name) options.where = { name };
+  const subreddit = await Subreddit.findAll(options);
   return res.send(subreddit);
 });
 

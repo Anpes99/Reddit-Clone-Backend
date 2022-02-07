@@ -16,24 +16,32 @@ const {
 
 io.on("connection", (socket) => {
   console.log(socket.id);
-  socket.on("fetch_more_posts", async (order, sortBy, offset, limit, cb) => {
-    const totalCount = await Post.count({});
+  socket.on(
+    "fetch_more_posts",
+    async (order, sortBy, offset, limit, subredditId, cb) => {
+      const totalCountOptions = {};
+      if (subredditId)
+        totalCountOptions.where = { subredditId: Number(subredditId) };
+      const totalCount = await Post.count(totalCountOptions);
 
-    const options = {
-      order: [["createdAt", "DESC"]],
-      offset,
-      limit,
-      include: [
-        { model: User, attributes: ["username"] },
-        { model: Subreddit, attributes: ["name"] },
-      ],
-    };
-
-    if (order && sortBy) options.order = [[sortBy, order]];
-    console.log("getting more posts");
-    const posts = await Post.findAll(options);
-    cb({ posts, totalCount });
-  });
+      const options = {
+        order: [["createdAt", "DESC"]],
+        offset,
+        limit,
+        include: [
+          { model: User, attributes: ["username"] },
+          { model: Subreddit, attributes: ["name"] },
+        ],
+      };
+      console.log("subreditid", subredditId);
+      if (subredditId) options.where = { subredditId: Number(subredditId) };
+      console.log(options);
+      if (order && sortBy) options.order = [[sortBy, order]];
+      console.log("getting more posts");
+      const posts = await Post.findAll(options);
+      cb({ posts, totalCount });
+    }
+  );
 
   socket.on("likePost", async (postId) => {
     const post = await Post.findByPk(postId);

@@ -12,6 +12,15 @@ postsRouter.get("/", async (req, res) => {
   const sortBy = req.query.sortBy;
   const offset = req.query.offset || null;
   const limit = req.query.limit || 10;
+  const subredditName = req.query.subredditName;
+  let subredditId;
+  if (subredditName) {
+    const subreddit = await Subreddit.findOne({
+      where: { name: subredditName },
+    });
+    subredditId = subreddit.id;
+  }
+
   const totalCount = await Post.count({});
 
   const options = {
@@ -23,6 +32,8 @@ postsRouter.get("/", async (req, res) => {
       { model: Subreddit, attributes: ["name"] },
     ],
   };
+
+  if (subredditId) options.where = { subredditId: subredditId };
 
   if (order && sortBy) options.order = [[sortBy, order]];
 
