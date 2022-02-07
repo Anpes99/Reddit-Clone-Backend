@@ -9,9 +9,12 @@ loginRouter.post("/", async (request, response) => {
   try {
     const user = await User.findOne({
       where: { username: body.username },
-      include: { model: Subreddit, required: false },
+      include: {
+        model: Subreddit,
+        attributes: ["name", "id"],
+        required: false,
+      },
     });
-    console.log("usre", user);
     const passwordCorrect =
       user === null
         ? false
@@ -35,7 +38,7 @@ loginRouter.post("/", async (request, response) => {
       token,
       username: user.username,
       id: user.id,
-      subreddits: user.subreddits.map((subreddit) => subreddit.id),
+      subreddits: user.subreddits,
     });
   } catch (error) {
     console.log("error2:", error);

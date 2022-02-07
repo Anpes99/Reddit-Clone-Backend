@@ -7,7 +7,7 @@
     ],
   },
 });*/
-const { io } = require("../index");
+const { sequelize } = require("../models/Comment");
 const {
   User,
   Comment,
@@ -16,41 +16,58 @@ const {
   UserSubreddits,
 } = require("../models/index");
 
-io.on("connection", (socket) => {
-  console.log(socket.id);
-  socket.on("fetch_more_posts", async (order, sortBy, offset, limit, cb) => {
-    const totalCount = await Post.count({});
+module.exports = function (io) {
+  io.on("connection", (socket) => {
+    console.log(socket.id);
+    socket.on(
+      "fetch_more_posts",
+      async (order, sortBy, offset, limit, subredditId, cb) => {
+        const totalCountOptions = {};
+        if (subredditId)
+          totalCountOptions.where = { subredditId: Number(subredditId) };
+        const totalCount = await Post.count(totalCountOptions);
 
-    const options = {
-      order: [["createdAt", "DESC"]],
-      offset,
-      limit,
-      include: [
-        { model: User, attributes: ["username"] },
-        { model: Subreddit, attributes: ["name"] },
-      ],
-    };
+        const options = {
+          order: [["createdAt", "DESC"]],
+          offset,
+          limit,
+          include: [
+            { model: User, attributes: ["username"] },
+            { model: Subreddit, attributes: ["name"] },
+          ],
+        };
+        console.log("subreditid", subredditId);
+        if (subredditId) options.where = { subredditId: Number(subredditId) };
+        console.log(options);
+        if (order && sortBy) options.order = [[sortBy, order]];
+        console.log("getting more posts");
+        const posts = await Post.findAll(options);
+        cb({ posts, totalCount });
+      }
+    );
 
-    if (order && sortBy) options.order = [[sortBy, order]];
-    console.log("getting more posts");
-    const posts = await Post.findAll(options);
-    cb({ posts, totalCount });
-  });
+    socket.on("fetch_top_posts", async (offset, subredditId, cb) => {
+      const totalCountOptions = {};
+      if (subredditId)
+        totalCountOptions.where = { subredditId: Number(subredditId) };
+      const totalCount = await Post.count(totalCountOptions);
 
-  socket.on("likePost", async (postId) => {
-    const post = await Post.findByPk(postId);
-    const result = await post.increment("upVotes", { by: 1 }).catch((e) => {
-      return res.status(500).json("something went wrong when updating upVotes");
+      const options = {
+        offset,
+        limit: 5,
+        include: [
+          { model: User, attributes: ["username"] },
+          { model: Subreddit, attributes: ["name", "id"] },
+        ],
+        order: [[sequelize.literal('"up_votes"-"down_votes"'), "desc"]],
+      };
+      console.log("subreditid", subredditId);
+      if (subredditId) options.where = { subredditId: Number(subredditId) };
+      console.log(options);
+      console.log("getting more top posts");
+      const posts = await Post.findAll(options);
+      console.log(posts);
+      cb({ posts, totalCount });
     });
-    io.emit("post_received_likes", postId);
   });
-  socket.on("dislikePost", async (postId) => {
-    const post = await Post.findByPk(postId);
-    const result = await post.increment("downVotes", { by: 1 }).catch((e) => {
-      return res.status(500).json("something went wrong when updating upVotes");
-    });
-    io.emit("post_received_dislikes", postId);
-  });
-});
-
-module.exports = io;
+};
