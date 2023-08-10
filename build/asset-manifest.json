@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/static/css/main.55ffc45b.css",
-    "main.js": "/static/js/main.89b64dc8.js",
+    "main.js": "/static/js/main.5465bdbf.js",
     "static/media/f1.png": "/static/media/f1.a9faa1c922e8102bfcc2.png",
     "static/media/wfyd.jpg": "/static/media/wfyd.c8d0f02d101727320900.jpg",
     "static/media/skyrim.png": "/static/media/skyrim.d70d31ea93982d000406.png",
     "static/media/halo.png": "/static/media/halo.e44a37165d08735f23ab.png",
     "index.html": "/index.html",
     "main.55ffc45b.css.map": "/static/css/main.55ffc45b.css.map",
-    "main.89b64dc8.js.map": "/static/js/main.89b64dc8.js.map"
+    "main.5465bdbf.js.map": "/static/js/main.5465bdbf.js.map"
   },
   "entrypoints": [
     "static/css/main.55ffc45b.css",
-    "static/js/main.89b64dc8.js"
+    "static/js/main.5465bdbf.js"
   ]
 }
