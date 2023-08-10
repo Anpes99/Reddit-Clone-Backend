@@ -1,14 +1,7 @@
 const commentRouter = require("express").Router();
-const {
-  User,
-  Comment,
-  Post,
-  Subreddit,
-  UserSubreddits,
-} = require("../models/index");
+const { Comment } = require("../models/index");
 
 commentRouter.post("/", async (req, res) => {
-  console.log("@@@@@", req.user);
   if (!req?.user?.id) {
     return res
       .status(401)
@@ -17,13 +10,13 @@ commentRouter.post("/", async (req, res) => {
 
   const { text, directReplyToPost, subredditId, userId, commentId, postId } =
     req.body;
-  console.log(typeof directReplyToPost);
+
   if (
     !(text && typeof directReplyToPost === "boolean" && subredditId && postId)
   ) {
     return res.status(400).json("Please include required information");
   }
-  let newComment = await Comment.create({
+  await Comment.create({
     text,
     directReplyToPost,
     commentId,
@@ -41,7 +34,7 @@ commentRouter.post("/", async (req, res) => {
 
 commentRouter.post("/:id/like", async (req, res) => {
   const comment = await Comment.findByPk(req.params.id);
-  const result = await comment.increment("upVotes", { by: 1 }).catch((e) => {
+  await comment.increment("upVotes", { by: 1 }).catch((e) => {
     return res.status(500).json("something went wrong when updating upVotes");
   });
 
