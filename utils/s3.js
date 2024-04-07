@@ -5,9 +5,9 @@ const crypto = require("crypto");
 const { promisify } = require("util");
 const randomBytes = promisify(crypto.randomBytes);
 
-const region = "eu-central-1";
+const region = process.env.S3_REGION;
 
-const bucketName = "redditcloneapp1000";
+const bucketName = process.env.S3_BUCKET_NAME;
 const accessKeyId = process.env.S3_ACCESS_KEY;
 const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
 
