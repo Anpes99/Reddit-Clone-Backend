@@ -6,6 +6,7 @@ const {
   Subreddit,
   UserSubreddits,
 } = require("../models/index");
+const { sequelize } = require("../utils/db");
 
 subredditsRouter.post("/:subredditId/user", async (req, res) => {
   try {
@@ -56,10 +57,31 @@ subredditsRouter.delete("/:subredditId/user", async (req, res) => {
 
 subredditsRouter.get("/", async (req, res) => {
   const name = req.query.name;
-  const options = {};
-  if (name) options.where = { name };
-  const subreddit = await Subreddit.findAll(options);
-  return res.send(subreddit);
+
+  if (name) {
+    const result = await Subreddit.findOne({
+      where: { name },
+    });
+    const subreddit = result.dataValues;
+    if (!subreddit) return [];
+    const memberCount = await UserSubreddits.count({
+      where: { subredditId: subreddit.id },
+    });
+
+    return res.send([{ ...subreddit, memberCount }]);
+  }
+
+  const subreddits = await sequelize
+    .query(
+      `
+    SELECT subreddits.*, COUNT((select 1 from user_subreddits us where us.subreddit_id = subreddits.id)) AS memberCount
+    FROM subreddits
+    GROUP BY subreddits.id;
+  `
+    )
+    .catch((e) => console.log(e));
+
+  return res.send(subreddits[0]);
 });
 
 module.exports = subredditsRouter;
