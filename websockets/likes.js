@@ -63,7 +63,7 @@ module.exports = function (io) {
         if (rating === 0) {
           // cancel downvote
           try {
-            const res = await UserRatedPosts.destroy({
+            await UserRatedPosts.destroy({
               where: { userId, postId },
             }).catch((e) => {
               console.log(e);

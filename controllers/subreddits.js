@@ -1,11 +1,5 @@
 const subredditsRouter = require("express").Router();
-const {
-  User,
-  Comment,
-  Post,
-  Subreddit,
-  UserSubreddits,
-} = require("../models/index");
+const { Subreddit, UserSubreddits } = require("../models/index");
 const { sequelize } = require("../utils/db");
 
 subredditsRouter.post("/:subredditId/user", async (req, res) => {
