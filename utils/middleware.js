@@ -6,7 +6,6 @@ const unknownEndpoint = (request, response) => {
 
 const tokenExtractor = (request, response, next) => {
   const authorization = request.get("authorization");
-  console.log("dfgsfdg", request.headers);
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     request.token = authorization.substring(7);
   }
@@ -14,22 +13,15 @@ const tokenExtractor = (request, response, next) => {
 };
 
 const userExtractor = (req, res, next) => {
-  console.log("here");
-
   const authorization = req.get("authorization");
-
-  console.log(authorization);
 
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     const token = authorization.substring(7);
-    console.log("here");
     try {
-      console.log(authorization);
       const decodedToken = jwt.verify(token, process.env.SECRET);
-      console.log("@@@@@", decodedToken);
       req.user = { username: decodedToken.username, id: decodedToken.id };
     } catch (e) {
-      console.log("@@@@@", e);
+      console.log(e);
     }
   }
   console.log("here");

@@ -6,7 +6,6 @@ newsRouter.get("", (req, res) => {
       `https://newsapi.org/v2/top-headlines?pageSize=4&country=us&apiKey=${process.env.NEWS_API_KEY}`
     )
     .then((result) => {
-      console.log(result.data);
       return res.json(result.data);
     })
     .catch((e) => {

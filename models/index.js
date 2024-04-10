@@ -24,6 +24,7 @@ Comment.belongsTo(Post);
 Comment.belongsTo(User);
 Post.belongsTo(User);
 
+// uncomment to sync database tables
 /*
 UserRatedPosts.sync({ alter: true });
 User.sync({ alter: true });

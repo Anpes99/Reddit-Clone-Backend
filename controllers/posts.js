@@ -1,11 +1,5 @@
 const postsRouter = require("express").Router();
-const {
-  User,
-  Comment,
-  Post,
-  Subreddit,
-  UserSubreddits,
-} = require("../models/index");
+const { User, Comment, Post, Subreddit } = require("../models/index");
 
 postsRouter.get("/", async (req, res) => {
   const order = req.query.order;
@@ -41,9 +35,6 @@ postsRouter.get("/", async (req, res) => {
   return res.send({ posts, totalCount });
 });
 
-//include:
-// options.include.push({ model:Comment, include:{model:Comment}})
-
 postsRouter.get("/:id", async (req, res) => {
   const a = { model: Comment, include: {} };
   a.include = { model: Comment, include: {} };
@@ -52,7 +43,6 @@ postsRouter.get("/:id", async (req, res) => {
   a.include.include.include.include = { model: Comment, include: {} };
   a.include.include.include.include.include = { model: Comment };
   const includedCommentsTree = a;
-  console.log("@@@@@@@@@@@@@@@@@@options: ii ", includedCommentsTree);
 
   const order = req.query.order;
   const sortBy = req.query.sortBy;
@@ -69,14 +59,9 @@ postsRouter.get("/:id", async (req, res) => {
     ],
     order: [[Comment, sortBy || "upVotes", order || "DESC"]],
   };
-  console.log("@@@@", order, sortBy);
-  //if (order && sortBy) options.order = [];
 
-  console.log("@@@@@@@@@@@@@@@@@@options:  ", options.include);
-
-  // options.include.include =
   const post = await Post.findByPk(req.params.id, options).catch((e) =>
-    console.log("error@@@@@@@@@@@", e)
+    console.log(e)
   );
 
   const totalComments = await Comment.count({
@@ -87,14 +72,12 @@ postsRouter.get("/:id", async (req, res) => {
 });
 
 postsRouter.post("/", async (req, res) => {
-  console.log(req.user);
   const { title, text, subredditName, imageUrl } = req.body;
 
   const subreddit = await Subreddit.findOne({
     where: { name: subredditName },
     required: true,
   });
-  console.log("sub", subreddit);
 
   if (!title || !text || !subreddit?.id) {
     return res
@@ -103,14 +86,14 @@ postsRouter.post("/", async (req, res) => {
   }
 
   if (req.user.id) {
-    const post = await Post.create({
+    await Post.create({
       title: title,
       text: text,
       imageUrl,
       userId: req.user.id,
       subredditId: subreddit.id,
     }).catch((e) => {
-      console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ error:  ", e);
+      console.log(e);
       return res.status(400).json("error when creating new post:");
     });
 
@@ -120,8 +103,4 @@ postsRouter.post("/", async (req, res) => {
   }
 });
 
-/*
-postsRouter.delete("/", async (req, res) => {
-  res.json(done);
-});*/
 module.exports = postsRouter;

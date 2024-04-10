@@ -1,17 +1,10 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const loginRouter = require("express").Router();
-const {
-  User,
-  Subreddit,
-  UserSubreddits,
-  UserLikedPosts,
-  Post,
-} = require("../models/index");
+const { User, Subreddit, Post } = require("../models/index");
 
 loginRouter.post("/", async (request, response) => {
   const { body } = request;
-  console.log(body);
   try {
     const user = await User.findOne({
       where: { username: body.username },
@@ -68,16 +61,4 @@ loginRouter.post("/", async (request, response) => {
   }
 });
 
-/*loginRouter.get("/checkToken", async (request, response) => {
-  console.log("@@@2 token ", req.token);
-  jwt.verify(req.token, process.env.SECRET, (err, decoded) => {
-    console.log("decoded:  @@@@ ", decoded);
-    console.log("error:   ", err);
-    if (decoded.id) {
-      return res.status(200).json("Json token valid");
-    }
-  });
-  return res.status(401).json("Json token expired or invalid");
-});
-*/
 module.exports = loginRouter;
