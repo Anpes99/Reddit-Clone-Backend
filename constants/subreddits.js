@@ -1,0 +1,5 @@
+const SUBREDDIT_ORDER_BY_TYPES = {
+  MEMBER_COUNT: "MEMBER_COUNT",
+};
+
+module.exports = { SUBREDDIT_ORDER_BY_TYPES };
