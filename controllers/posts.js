@@ -1,5 +1,6 @@
 const postsRouter = require("express").Router();
 const { User, Comment, Post, Subreddit } = require("../models/index");
+const { sequelize } = require("../utils/db");
 
 postsRouter.get("/", async (req, res) => {
   const order = req.query.order;
@@ -57,7 +58,15 @@ postsRouter.get("/:id", async (req, res) => {
       },
       { model: Subreddit, required: false },
     ],
-    order: [[Comment, sortBy || "upVotes", order || "DESC"]],
+    order:
+      sortBy === "upVotes" || !sortBy
+        ? [
+            [
+              sequelize.literal('comments."up_votes"-comments."down_votes"'),
+              order || "DESC",
+            ],
+          ]
+        : [[Comment, sortBy, order || "DESC"]],
   };
 
   const post = await Post.findByPk(req.params.id, options).catch((e) =>
