@@ -1,13 +1,6 @@
-const {
-  User,
-  Comment,
-  Post,
-  Subreddit,
-  UserSubreddits,
-  UserRatedPosts,
-} = require("../models/index");
+const { Comment, Post, UserRatedPosts } = require("../models/index");
 
-function upsert(values, condition) {
+function createOrUpdatePostRatingByUser(values, condition) {
   return UserRatedPosts.findOne({ where: condition }).then(function (obj) {
     // update
     if (obj) return obj.update(values);
@@ -18,8 +11,6 @@ function upsert(values, condition) {
 
 module.exports = function (io) {
   io.on("connection", (socket) => {
-    console.log(socket.id);
-
     socket.on("likePost", async (postId, userId, rating, pointsToAdd, cb) => {
       const post = await Post.findByPk(postId);
 
@@ -27,7 +18,7 @@ module.exports = function (io) {
         // cancel upvote
 
         try {
-          const res = await UserRatedPosts.destroy({
+          await UserRatedPosts.destroy({
             where: { userId, postId },
           }); //destroy
 
@@ -52,7 +43,7 @@ module.exports = function (io) {
         await post.increment("upVotes", { by: 1 }).catch((e) => {
           console.log("something went wrong when updating upVotes", e);
         });
-        const result = await upsert(
+        await createOrUpdatePostRatingByUser(
           { userId, postId, rating },
           { userId, postId }
         );
@@ -75,10 +66,8 @@ module.exports = function (io) {
             const res = await UserRatedPosts.destroy({
               where: { userId, postId },
             }).catch((e) => {
-              console.log("delete result ", e);
               console.log(e);
             }); //destroy existing rating
-            console.log("delete result ", res);
             await post.decrement("downVotes", { by: 1 }).catch((e) => {
               // decrement
               console.log("something went wrong when updating upVotes", e);
@@ -99,7 +88,7 @@ module.exports = function (io) {
           await post.increment("downVotes", { by: 1 }).catch((e) => {
             console.log("something went wrong when updating upVotes", e);
           });
-          const result = await upsert(
+          await createOrUpdatePostRatingByUser(
             // create or update existing rating
             { userId, postId, rating },
             { userId, postId }
@@ -117,7 +106,7 @@ module.exports = function (io) {
     socket.on("likeComment", async (commentId) => {
       try {
         const comment = await Comment.findByPk(commentId);
-        const result = await comment.increment("upVotes", { by: 1 });
+        await comment.increment("upVotes", { by: 1 });
 
         io.emit("comment_received_likes", commentId);
       } catch (e) {
@@ -128,7 +117,7 @@ module.exports = function (io) {
     socket.on("dislikeComment", async (commentId) => {
       try {
         const comment = await Comment.findByPk(commentId);
-        const result = await comment.increment("downVotes", { by: 1 });
+        await comment.increment("downVotes", { by: 1 });
 
         io.emit("comment_received_dislikes", commentId);
       } catch (e) {
