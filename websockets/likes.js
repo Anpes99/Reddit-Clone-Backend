@@ -1,4 +1,13 @@
+const UserRatedComments = require("../models/UserRatedComments");
 const { Comment, Post, UserRatedPosts } = require("../models/index");
+const {
+  cancelCommentUpvote,
+  cancelCommentDownvote,
+  turnCommentDownvoteIntoUpvote,
+  turnCommentUpvoteIntoDownvote,
+  createNewUpvoteForComment,
+  createNewDownvoteForComment,
+} = require("./utils");
 
 function createOrUpdatePostRatingByUser(values, condition) {
   return UserRatedPosts.findOne({ where: condition }).then(function (obj) {
@@ -103,25 +112,75 @@ module.exports = function (io) {
       }
     );
 
-    socket.on("likeComment", async (commentId) => {
+    socket.on("likeComment", async ({ commentId, userId }) => {
       try {
+        if (!commentId || !userId) {
+          throw new Error("Missing commentId or userId");
+        }
         const comment = await Comment.findByPk(commentId);
-        await comment.increment("upVotes", { by: 1 });
-
-        io.emit("comment_received_likes", commentId);
+        if (!comment) {
+          throw new Error("Comment with the given commentId not found");
+        }
+        const existingVoteByUser = await UserRatedComments.findOne({
+          where: { commentId, userId },
+        });
+        if (existingVoteByUser) {
+          if (existingVoteByUser.rating === 1) {
+            await cancelCommentUpvote({
+              dbComment: comment,
+              dbExistingVoteByUser: existingVoteByUser,
+              io,
+            });
+          } else if (existingVoteByUser.rating === -1) {
+            await turnCommentDownvoteIntoUpvote({
+              dbComment: comment,
+              dbExistingVoteByUser: existingVoteByUser,
+              io,
+            });
+          }
+        } else {
+          await createNewUpvoteForComment({ dbComment: comment, userId, io });
+        }
       } catch (e) {
-        console.log("something went wrong when updating upVotes");
+        console.log("something went wrong when updating upVotes", e);
       }
     });
 
-    socket.on("dislikeComment", async (commentId) => {
+    socket.on("dislikeComment", async ({ commentId, userId }) => {
       try {
-        const comment = await Comment.findByPk(commentId);
-        await comment.increment("downVotes", { by: 1 });
+        if (!commentId || !userId) {
+          throw new Error("Missing commentId or userId");
+        }
 
-        io.emit("comment_received_dislikes", commentId);
+        const comment = await Comment.findByPk(commentId);
+
+        if (!comment) {
+          throw new Error("Comment with the given commentId not found");
+        }
+
+        const existingVoteByUser = await UserRatedComments.findOne({
+          where: { commentId, userId },
+        });
+
+        if (existingVoteByUser) {
+          if (existingVoteByUser.rating === 1) {
+            await turnCommentUpvoteIntoDownvote({
+              dbComment: comment,
+              dbExistingVoteByUser: existingVoteByUser,
+              io,
+            });
+          } else if (existingVoteByUser.rating === -1) {
+            await cancelCommentDownvote({
+              dbComment: comment,
+              dbExistingVoteByUser: existingVoteByUser,
+              io,
+            });
+          }
+        } else {
+          await createNewDownvoteForComment({ dbComment: comment, userId, io });
+        }
       } catch (e) {
-        console.log("something went wrong when updating downVotes");
+        console.log("something went wrong when updating downVotes", e);
       }
     });
   });
