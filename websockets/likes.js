@@ -7,110 +7,108 @@ const {
   turnCommentUpvoteIntoDownvote,
   createNewUpvoteForComment,
   createNewDownvoteForComment,
+  cancelPostUpvote,
+  turnPostDownvoteIntoUpvote,
+  createNewPostUpvote,
+  turnPostUpvoteIntoDownvote,
+  cancelPostDownvote,
+  createNewPostDownvote,
 } = require("./utils");
-
-function createOrUpdatePostRatingByUser(values, condition) {
-  return UserRatedPosts.findOne({ where: condition }).then(function (obj) {
-    // update
-    if (obj) return obj.update(values);
-    // insert
-    return UserRatedPosts.create(values);
-  });
-}
 
 module.exports = function (io) {
   io.on("connection", (socket) => {
-    socket.on("likePost", async (postId, userId, rating, pointsToAdd, cb) => {
-      const post = await Post.findByPk(postId);
-
-      if (rating === 0) {
-        // cancel upvote
-
-        try {
-          await UserRatedPosts.destroy({
-            where: { userId, postId },
-          }); //destroy
-
-          await post.decrement("upVotes", { by: 1 }).catch((e) => {
-            // decrement
-            console.log("something went wrong when updating upVotes", e);
-          });
-          io.emit("post_received_likes", postId, pointsToAdd);
-          return cb({ success: true });
-        } catch (e) {
-          return cb({ success: false });
-        }
-      }
-
+    socket.on("likePost", async ({ postId, userId }, cb) => {
       try {
-        if (pointsToAdd === 2) {
-          // turn downvote to an upvote
-          await post.decrement("downVotes", { by: 1 }).catch((e) => {
-            console.log("something went wrong when updating upVotes", e);
+        const post = await Post.findByPk(postId);
+
+        if (!post) {
+          throw new Error("post not found for given postId");
+        }
+
+        const dbExistingPostVoteByUser = await UserRatedPosts.findOne({
+          where: { postId, userId },
+        });
+        if (dbExistingPostVoteByUser) {
+          if (dbExistingPostVoteByUser.rating === 1) {
+            await cancelPostUpvote({
+              dbPost: post,
+              dbExistingPostVoteByUser,
+              postId,
+              io,
+            });
+
+            return cb({
+              success: true,
+              newRating: 0,
+            });
+          }
+          if (dbExistingPostVoteByUser.rating === -1) {
+            await turnPostDownvoteIntoUpvote({
+              dbPost: post,
+              dbExistingPostVoteByUser,
+              postId,
+              io,
+            });
+
+            return cb({
+              success: true,
+              newRating: 1,
+            });
+          }
+        } else {
+          await createNewPostUpvote({
+            dbPost: post,
+            postId,
+            userId,
+            io,
+          });
+
+          return cb({
+            success: true,
+            newRating: 1,
           });
         }
-        await post.increment("upVotes", { by: 1 }).catch((e) => {
-          console.log("something went wrong when updating upVotes", e);
-        });
-        await createOrUpdatePostRatingByUser(
-          { userId, postId, rating },
-          { userId, postId }
-        );
-
-        io.emit("post_received_likes", postId, pointsToAdd);
-
-        return cb({ success: true });
       } catch (e) {
+        console.log(e);
         return cb({ success: false });
       }
     });
-    socket.on(
-      "dislikePost",
-      async (postId, userId, rating, pointsToAdd, cb) => {
+    socket.on("dislikePost", async ({ postId, userId }, cb) => {
+      try {
         const post = await Post.findByPk(postId);
-
-        if (rating === 0) {
-          // cancel downvote
-          try {
-            await UserRatedPosts.destroy({
-              where: { userId, postId },
-            }).catch((e) => {
-              console.log(e);
-            }); //destroy existing rating
-            await post.decrement("downVotes", { by: 1 }).catch((e) => {
-              // decrement
-              console.log("something went wrong when updating upVotes", e);
-            });
-            io.emit("post_received_dislikes", postId, pointsToAdd);
-            return cb({ success: true });
-          } catch (e) {
-            return cb({ success: false });
-          }
+        if (!post) {
+          throw new Error("post not found for given postId");
         }
-        try {
-          if (pointsToAdd === -2) {
-            // turn downvote to an upvote  // cancel upvote
-            await post.decrement("upVotes", { by: 1 }).catch((e) => {
-              console.log("something went wrong when updating upVotes", e);
+
+        const dbExistingPostVoteByUser = await UserRatedPosts.findOne({
+          where: { postId, userId },
+        });
+        if (dbExistingPostVoteByUser) {
+          if (dbExistingPostVoteByUser.rating === 1) {
+            await turnPostUpvoteIntoDownvote({
+              dbPost: post,
+              postId,
+              dbExistingPostVoteByUser,
+              io,
             });
+
+            return cb({ success: true, newRating: -1 });
           }
-          await post.increment("downVotes", { by: 1 }).catch((e) => {
-            console.log("something went wrong when updating upVotes", e);
-          });
-          await createOrUpdatePostRatingByUser(
-            // create or update existing rating
-            { userId, postId, rating },
-            { userId, postId }
-          );
+          if (dbExistingPostVoteByUser.rating === -1) {
+            await cancelPostDownvote({ dbPost: post, userId, postId, io });
 
-          io.emit("post_received_dislikes", postId, pointsToAdd);
+            return cb({ success: true, newRating: 0 });
+          }
+        } else {
+          await createNewPostDownvote({ dbPost: post, postId, userId, io });
 
-          return cb({ success: true });
-        } catch (e) {
-          return cb({ success: false });
+          return cb({ success: true, newRating: -1 });
         }
+      } catch (e) {
+        console.log(e);
+        return cb({ success: false });
       }
-    );
+    });
 
     socket.on("likeComment", async ({ commentId, userId }) => {
       try {
