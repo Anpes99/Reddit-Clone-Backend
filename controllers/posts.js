@@ -57,6 +57,7 @@ postsRouter.get("/:id", async (req, res) => {
         required: false,
       },
       { model: Subreddit, required: false },
+      { model: User, attributes: ["username"], required: true },
     ],
     order:
       sortBy === "upVotes" || !sortBy
