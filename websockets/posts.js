@@ -5,8 +5,18 @@ module.exports = function (io) {
   io.on("connection", (socket) => {
     socket.on(
       "fetch_more_posts",
-      async (order, sortBy, offset, limit, subredditId, cb) => {
+      async ({ order, sortBy, offset, limit, subredditId, username }, cb) => {
         const totalCountOptions = {};
+        if (username) {
+          totalCountOptions.include = [
+            {
+              model: User,
+              where: { username },
+              required: true,
+            },
+          ];
+        }
+
         if (subredditId)
           totalCountOptions.where = { subredditId: Number(subredditId) };
         const totalCount = await Post.count(totalCountOptions);
@@ -16,7 +26,11 @@ module.exports = function (io) {
           offset,
           limit,
           include: [
-            { model: User, attributes: ["username"] },
+            {
+              model: User,
+              attributes: ["username"],
+              ...(username ? { where: { username }, required: true } : {}),
+            },
             { model: Subreddit, attributes: ["name"] },
           ],
         };
@@ -29,27 +43,43 @@ module.exports = function (io) {
       }
     );
 
-    socket.on("fetch_top_posts", async (offset, subredditId, cb) => {
-      const totalCountOptions = {};
-      if (subredditId)
-        totalCountOptions.where = { subredditId: Number(subredditId) };
-      const totalCount = await Post.count(totalCountOptions);
+    socket.on(
+      "fetch_top_posts",
+      async ({ offset, subredditId, username }, cb) => {
+        const totalCountOptions = {};
+        if (username) {
+          totalCountOptions.include = [
+            {
+              model: User,
+              where: { username },
+              required: true,
+            },
+          ];
+        }
+        if (subredditId)
+          totalCountOptions.where = { subredditId: Number(subredditId) };
+        const totalCount = await Post.count(totalCountOptions);
 
-      const options = {
-        offset,
-        limit: 5,
-        include: [
-          { model: User, attributes: ["username"] },
-          { model: Subreddit, attributes: ["name", "id"] },
-        ],
-        order: [[sequelize.literal('"up_votes"-"down_votes"'), "desc"]],
-      };
+        const options = {
+          offset,
+          limit: 5,
+          include: [
+            {
+              model: User,
+              attributes: ["username"],
+              ...(username ? { where: { username }, required: true } : {}),
+            },
+            { model: Subreddit, attributes: ["name", "id"] },
+          ],
+          order: [[sequelize.literal('"up_votes"-"down_votes"'), "desc"]],
+        };
 
-      if (subredditId) options.where = { subredditId: Number(subredditId) };
+        if (subredditId) options.where = { subredditId: Number(subredditId) };
 
-      const posts = await Post.findAll(options);
+        const posts = await Post.findAll(options);
 
-      cb({ posts, totalCount });
-    });
+        cb({ posts, totalCount });
+      }
+    );
   });
 };
