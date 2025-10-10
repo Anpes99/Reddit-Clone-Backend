@@ -71,7 +71,10 @@ module.exports = function (io) {
             },
             { model: Subreddit, attributes: ["name", "id"] },
           ],
-          order: [[sequelize.literal('"up_votes"-"down_votes"'), "desc"]],
+          order: [
+            [sequelize.literal('"up_votes"-"down_votes"'), "desc"],
+            ["createdAt", "DESC"],
+          ],
         };
 
         if (subredditId) options.where = { subredditId: Number(subredditId) };
