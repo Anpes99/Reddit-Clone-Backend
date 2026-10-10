@@ -3,10 +3,14 @@ const config = require("./config");
 
 const sequelize = new Sequelize(process.env.DATABASE_URI, {
   dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    },
+    ...(process.env.ENV === "production"
+      ? {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false,
+          },
+        }
+      : {}),
   },
 });
 
