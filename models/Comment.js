@@ -26,7 +26,7 @@ Comment.init(
       allowNull: false,
     },
     text: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     descendantCount: {
