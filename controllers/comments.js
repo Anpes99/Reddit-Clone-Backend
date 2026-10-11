@@ -41,4 +41,10 @@ commentRouter.post("/:id/like", async (req, res) => {
   return res.json("like saved");
 });
 
+commentRouter.get("/moreComments/:id", async (req, res) => {
+  const id = req.params.id;
+  const comments = await Comment.findAll({ where: { commentId: id } });
+  return res.json(comments);
+});
+
 module.exports = commentRouter;
