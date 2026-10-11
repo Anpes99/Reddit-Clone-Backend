@@ -29,13 +29,18 @@ Comment.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    descendantCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
   {
     sequelize,
     underscored: true,
     timestamps: true,
     modelName: "comment",
-  }
+  },
 );
 
 module.exports = Comment;

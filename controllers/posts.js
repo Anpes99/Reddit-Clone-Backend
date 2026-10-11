@@ -37,14 +37,6 @@ postsRouter.get("/", async (req, res) => {
 });
 
 postsRouter.get("/:id", async (req, res) => {
-  const a = { model: Comment, include: {} };
-  a.include = { model: Comment, include: {} };
-  a.include.include = { model: Comment, include: {} };
-  a.include.include.include = { model: Comment, include: {} };
-  a.include.include.include.include = { model: Comment, include: {} };
-  a.include.include.include.include.include = { model: Comment };
-  const includedCommentsTree = a;
-
   const order = req.query.order;
   const sortBy = req.query.sortBy;
 
@@ -53,7 +45,6 @@ postsRouter.get("/:id", async (req, res) => {
       {
         model: Comment,
         where: { directReplyToPost: true },
-        include: includedCommentsTree,
         required: false,
       },
       { model: Subreddit, required: false },
@@ -71,7 +62,7 @@ postsRouter.get("/:id", async (req, res) => {
   };
 
   const post = await Post.findByPk(req.params.id, options).catch((e) =>
-    console.log(e)
+    console.log(e),
   );
 
   const totalComments = await Comment.count({
