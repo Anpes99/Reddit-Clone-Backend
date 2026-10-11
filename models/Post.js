@@ -33,13 +33,18 @@ Post.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    commentCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
   {
     sequelize,
     underscored: true,
     timestamps: true,
     modelName: "post",
-  }
+  },
 );
 
 module.exports = Post;

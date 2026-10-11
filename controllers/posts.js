@@ -65,11 +65,7 @@ postsRouter.get("/:id", async (req, res) => {
     console.log(e),
   );
 
-  const totalComments = await Comment.count({
-    where: { postId: req.params.id },
-  });
-
-  return res.send({ post, totalComments });
+  return res.send({ post });
 });
 
 postsRouter.post("/", async (req, res) => {
