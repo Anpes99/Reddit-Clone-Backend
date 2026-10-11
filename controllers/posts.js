@@ -45,6 +45,7 @@ postsRouter.get("/:id", async (req, res) => {
       {
         model: Comment,
         where: { directReplyToPost: true },
+        include: [{ model: User, attributes: ["username"], required: true }],
         required: false,
       },
       { model: Subreddit, required: false },

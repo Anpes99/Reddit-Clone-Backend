@@ -1,5 +1,5 @@
 const commentRouter = require("express").Router();
-const { Comment } = require("../models/index");
+const { Comment, User } = require("../models/index");
 
 commentRouter.post("/", async (req, res) => {
   if (!req?.user?.id) {
@@ -43,7 +43,11 @@ commentRouter.post("/:id/like", async (req, res) => {
 
 commentRouter.get("/moreComments/:id", async (req, res) => {
   const id = req.params.id;
-  const comments = await Comment.findAll({ where: { commentId: id } });
+  const comments = await Comment.findAll({
+    where: { commentId: id },
+    include: [{ model: User, attributes: ["username"], required: true }],
+  });
+  console.log(comments);
   return res.json(comments);
 });
 
