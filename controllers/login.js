@@ -2,8 +2,10 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const loginRouter = require("express").Router();
 const { User, Subreddit, Post } = require("../models/index");
+const { validate } = require("../utils/middleware");
+const { loginSchema } = require("../validators/login.validator");
 
-loginRouter.post("/", async (request, response) => {
+loginRouter.post("/", validate(loginSchema), async (request, response) => {
   const { body } = request;
   try {
     const user = await User.findOne({

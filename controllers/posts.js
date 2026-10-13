@@ -1,42 +1,47 @@
 const postsRouter = require("express").Router();
 const { User, Comment, Post, Subreddit } = require("../models/index");
 const { sequelize } = require("../utils/db");
+const { validate } = require("../utils/middleware");
+const {
+  getPostSchema,
+  postNewPostSchema,
+} = require("../validators/post.validator");
 
-postsRouter.get("/", async (req, res) => {
-  const order = req.query.order;
-  const sortBy = req.query.sortBy;
-  const offset = req.query.offset || null;
-  const limit = req.query.limit || 10;
-  const subredditName = req.query.subredditName;
-  let subredditId;
-  if (subredditName) {
-    const subreddit = await Subreddit.findOne({
-      where: { name: subredditName },
-    });
-    subredditId = subreddit.id;
-  }
+// postsRouter.get("/", async (req, res) => {
+//   const order = req.query.order;
+//   const sortBy = req.query.sortBy;
+//   const offset = req.query.offset || null;
+//   const limit = req.query.limit || 10;
+//   const subredditName = req.query.subredditName;
+//   let subredditId;
+//   if (subredditName) {
+//     const subreddit = await Subreddit.findOne({
+//       where: { name: subredditName },
+//     });
+//     subredditId = subreddit.id;
+//   }
 
-  const totalCount = await Post.count({});
+//   const totalCount = await Post.count({});
 
-  const options = {
-    order: [["createdAt", "DESC"]],
-    offset,
-    limit,
-    include: [
-      { model: User, attributes: ["username"] },
-      { model: Subreddit, attributes: ["name"] },
-    ],
-  };
+//   const options = {
+//     order: [["createdAt", "DESC"]],
+//     offset,
+//     limit,
+//     include: [
+//       { model: User, attributes: ["username"] },
+//       { model: Subreddit, attributes: ["name"] },
+//     ],
+//   };
 
-  if (subredditId) options.where = { subredditId: subredditId };
+//   if (subredditId) options.where = { subredditId: subredditId };
 
-  if (order && sortBy) options.order = [[sortBy, order]];
+//   if (order && sortBy) options.order = [[sortBy, order]];
 
-  const posts = await Post.findAll(options);
-  return res.send({ posts, totalCount });
-});
+//   const posts = await Post.findAll(options);
+//   return res.send({ posts, totalCount });
+// });
 
-postsRouter.get("/:id", async (req, res) => {
+postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
   const order = req.query.order;
   const sortBy = req.query.sortBy;
 
@@ -69,7 +74,7 @@ postsRouter.get("/:id", async (req, res) => {
   return res.send({ post });
 });
 
-postsRouter.post("/", async (req, res) => {
+postsRouter.post("/", validate(postNewPostSchema), async (req, res) => {
   const { title, text, subredditName, imageUrl } = req.body;
 
   const subreddit = await Subreddit.findOne({

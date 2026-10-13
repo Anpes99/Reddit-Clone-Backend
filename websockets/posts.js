@@ -1,3 +1,4 @@
+const { SortOrder } = require("../enums/sort-order.enum");
 const { sequelize } = require("../models/Comment");
 const { User, Post, Subreddit } = require("../models/index");
 
@@ -22,7 +23,7 @@ module.exports = function (io) {
         const totalCount = await Post.count(totalCountOptions);
 
         const options = {
-          order: [["createdAt", "DESC"]],
+          order: [["createdAt", SortOrder.DESC]],
           offset,
           limit,
           include: [
@@ -40,7 +41,7 @@ module.exports = function (io) {
 
         const posts = await Post.findAll(options);
         cb({ posts, totalCount });
-      }
+      },
     );
 
     socket.on(
@@ -82,7 +83,7 @@ module.exports = function (io) {
         const posts = await Post.findAll(options);
 
         cb({ posts, totalCount });
-      }
+      },
     );
   });
 };

@@ -1,7 +1,12 @@
 const subredditsRouter = require("express").Router();
-const { SUBREDDIT_ORDER_BY_TYPES } = require("../constants/subreddits");
+const { SUBREDDIT_ORDER_BY_TYPES } = require("../enums/subreddit.enum");
 const { Subreddit, UserSubreddits } = require("../models/index");
 const { sequelize } = require("../utils/db");
+const { validate } = require("../utils/middleware");
+const {
+  getSubredditsSchema,
+  getSubredditSchema,
+} = require("../validators/subreddit.validator");
 
 subredditsRouter.post("/:subredditId/user", async (req, res) => {
   try {
@@ -35,30 +40,51 @@ subredditsRouter.delete("/:subredditId/user", async (req, res) => {
   }
 });
 
-subredditsRouter.get("/", async (req, res) => {
-  const { name, limit, sortBy, order } = req.query;
+subredditsRouter.get(
+  "/",
+  validate(getSubredditsSchema, "query"),
+  async (req, res) => {
+    const { limit, sortBy, order } = req.query;
 
-  if (sortBy === SUBREDDIT_ORDER_BY_TYPES.MEMBER_COUNT) {
-    const result = await Subreddit.findAll({
-      limit: limit || 10,
-      attributes: {
-        include: [
-          [
-            sequelize.literal(
-              `(SELECT COUNT(*) FROM "user_subreddits" WHERE "subreddit"."id" = "user_subreddits"."subreddit_id")`
-            ),
-            "memberCount",
+    if (sortBy === SUBREDDIT_ORDER_BY_TYPES.MEMBER_COUNT) {
+      const result = await Subreddit.findAll({
+        limit: limit || 10,
+        attributes: {
+          include: [
+            [
+              sequelize.literal(
+                `(SELECT COUNT(*) FROM "user_subreddits" WHERE "subreddit"."id" = "user_subreddits"."subreddit_id")`,
+              ),
+              "memberCount",
+            ],
           ],
-        ],
-      },
-      order: [[sequelize.literal('"memberCount"'), order || "DESC"]],
-      group: ["subreddit.id"],
-    });
+        },
+        order: [[sequelize.literal('"memberCount"'), order || "DESC"]],
+        group: ["subreddit.id"],
+      });
 
-    return res.send(result);
-  }
+      return res.send(result);
+    }
 
-  if (name) {
+    const subreddits = await sequelize
+      .query(
+        `
+    SELECT subreddits.*, COUNT((select 1 from user_subreddits us where us.subreddit_id = subreddits.id)) AS memberCount
+    FROM subreddits
+    GROUP BY subreddits.id;
+  `,
+      )
+      .catch((e) => console.log(e));
+
+    return res.send(subreddits[0]);
+  },
+);
+
+subredditsRouter.get(
+  "/:name",
+  validate(getSubredditSchema, "params"),
+  async (req, res) => {
+    const name = req.params.name;
     const result = await Subreddit.findOne({
       where: { name },
     });
@@ -68,20 +94,8 @@ subredditsRouter.get("/", async (req, res) => {
       where: { subredditId: subreddit.id },
     });
 
-    return res.send([{ ...subreddit, memberCount }]);
-  }
-
-  const subreddits = await sequelize
-    .query(
-      `
-    SELECT subreddits.*, COUNT((select 1 from user_subreddits us where us.subreddit_id = subreddits.id)) AS memberCount
-    FROM subreddits
-    GROUP BY subreddits.id;
-  `
-    )
-    .catch((e) => console.log(e));
-
-  return res.send(subreddits[0]);
-});
+    return res.send({ ...subreddit, memberCount });
+  },
+);
 
 module.exports = subredditsRouter;

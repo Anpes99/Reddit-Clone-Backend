@@ -58,9 +58,30 @@ const errorHandler = (error, request, response, next) => {
   next(error);
 };
 
+const validate = (schema, property = "body") => {
+  return (req, res, next) => {
+    const { error, value } = schema.validate(req[property], {
+      abortEarly: true,
+      allowUnknown: false,
+    });
+
+    if (error) {
+      console.log(error.details);
+      return res.status(400).json({
+        message: "Validation failed",
+        defailts: error.details,
+      });
+    }
+
+    req[property] = value;
+    next();
+  };
+};
+
 module.exports = {
   errorHandler,
   tokenExtractor,
   userExtractor,
   unknownEndpoint,
+  validate,
 };
