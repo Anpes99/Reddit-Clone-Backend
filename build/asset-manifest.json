@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/static/css/main.a0258d17.css",
-    "main.js": "/static/js/main.84747a9c.js",
+    "main.css": "/static/css/main.2a5a57e4.css",
+    "main.js": "/static/js/main.904ff70e.js",
     "static/media/lakeImg.jpg": "/static/media/lakeImg.871c9912d344d3926b3d.jpg",
     "static/media/f1.png": "/static/media/f1.a9faa1c922e8102bfcc2.png",
     "index.html": "/index.html",
-    "main.a0258d17.css.map": "/static/css/main.a0258d17.css.map",
-    "main.84747a9c.js.map": "/static/js/main.84747a9c.js.map"
+    "main.2a5a57e4.css.map": "/static/css/main.2a5a57e4.css.map",
+    "main.904ff70e.js.map": "/static/js/main.904ff70e.js.map"
   },
   "entrypoints": [
-    "static/css/main.a0258d17.css",
-    "static/js/main.84747a9c.js"
+    "static/css/main.2a5a57e4.css",
+    "static/js/main.904ff70e.js"
   ]
 }
