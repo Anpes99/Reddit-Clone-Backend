@@ -31,7 +31,13 @@ UserRatedComments.init(
     underscored: true,
     timestamps: true,
     modelName: "userRatedComments",
-  }
+    indexes: [
+      {
+        unique: true,
+        fields: ["commentId", "userId"],
+      },
+    ],
+  },
 );
 
 module.exports = UserRatedComments;

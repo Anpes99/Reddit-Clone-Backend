@@ -29,6 +29,16 @@ const userExtractor = (req, res, next) => {
   next();
 };
 
+const requireAuth = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      error: "Authentication required",
+    });
+  }
+
+  next();
+};
+
 const errorHandler = (error, request, response, next) => {
   if (error.name === "ValidationError") {
     console.log(error.message);
@@ -84,4 +94,5 @@ module.exports = {
   userExtractor,
   unknownEndpoint,
   validate,
+  requireAuth,
 };

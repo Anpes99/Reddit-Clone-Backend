@@ -27,7 +27,13 @@ UserSubreddits.init(
     underscored: true,
     timestamps: false,
     modelName: "userSubreddits",
-  }
+    indexes: [
+      {
+        unique: true,
+        fields: ["subredditId", "userId"],
+      },
+    ],
+  },
 );
 
 module.exports = UserSubreddits;

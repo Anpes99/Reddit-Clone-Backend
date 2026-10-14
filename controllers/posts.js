@@ -1,7 +1,7 @@
 const postsRouter = require("express").Router();
 const { User, Comment, Post, Subreddit } = require("../models/index");
 const { sequelize } = require("../utils/db");
-const { validate } = require("../utils/middleware");
+const { validate, requireAuth } = require("../utils/middleware");
 const {
   getPostSchema,
   postNewPostSchema,
@@ -74,36 +74,43 @@ postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
   return res.send({ post });
 });
 
-postsRouter.post("/", validate(postNewPostSchema), async (req, res) => {
-  const { title, text, subredditName, imageUrl } = req.body;
+postsRouter.post(
+  "/",
+  requireAuth,
+  validate(postNewPostSchema),
+  async (req, res) => {
+    const { title, text, subredditName, imageUrl } = req.body;
 
-  const subreddit = await Subreddit.findOne({
-    where: { name: subredditName },
-    required: true,
-  });
-
-  if (!title || !text || !subreddit?.id) {
-    return res
-      .status(400)
-      .json("missing information. Please include all required information.");
-  }
-
-  if (req.user.id) {
-    await Post.create({
-      title: title,
-      text: text,
-      imageUrl,
-      userId: req.user.id,
-      subredditId: subreddit.id,
-    }).catch((e) => {
-      console.log(e);
-      return res.status(400).json("error when creating new post:");
+    const subreddit = await Subreddit.findOne({
+      where: { name: subredditName },
+      required: true,
     });
 
-    return res.status(201).json("New post created");
-  } else {
-    return res.status(401).send("you have to be logged in to create new posts");
-  }
-});
+    if (!title || !text || !subreddit?.id) {
+      return res
+        .status(400)
+        .json("missing information. Please include all required information.");
+    }
+
+    if (req.user.id) {
+      await Post.create({
+        title: title,
+        text: text,
+        imageUrl,
+        userId: req.user.id,
+        subredditId: subreddit.id,
+      }).catch((e) => {
+        console.log(e);
+        return res.status(400).json("error when creating new post:");
+      });
+
+      return res.status(201).json("New post created");
+    } else {
+      return res
+        .status(401)
+        .send("you have to be logged in to create new posts");
+    }
+  },
+);
 
 module.exports = postsRouter;

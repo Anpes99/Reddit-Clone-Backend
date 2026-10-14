@@ -31,7 +31,13 @@ UserRatedPosts.init(
     underscored: true,
     timestamps: false,
     modelName: "UserRatedPosts",
-  }
+    indexes: [
+      {
+        unique: true,
+        fields: ["postId", "userId"],
+      },
+    ],
+  },
 );
 
 module.exports = UserRatedPosts;

@@ -23,3 +23,8 @@ export const getSubredditsSchema = Joi.object({
 export const getSubredditSchema = Joi.object({
   name: Joi.string().required(),
 }).unknown(false);
+
+export const postNewSubredditSchema = Joi.object({
+  communityName: Joi.string().min(2).max(21).required(),
+  description: Joi.string().min(1).max(500).required(),
+}).unknown(false);

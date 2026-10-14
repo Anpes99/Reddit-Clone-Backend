@@ -16,13 +16,14 @@ Subreddit.init(
       allowNull: false,
       unique: true,
     },
-    text: {
-      type: DataTypes.STRING,
+    description: {
+      type: DataTypes.TEXT,
       allowNull: false,
     },
-    description: {
-      type: DataTypes.STRING,
+    creatorId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
+      references: { model: "users", key: "id" },
     },
   },
   {
@@ -30,7 +31,7 @@ Subreddit.init(
     underscored: true,
     timestamps: true,
     modelName: "subreddit",
-  }
+  },
 );
 
 module.exports = Subreddit;

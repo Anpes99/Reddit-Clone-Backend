@@ -1,14 +1,19 @@
 const subredditsRouter = require("express").Router();
-const { SUBREDDIT_ORDER_BY_TYPES } = require("../enums/subreddit.enum");
+const {
+  SUBREDDIT_ORDER_BY_TYPES,
+  SubredditModeratorRole,
+} = require("../enums/subreddit.enum");
 const { Subreddit, UserSubreddits } = require("../models/index");
+const SubredditModerators = require("../models/SubredditModerators");
 const { sequelize } = require("../utils/db");
-const { validate } = require("../utils/middleware");
+const { validate, requireAuth } = require("../utils/middleware");
 const {
   getSubredditsSchema,
   getSubredditSchema,
+  postNewSubredditSchema,
 } = require("../validators/subreddit.validator");
 
-subredditsRouter.post("/:subredditId/user", async (req, res) => {
+subredditsRouter.post("/:subredditId/user", requireAuth, async (req, res) => {
   try {
     await UserSubreddits.create({
       userId: req.user.id,
@@ -22,7 +27,7 @@ subredditsRouter.post("/:subredditId/user", async (req, res) => {
       .json("Something went wrong while saving saving subreddit member");
   }
 });
-subredditsRouter.delete("/:subredditId/user", async (req, res) => {
+subredditsRouter.delete("/:subredditId/user", requireAuth, async (req, res) => {
   try {
     await UserSubreddits.destroy({
       where: {
@@ -95,6 +100,50 @@ subredditsRouter.get(
     });
 
     return res.send({ ...subreddit, memberCount });
+  },
+);
+
+subredditsRouter.post(
+  "/",
+  requireAuth,
+  validate(postNewSubredditSchema),
+  async (req, res) => {
+    try {
+      const { communityName, description } = req.body;
+      await sequelize.transaction(async (t) => {
+        const subredditAlreadyExists = await Subreddit.findOne({
+          where: { name: communityName },
+        });
+        if (subredditAlreadyExists) {
+          return res
+            .status(409)
+            .json("A subreddit with this name already exists.");
+        }
+        const createdSubreddit = await Subreddit.create(
+          {
+            name: communityName,
+            description,
+            creatorId: req.user.id,
+          },
+          { transaction: t },
+        );
+        await SubredditModerators.create(
+          {
+            userId: req.user.id,
+            subredditId: createdSubreddit.id,
+            role: SubredditModeratorRole.OWNER,
+          },
+          { transaction: t },
+        );
+      });
+
+      return res.json("Successfully created new subreddit");
+    } catch (e) {
+      console.log(e);
+      return res
+        .status(500)
+        .json("Something went wrong while creating new subreddit");
+    }
   },
 );
 
