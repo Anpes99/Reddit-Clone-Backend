@@ -49,8 +49,8 @@ Subreddit.sync({ alter: true });
 Comment.sync({ alter: true });
 UserSubreddits.sync({ alter: true });
 UserRatedComments.sync({ alter: true });
-SubredditModerators.sync({ alter: true });*/
-
+SubredditModerators.sync({ alter: true }); 
+ */
 module.exports = {
   User,
   Comment,

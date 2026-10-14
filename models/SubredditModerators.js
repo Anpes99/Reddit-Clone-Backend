@@ -35,7 +35,7 @@ SubredditModerators.init(
     indexes: [
       {
         unique: true,
-        fields: ["subredditId", "userId"],
+        fields: ["subreddit_id", "user_id"],
       },
     ],
   },

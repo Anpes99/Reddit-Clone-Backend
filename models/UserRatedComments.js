@@ -34,7 +34,7 @@ UserRatedComments.init(
     indexes: [
       {
         unique: true,
-        fields: ["commentId", "userId"],
+        fields: ["comment_id", "user_id"],
       },
     ],
   },

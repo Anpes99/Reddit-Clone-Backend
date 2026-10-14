@@ -34,7 +34,7 @@ UserRatedPosts.init(
     indexes: [
       {
         unique: true,
-        fields: ["postId", "userId"],
+        fields: ["post_id", "user_id"],
       },
     ],
   },
