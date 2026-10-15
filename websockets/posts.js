@@ -32,7 +32,7 @@ module.exports = function (io) {
               attributes: ["username"],
               ...(username ? { where: { username }, required: true } : {}),
             },
-            { model: Subreddit, attributes: ["name"] },
+            { model: Subreddit, attributes: ["name", "iconUrl"] },
           ],
         };
         if (subredditId) options.where = { subredditId: Number(subredditId) };
@@ -70,7 +70,7 @@ module.exports = function (io) {
               attributes: ["username"],
               ...(username ? { where: { username }, required: true } : {}),
             },
-            { model: Subreddit, attributes: ["name", "id"] },
+            { model: Subreddit, attributes: ["name", "id", "iconUrl"] },
           ],
           order: [
             [sequelize.literal('"up_votes"-"down_votes"'), "desc"],

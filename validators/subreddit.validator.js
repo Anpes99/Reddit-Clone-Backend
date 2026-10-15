@@ -27,4 +27,16 @@ export const getSubredditSchema = Joi.object({
 export const postNewSubredditSchema = Joi.object({
   communityName: Joi.string().min(2).max(21).required(),
   description: Joi.string().min(1).max(500).required(),
+  subredditIconUrl: Joi.string()
+    .uri({ scheme: ["https", "http"] })
+    .max(2048)
+    .allow(null, ""),
+}).unknown(false);
+
+export const updateSubredditSchema = Joi.object({
+  description: Joi.string().min(1).max(500),
+  subredditIconUrl: Joi.string()
+    .uri({ scheme: ["https", "http"] })
+    .max(2048)
+    .allow(null, ""),
 }).unknown(false);

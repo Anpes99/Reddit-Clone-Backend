@@ -1,4 +1,8 @@
 const jwt = require("jsonwebtoken");
+const {
+  hasSubredditPermission,
+} = require("../config/subreddit-moderator-permissions");
+const SubredditModerators = require("../models/SubredditModerators");
 
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: "unknown endpoint" });
@@ -88,6 +92,38 @@ const validate = (schema, property = "body") => {
   };
 };
 
+const requireSubredditPermission = (permission) => {
+  return async (req, res, next) => {
+    try {
+      const userId = req.user?.id;
+      const subredditId = req.params.subredditId;
+
+      if (!userId) {
+        return res.status(401).json({
+          error: "Unauthorized",
+        });
+      }
+
+      const moderator = await SubredditModerators.findOne({
+        where: {
+          subredditId,
+          userId,
+        },
+        attributes: ["role"],
+      });
+      if (!moderator || !hasSubredditPermission(moderator.role, permission)) {
+        return res.status(403).json({
+          error: "Forbidden",
+        });
+      }
+
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+};
+
 module.exports = {
   errorHandler,
   tokenExtractor,
@@ -95,4 +131,5 @@ module.exports = {
   unknownEndpoint,
   validate,
   requireAuth,
+  requireSubredditPermission,
 };

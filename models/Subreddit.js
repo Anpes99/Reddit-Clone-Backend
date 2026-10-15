@@ -25,6 +25,9 @@ Subreddit.init(
       allowNull: false,
       references: { model: "users", key: "id" },
     },
+    iconUrl: {
+      type: DataTypes.STRING,
+    },
   },
   {
     sequelize,

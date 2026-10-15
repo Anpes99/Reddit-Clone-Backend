@@ -2,15 +2,21 @@ const subredditsRouter = require("express").Router();
 const {
   SUBREDDIT_ORDER_BY_TYPES,
   SubredditModeratorRole,
+  SubredditPermissions,
 } = require("../enums/subreddit.enum");
 const { Subreddit, UserSubreddits } = require("../models/index");
 const SubredditModerators = require("../models/SubredditModerators");
 const { sequelize } = require("../utils/db");
-const { validate, requireAuth } = require("../utils/middleware");
+const {
+  validate,
+  requireAuth,
+  requireSubredditPermission,
+} = require("../utils/middleware");
 const {
   getSubredditsSchema,
   getSubredditSchema,
   postNewSubredditSchema,
+  updateSubredditSchema,
 } = require("../validators/subreddit.validator");
 
 subredditsRouter.post("/:subredditId/user", requireAuth, async (req, res) => {
@@ -93,8 +99,19 @@ subredditsRouter.get(
     const result = await Subreddit.findOne({
       where: { name },
     });
-    const subreddit = result.dataValues;
-    if (!subreddit) return [];
+    const userSubredditModerator = await SubredditModerators.findOne({
+      where: { userId: req.user.id, subredditId: result.dataValues.id },
+    });
+    if (!result) {
+      return res.status(404).json({
+        error: "Subreddit not found",
+      });
+    }
+
+    const subreddit = {
+      ...result.dataValues,
+      currentUserRole: userSubredditModerator?.dataValues?.role || "",
+    };
     const memberCount = await UserSubreddits.count({
       where: { subredditId: subreddit.id },
     });
@@ -109,7 +126,7 @@ subredditsRouter.post(
   validate(postNewSubredditSchema),
   async (req, res) => {
     try {
-      const { communityName, description } = req.body;
+      const { communityName, description, subredditIconUrl } = req.body;
       await sequelize.transaction(async (t) => {
         const subredditAlreadyExists = await Subreddit.findOne({
           where: { name: communityName },
@@ -124,6 +141,7 @@ subredditsRouter.post(
             name: communityName,
             description,
             creatorId: req.user.id,
+            iconUrl: subredditIconUrl,
           },
           { transaction: t },
         );
@@ -138,6 +156,29 @@ subredditsRouter.post(
       });
 
       return res.json("Successfully created new subreddit");
+    } catch (e) {
+      console.log(e);
+      return res
+        .status(500)
+        .json("Something went wrong while creating new subreddit");
+    }
+  },
+);
+
+subredditsRouter.patch(
+  "/:subredditId/settings",
+  requireAuth,
+  requireSubredditPermission(SubredditPermissions.SETTINGS_MANAGE),
+  validate(updateSubredditSchema),
+  async (req, res) => {
+    try {
+      const { subredditIconUrl } = req.body;
+      const subredditId = req.params.subredditId;
+
+      const subredditToUpdate = await Subreddit.findByPk(subredditId);
+
+      subredditToUpdate.update({ iconUrl: subredditIconUrl });
+      return res.json(subredditToUpdate);
     } catch (e) {
       console.log(e);
       return res
