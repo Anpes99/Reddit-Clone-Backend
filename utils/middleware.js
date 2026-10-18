@@ -25,7 +25,7 @@ const userExtractor = (req, res, next) => {
       const decodedToken = jwt.verify(token, process.env.SECRET);
       req.user = { username: decodedToken.username, id: decodedToken.id };
     } catch (e) {
-      console.log(e);
+      return next(e);
     }
   }
   console.log("here");
@@ -46,29 +46,33 @@ const requireAuth = (req, res, next) => {
 const errorHandler = (error, request, response, next) => {
   if (error.name === "ValidationError") {
     console.log(error.message);
-    return response.status(400).send({ error: error.message });
+    return response
+      .status(400)
+      .send({ error: { message: error.message, name: error.name } });
   }
   if (error.name === "TokenExpiredError") {
-    console.log(error.message);
-    return response.status(401).send({ error: error.message });
+    return response
+      .status(401)
+      .send({ error: { message: error.message, name: error.name } });
+  }
+  if (error.name === "JsonWebTokenError") {
+    return response
+      .status(401)
+      .send({ error: { message: error.message, name: error.name } });
   }
   if (error.name === "TypeError") {
     console.log(error.message);
-    return response.status(500).send({ error: error.message });
+    return response
+      .status(500)
+      .send({ error: { message: error.message, name: error.name } });
   }
   if (error.name === "CastError") {
     console.log(error.message);
-    return response.status(400).send({ error: error.message });
+    return response
+      .status(400)
+      .send({ error: { message: error.message, name: error.name } });
   }
-  if (error.name === "MongooseServerSelectionError") {
-    console.log(error.message);
-    return response.status(500).send({ error: "Error connecting to database" });
-  }
-  if (error.name === "MongooseError") {
-    console.log(error.message);
-    return response.status(500).send({ error: "Error connecting to database" });
-  }
-  console.log("unknown error: ", error);
+
   next(error);
 };
 

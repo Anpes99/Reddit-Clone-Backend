@@ -99,9 +99,11 @@ subredditsRouter.get(
     const result = await Subreddit.findOne({
       where: { name },
     });
-    const userSubredditModerator = await SubredditModerators.findOne({
-      where: { userId: req.user.id, subredditId: result.dataValues.id },
-    });
+    const userSubredditModerator = req.user
+      ? await SubredditModerators.findOne({
+          where: { userId: req.user.id, subredditId: result.dataValues.id },
+        })
+      : undefined;
     if (!result) {
       return res.status(404).json({
         error: "Subreddit not found",

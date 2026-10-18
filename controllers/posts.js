@@ -53,7 +53,7 @@ postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
         include: [{ model: User, attributes: ["username"], required: true }],
         required: false,
       },
-      { model: Subreddit, required: false },
+      { model: Subreddit, as: "subreddit", required: false },
       { model: User, attributes: ["username"], required: true },
     ],
     order:

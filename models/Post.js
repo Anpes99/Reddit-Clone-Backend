@@ -11,6 +11,17 @@ Post.init(
       primaryKey: true,
       autoIncrement: true,
     },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: "users", key: "id" },
+    },
+    subredditId: {
+      type: DataTypes.INTEGER,
+      field: "subreddit_id",
+      allowNull: false,
+      references: { model: "subreddits", key: "id" },
+    },
     upVotes: {
       type: DataTypes.INTEGER,
       allowNull: false,
