@@ -57,6 +57,19 @@ usersRouter.post(
   },
 );
 
+usersRouter.get("/:username", async (request, response) => {
+  const username = request.params.username;
+
+  const user = await User.findOne({ where: { username } });
+  if (!user) {
+    return response.status(404).json({ error: "user not found" });
+  }
+
+  await response
+    .status(200)
+    .json({ username: user.username, introduction: user.introduction });
+});
+
 usersRouter.get(
   "/:username/feed",
   validate(getUserPostsAndCommentsFeedSchema, "query"),

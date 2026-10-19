@@ -3,6 +3,7 @@ const { User, Subreddit, Post } = require("../models/index");
 const { validate, requireAuth } = require("../utils/middleware");
 const {
   getLoggedInUserSchema,
+  updateLoggedInUserSchema,
 } = require("../validators/loggedInUser.validator");
 
 loggedInUserRouter.get(
@@ -47,4 +48,24 @@ loggedInUserRouter.get(
     }
   },
 );
+
+loggedInUserRouter.patch(
+  "/",
+  validate(updateLoggedInUserSchema),
+  requireAuth,
+  async (request, response) => {
+    const { introduction } = request.body;
+    const userId = request.user.id;
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return response.status(404).json({ error: "user not found" });
+    }
+
+    await user.update({ introduction });
+
+    response.status(200).json("user succesfully updated");
+  },
+);
+
 module.exports = loggedInUserRouter;

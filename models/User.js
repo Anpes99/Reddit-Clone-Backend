@@ -16,6 +16,9 @@ User.init(
       unique: true,
       allowNull: false,
     },
+    introduction: {
+      type: DataTypes.TEXT,
+    },
     passwordHash: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -26,7 +29,7 @@ User.init(
     underscored: true,
     timestamps: true,
     modelName: "user",
-  }
+  },
 );
 
 module.exports = User;
