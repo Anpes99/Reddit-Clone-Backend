@@ -42,6 +42,7 @@ loggedInUserRouter.get(
           id: post.id,
           rating: post.UserRatedPosts.rating,
         })),
+        avatarImageUrl: user.avatarImageUrl,
       });
     } catch (error) {
       response.status(401).json(error);
@@ -54,7 +55,7 @@ loggedInUserRouter.patch(
   validate(updateLoggedInUserSchema),
   requireAuth,
   async (request, response) => {
-    const { introduction } = request.body;
+    const { introduction, userAvatarImageUrl } = request.body;
     const userId = request.user.id;
 
     const user = await User.findByPk(userId);
@@ -62,7 +63,7 @@ loggedInUserRouter.patch(
       return response.status(404).json({ error: "user not found" });
     }
 
-    await user.update({ introduction });
+    await user.update({ introduction, avatarImageUrl: userAvatarImageUrl });
 
     response.status(200).json("user succesfully updated");
   },

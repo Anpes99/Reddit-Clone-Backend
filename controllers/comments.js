@@ -43,7 +43,13 @@ commentRouter.get("/moreComments/:id", async (req, res) => {
   const id = req.params.id;
   const comments = await Comment.findAll({
     where: { commentId: id },
-    include: [{ model: User, attributes: ["username"], required: true }],
+    include: [
+      {
+        model: User,
+        attributes: ["username", "avatarImageUrl"],
+        required: true,
+      },
+    ],
   });
   return res.json(comments);
 });

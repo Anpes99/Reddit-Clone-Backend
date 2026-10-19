@@ -49,6 +49,7 @@ usersRouter.post(
     await User.create({
       username: body.username,
       passwordHash,
+      avatarImageUrl: `https://api.dicebear.com/10.x/voxel-art/svg?scale=1.25&seed=${encodeURIComponent(body.username)}`,
     }).catch((e) => {
       return response.status(400).json("error when creating user");
     });
@@ -65,9 +66,11 @@ usersRouter.get("/:username", async (request, response) => {
     return response.status(404).json({ error: "user not found" });
   }
 
-  await response
-    .status(200)
-    .json({ username: user.username, introduction: user.introduction });
+  await response.status(200).json({
+    username: user.username,
+    introduction: user.introduction,
+    avatarImageUrl: user.avatarImageUrl,
+  });
 });
 
 usersRouter.get(

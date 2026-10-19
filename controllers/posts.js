@@ -50,11 +50,21 @@ postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
       {
         model: Comment,
         where: { directReplyToPost: true },
-        include: [{ model: User, attributes: ["username"], required: true }],
+        include: [
+          {
+            model: User,
+            attributes: ["username", "avatarImageUrl"],
+            required: true,
+          },
+        ],
         required: false,
       },
       { model: Subreddit, as: "subreddit", required: false },
-      { model: User, attributes: ["username"], required: true },
+      {
+        model: User,
+        attributes: ["username"],
+        required: true,
+      },
     ],
     order:
       sortBy === "upVotes" || !sortBy

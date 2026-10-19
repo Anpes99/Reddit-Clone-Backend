@@ -72,6 +72,7 @@ authRouter.post("/login", validate(loginSchema), async (request, response) => {
         id: post.id,
         rating: post.UserRatedPosts.rating,
       })),
+      avatarImageUrl: user.avatarImageUrl,
     });
   } catch (error) {
     console.log("error2:", error);
