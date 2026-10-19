@@ -5,5 +5,5 @@ export const getLoggedInUserSchema = Joi.object({
 }).unknown(false);
 
 export const updateLoggedInUserSchema = Joi.object({
-  introduction: Joi.string().min(1).max(300),
+  introduction: Joi.string().min(1).max(500),
 }).unknown(false);
