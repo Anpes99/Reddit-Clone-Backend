@@ -1,6 +1,12 @@
 const bcrypt = require("bcrypt");
 const usersRouter = require("express").Router();
-const { User, Post, Subreddit, Comment } = require("../models/index");
+const {
+  User,
+  Post,
+  Subreddit,
+  Comment,
+  UserSubreddits,
+} = require("../models/index");
 const { validate } = require("../utils/middleware");
 const {
   postNewUserSchema,
@@ -66,10 +72,31 @@ usersRouter.get("/:username", async (request, response) => {
     return response.status(404).json({ error: "user not found" });
   }
 
+  const subredditsJoinedCount = await UserSubreddits.count({
+    where: { userId: user.id },
+  });
+
+  const contributionsCount = await sequelize.query(
+    `
+          SELECT
+          (SELECT COUNT(*) FROM posts WHERE user_id = :userId) +
+          (SELECT COUNT(*) FROM comments WHERE user_id = :userId)
+          AS totalCount;
+                  
+          `,
+    {
+      replacements: { userId: user.id },
+      type: QueryTypes.SELECT,
+    },
+  );
+
   await response.status(200).json({
     username: user.username,
     introduction: user.introduction,
     avatarImageUrl: user.avatarImageUrl,
+    createdAt: user.createdAt,
+    subredditsJoinedCount,
+    contributionsCount: contributionsCount[0].totalcount,
   });
 });
 
