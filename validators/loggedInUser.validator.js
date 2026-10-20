@@ -10,4 +10,8 @@ export const updateLoggedInUserSchema = Joi.object({
     .uri({ scheme: ["https", "http"] })
     .max(2048)
     .allow(null, ""),
+  profilePageBackgroundImageUrl: Joi.string()
+    .uri({ scheme: ["https", "http"] })
+    .max(2048)
+    .allow(null, ""),
 }).unknown(false);

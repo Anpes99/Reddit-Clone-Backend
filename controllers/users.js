@@ -94,6 +94,7 @@ usersRouter.get("/:username", async (request, response) => {
     username: user.username,
     introduction: user.introduction,
     avatarImageUrl: user.avatarImageUrl,
+    profilePageBackgroundImageUrl: user.profilePageBackgroundImageUrl,
     createdAt: user.createdAt,
     subredditsJoinedCount,
     contributionsCount: contributionsCount[0].totalcount,

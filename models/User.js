@@ -24,7 +24,10 @@ User.init(
       allowNull: false,
     },
     avatarImageUrl: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
+    },
+    profilePageBackgroundImageUrl: {
+      type: DataTypes.TEXT,
     },
   },
   {
