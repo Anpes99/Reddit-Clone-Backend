@@ -48,7 +48,6 @@ Post.belongsTo(Subreddit, {
     name: "subredditId",
     field: "subreddit_id",
   },
-  as: "subreddit",
 });
 Comment.belongsTo(Post);
 Comment.belongsTo(User);

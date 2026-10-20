@@ -35,7 +35,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
     const options = {
       where: {
         title: {
-          [Op.iLike]: `%${searchQuery}%`,
+          [Op.iLike]: `%${String(searchQuery).toLowerCase()}%`,
         },
       },
       offset,
@@ -46,7 +46,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
           model: User,
           attributes: ["username"],
         },
-        { model: Subreddit, attributes: ["name"] },
+        { model: Subreddit, attributes: ["name", "iconUrl"] },
       ],
     };
 
@@ -58,7 +58,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
     const options = {
       where: {
         title: {
-          [Op.iLike]: `%${searchQuery}%`,
+          [Op.iLike]: `%${String(searchQuery).toLowerCase()}%`,
         },
       },
       offset,
@@ -68,7 +68,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
           model: User,
           attributes: ["username"],
         },
-        { model: Subreddit, attributes: ["name"] },
+        { model: Subreddit, attributes: ["name", "iconUrl"] },
       ],
       order: [
         [sequelize.literal('"up_votes"-"down_votes"'), "desc"],
