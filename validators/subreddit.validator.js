@@ -39,4 +39,8 @@ export const updateSubredditSchema = Joi.object({
     .uri({ scheme: ["https", "http"] })
     .max(2048)
     .allow(null, ""),
+  subredditPageBackgroundImageUrl: Joi.string()
+    .uri({ scheme: ["https", "http"] })
+    .max(2048)
+    .allow(null, ""),
 }).unknown(false);

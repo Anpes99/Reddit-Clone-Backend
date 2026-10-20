@@ -28,6 +28,9 @@ Subreddit.init(
     iconUrl: {
       type: DataTypes.STRING,
     },
+    subredditPageBackgroundImageUrl: {
+      type: DataTypes.TEXT,
+    },
   },
   {
     sequelize,

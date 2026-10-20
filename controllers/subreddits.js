@@ -174,7 +174,8 @@ subredditsRouter.patch(
   validate(updateSubredditSchema),
   async (req, res) => {
     try {
-      const { subredditIconUrl, description } = req.body;
+      const { subredditIconUrl, description, subredditPageBackgroundImageUrl } =
+        req.body;
       const subredditId = req.params.subredditId;
 
       const subredditToUpdate = await Subreddit.findByPk(subredditId);
@@ -182,6 +183,7 @@ subredditsRouter.patch(
       await subredditToUpdate.update({
         iconUrl: subredditIconUrl,
         description,
+        subredditPageBackgroundImageUrl,
       });
       return res.json(subredditToUpdate);
     } catch (e) {
