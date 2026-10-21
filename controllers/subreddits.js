@@ -60,17 +60,7 @@ subredditsRouter.get(
     if (sortBy === SUBREDDIT_ORDER_BY_TYPES.MEMBER_COUNT) {
       const result = await Subreddit.findAll({
         limit: limit || 10,
-        attributes: {
-          include: [
-            [
-              sequelize.literal(
-                `(SELECT COUNT(*) FROM "user_subreddits" WHERE "subreddit"."id" = "user_subreddits"."subreddit_id")`,
-              ),
-              "memberCount",
-            ],
-          ],
-        },
-        order: [[sequelize.literal('"memberCount"'), order || "DESC"]],
+        order: [["member_count", order || "DESC"]],
         group: ["subreddit.id"],
       });
 
@@ -80,7 +70,7 @@ subredditsRouter.get(
     const subreddits = await sequelize
       .query(
         `
-    SELECT subreddits.*, COUNT((select 1 from user_subreddits us where us.subreddit_id = subreddits.id)) AS memberCount
+    SELECT subreddits.*
     FROM subreddits
     GROUP BY subreddits.id;
   `,

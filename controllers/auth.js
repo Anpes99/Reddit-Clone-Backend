@@ -58,7 +58,7 @@ authRouter.post("/login", validate(loginSchema), async (request, response) => {
 
     response.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.ENV === "production",
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/api/auth",
     });

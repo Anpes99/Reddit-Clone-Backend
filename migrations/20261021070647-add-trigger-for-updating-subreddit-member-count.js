@@ -41,7 +41,7 @@ END;
 $$;
 
 CREATE TRIGGER user_subreddits_maintain_subreddit_member_count
-AFTER INSERT OR DELETE ON subreddits
+AFTER INSERT OR DELETE ON user_subreddits
 FOR EACH ROW
 EXECUTE FUNCTION maintain_subreddit_member_count();
 
