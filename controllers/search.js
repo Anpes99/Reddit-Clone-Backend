@@ -100,6 +100,7 @@ searchRouter.post(
         },
       },
       attributes: ["id", "name", "description", "memberCount", "iconUrl"],
+      order: [["member_count", "desc"]],
     };
     const countOptions = { where: options.where };
     const totalCount = await Subreddit.count(countOptions);
