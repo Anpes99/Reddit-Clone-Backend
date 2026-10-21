@@ -99,7 +99,7 @@ searchRouter.post(
           [Op.iLike]: `%${searchQuery}%`,
         },
       },
-      attributes: ["id", "name", "description"],
+      attributes: ["id", "name", "description", "memberCount", "iconUrl"],
     };
     const countOptions = { where: options.where };
     const totalCount = await Subreddit.count(countOptions);

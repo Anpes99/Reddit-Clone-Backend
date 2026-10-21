@@ -114,11 +114,8 @@ subredditsRouter.get(
       ...result.dataValues,
       currentUserRole: userSubredditModerator?.dataValues?.role || "",
     };
-    const memberCount = await UserSubreddits.count({
-      where: { subredditId: subreddit.id },
-    });
 
-    return res.send({ ...subreddit, memberCount });
+    return res.send({ ...subreddit });
   },
 );
 

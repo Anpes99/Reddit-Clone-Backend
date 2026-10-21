@@ -31,6 +31,11 @@ Subreddit.init(
     subredditPageBackgroundImageUrl: {
       type: DataTypes.TEXT,
     },
+    memberCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
   {
     sequelize,
