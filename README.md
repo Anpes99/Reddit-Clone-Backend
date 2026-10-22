@@ -97,7 +97,11 @@
 
 
 ### Homepage mobile view
-<img width="233" height="411" alt="frontpage_mobile2" src="https://github.com/user-attachments/assets/360b5a1e-873f-48cb-9969-6d11b370b8f3" />
+<img width="233" height="411" alt="frontpage_mobile2" src="https://github.com/user-attachments/assets/37ee39c8-69e3-41c9-b505-bef79b0b862e" />
+
+
+
+
 
 
 
@@ -118,7 +122,7 @@
 
 
 ### Responsive web design
-<img width="785" height="330" alt="frontpage_responsive3" src="https://github.com/user-attachments/assets/6689ff6a-a3c5-455d-9384-1e616a492f7a" />
+<img width="785" height="330" alt="frontpage_responsive3" src="https://github.com/user-attachments/assets/38550ff2-4667-4656-86a0-8419ff32f1c4" />
 
 
 
@@ -138,7 +142,7 @@
 
 
 ### Subreddit creation and customization
-<img width="800" height="450" alt="subreddit_creation2" src="https://github.com/user-attachments/assets/837949cd-273e-4a1a-883f-705953fc97e6" />
+<img width="800" height="450" alt="subreddit_creation2" src="https://github.com/user-attachments/assets/ac979222-11fa-4877-a8f9-0712b7ee2c4e" />
 
 
 
@@ -165,7 +169,7 @@
 
 
 ### User creation and customization
-<img width="800" height="450" alt="user_creation1" src="https://github.com/user-attachments/assets/508b7b24-83a9-4c8e-a9b2-c4a1f72e5eea" />
+<img width="800" height="450" alt="user_creation1" src="https://github.com/user-attachments/assets/d1fb21e2-8e20-403a-947e-0c4b37474838" />
 
 
 
@@ -183,7 +187,8 @@
 
 
 ### Post creation
-<img width="578" height="328" alt="post_creation6" src="https://github.com/user-attachments/assets/23d0d029-3d53-47fb-88c6-99acde14eaee" />
+<img width="578" height="328" alt="post_creation6" src="https://github.com/user-attachments/assets/4395a951-ba95-48a8-8430-7e5596b078e5" />
+
 
 
 
@@ -202,7 +207,7 @@
 
 
 ### Post page and nested comments
-<img width="800" height="450" alt="postpage3" src="https://github.com/user-attachments/assets/0bee79a0-81ec-42a5-ae66-05f3f380cf09" />
+<img width="800" height="450" alt="postpage3" src="https://github.com/user-attachments/assets/154f6507-67a7-4ac2-ab38-ee17e5e6a916" />
 
 
 
