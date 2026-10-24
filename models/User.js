@@ -29,6 +29,11 @@ User.init(
     profilePageBackgroundImageUrl: {
       type: DataTypes.TEXT,
     },
+    karma: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
   {
     sequelize,

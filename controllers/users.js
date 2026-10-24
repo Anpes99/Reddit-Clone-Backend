@@ -98,6 +98,7 @@ usersRouter.get("/:username", async (request, response) => {
     createdAt: user.createdAt,
     subredditsJoinedCount,
     contributionsCount: contributionsCount[0].totalcount,
+    karma: user.karma,
   });
 });
 
