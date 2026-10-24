@@ -7,9 +7,10 @@ export const searchSuggestionsSchema = Joi.object({
 
 export const searchPostsSchema = Joi.object({
   searchQuery: Joi.string().min(1).max(500),
-  offset: Joi.number().integer().min(0),
+  offset: Joi.number().integer().min(0).default(0),
   limit: Joi.number().integer().min(1).max(100),
   orderType: Joi.string().valid(...Object.values(postsOrderType)),
+  prevSearchWordEmbedding: Joi.string().max(10000),
 }).unknown(false);
 
 export const searchSubredditsSchema = Joi.object({

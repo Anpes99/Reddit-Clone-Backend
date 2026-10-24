@@ -1,7 +1,7 @@
 const { Model, DataTypes } = require("sequelize");
 
 const { sequelize } = require("../utils/db");
-
+require("pgvector/sequelize");
 class Post extends Model {}
 
 Post.init(
@@ -48,6 +48,10 @@ Post.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+    },
+    embedding: {
+      type: DataTypes.VECTOR(512),
+      allowNull: false,
     },
   },
   {

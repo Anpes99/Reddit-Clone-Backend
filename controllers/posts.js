@@ -1,6 +1,7 @@
 const postsRouter = require("express").Router();
 const { User, Comment, Post, Subreddit } = require("../models/index");
 const { sequelize } = require("../utils/db");
+const { generateEmbedding } = require("../utils/embeddings");
 const { validate, requireAuth } = require("../utils/middleware");
 const {
   getPostSchema,
@@ -102,6 +103,10 @@ postsRouter.post(
         .json("missing information. Please include all required information.");
     }
 
+    const textForEmbedding = `${title}\n\n${text}`;
+
+    const embedding = await generateEmbedding(textForEmbedding, "document");
+
     if (req.user.id) {
       await Post.create({
         title: title,
@@ -109,6 +114,7 @@ postsRouter.post(
         imageUrl,
         userId: req.user.id,
         subredditId: subreddit.id,
+        embedding,
       }).catch((e) => {
         console.log(e);
         return res.status(400).json("error when creating new post:");
