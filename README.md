@@ -6,7 +6,7 @@
 
 # Tech Stack
  - Frontend: React, Redux, JavaScript, Tailwind CSS, CSS, HTML
- - Backend: Node.js, Express.js, PostgreSQL, Sequelize ORM    (https://github.com/Anpes99/Reddit-Clone-Backend)
+ - Backend: Node.js, Express.js, PostgreSQL, Sequelize ORM    
  - Authentication & Validation: JWT, refresh-token rotation, Joi
  - Storage: AWS S3
  - AI & Search: Voyage AI embeddings, semantic search
