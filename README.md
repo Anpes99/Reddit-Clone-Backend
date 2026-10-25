@@ -8,6 +8,7 @@
  - Frontend: React, Redux, JavaScript, Tailwind CSS, CSS, HTML
  - Backend: Node.js, Express.js, PostgreSQL, Sequelize ORM    
  - Authentication & Validation: JWT, refresh-token rotation, Joi
+ - Real-time Communication: Socket.IO
  - Storage: AWS S3
  - AI & Search: Voyage AI embeddings, semantic search
  - Deployment: Heroku
@@ -54,6 +55,7 @@
 - ✅ Leave subreddit
 - ✅ Search for subreddits
 - ✅ Subreddit page with post feed
+- ✅ Real-time count of authenticated users currently viewing each subreddit using Socket.IO
 - ✅ Subreddit member count leaderboard: Automatically updates daily using a scheduled cron job, with rank-change indicators showing each subreddit's movement compared to the previous day's leaderboard.
 
 ## Post
@@ -65,12 +67,14 @@
 - ✅ Search for posts
 - ✅ Infinite scrolling for posts
 - ✅ Post page with comment section
+- ✅ Real-time post vote count updates using Socket.IO
 
 
 ## Comments
 
 - ✅ Create comment
 - ✅ Vote comment
+- ✅ Real-time comment vote count updates using Socket.IO
 - ✅ Nested comments
 
 
