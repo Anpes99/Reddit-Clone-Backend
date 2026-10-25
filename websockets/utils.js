@@ -1,5 +1,4 @@
-const { UserRatedPosts } = require("../models");
-const UserRatedComments = require("../models/UserRatedComments");
+const { UserRatedComments, UserRatedPosts } = require("../models/index");
 
 const cancelCommentUpvote = async ({ dbComment, dbExistingVoteByUser, io }) => {
   await dbComment.decrement("upVotes", { by: 1 });

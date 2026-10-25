@@ -1,5 +1,9 @@
-const UserRatedComments = require("../models/UserRatedComments");
-const { Comment, Post, UserRatedPosts } = require("../models/index");
+const {
+  Comment,
+  Post,
+  UserRatedPosts,
+  UserRatedComments,
+} = require("../models/index");
 const {
   cancelCommentUpvote,
   cancelCommentDownvote,

@@ -6,6 +6,8 @@ const UserSubreddits = require("./UserSubreddits");
 const UserRatedPosts = require("./UserRatedPosts");
 const UserRatedComments = require("./UserRatedComments");
 const SubredditModerators = require("./SubredditModerators");
+const SubredditLeaderboard = require("./SubredditLeaderboard");
+const SubredditLeaderboardSubreddit = require("./SubredditLeaderboardSubreddit");
 
 User.hasMany(Post);
 User.hasMany(Comment);
@@ -54,6 +56,17 @@ Comment.belongsTo(User);
 Comment.belongsTo(Comment, { as: "parentComment", foreignKey: "commentId" });
 
 Post.belongsTo(User);
+Subreddit.belongsToMany(SubredditLeaderboard, {
+  through: SubredditLeaderboardSubreddit,
+  as: "subredditLeaderboards",
+});
+SubredditLeaderboard.belongsToMany(Subreddit, {
+  through: SubredditLeaderboardSubreddit,
+  as: "rankedSubreddits",
+});
+SubredditLeaderboardSubreddit.belongsTo(Subreddit, {
+  foreignKey: "subredditId",
+});
 
 // uncomment to sync database tables
 /*
@@ -64,13 +77,19 @@ Subreddit.sync({ alter: true });
 Comment.sync({ alter: true });
 UserSubreddits.sync({ alter: true });
 UserRatedComments.sync({ alter: true });
-SubredditModerators.sync({ alter: true }); 
+SubredditModerators.sync({ alter: true });
+SubredditLeaderboard.sync({ alter: true });
+SubredditLeaderboardSubreddit.sync({ alter: true }); 
  */
 module.exports = {
   User,
   Comment,
   Post,
   Subreddit,
+  SubredditLeaderboard,
+  SubredditLeaderboardSubreddit,
+  SubredditModerators,
   UserSubreddits,
   UserRatedPosts,
+  UserRatedComments,
 };
