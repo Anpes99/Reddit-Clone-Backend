@@ -1,6 +1,6 @@
 const loggedInUserRouter = require("express").Router();
 const { User, Subreddit, Post } = require("../models/index");
-const { validate, requireAuth } = require("../utils/middleware");
+const { validate, requireAuth } = require("../utils/middleware/middleware");
 const {
   getLoggedInUserSchema,
   updateLoggedInUserSchema,

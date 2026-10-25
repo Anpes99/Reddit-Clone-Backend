@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
 const {
   hasSubredditPermission,
-} = require("../config/subreddit-moderator-permissions");
-const { SubredditModerators } = require("../models/index");
+} = require("../../config/subreddit-moderator-permissions");
+const { SubredditModerators } = require("../../models/index");
 
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: "unknown endpoint" });

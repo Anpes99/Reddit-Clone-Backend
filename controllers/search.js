@@ -2,7 +2,7 @@ const searchRouter = require("express").Router();
 const { Op } = require("sequelize");
 const { Subreddit, Post, User } = require("../models/index");
 const { sequelize } = require("../utils/db");
-const { validate } = require("../utils/middleware");
+const { validate } = require("../utils/middleware/middleware");
 const {
   searchSuggestionsSchema,
   searchPostsSchema,

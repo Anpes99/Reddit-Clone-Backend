@@ -2,7 +2,7 @@ const postsRouter = require("express").Router();
 const { User, Comment, Post, Subreddit } = require("../models/index");
 const { sequelize } = require("../utils/db");
 const { generateEmbedding } = require("../utils/embeddings");
-const { validate, requireAuth } = require("../utils/middleware");
+const { validate, requireAuth } = require("../utils/middleware/middleware");
 const {
   getPostSchema,
   postNewPostSchema,

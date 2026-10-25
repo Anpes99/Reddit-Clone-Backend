@@ -1,4 +1,4 @@
-const { requireAuth } = require("../utils/middleware.js");
+const { requireAuth } = require("../utils/middleware/middleware.js");
 const { generateUploadURL } = require("../utils/s3.js");
 const utilsRouter = require("express").Router();
 

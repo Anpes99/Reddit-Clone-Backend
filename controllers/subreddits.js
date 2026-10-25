@@ -15,7 +15,7 @@ const {
   validate,
   requireAuth,
   requireSubredditPermission,
-} = require("../utils/middleware");
+} = require("../utils/middleware/middleware");
 const {
   getSubredditsSchema,
   getSubredditSchema,

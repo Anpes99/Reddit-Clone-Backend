@@ -1,9 +1,12 @@
 const config = require("./utils/config");
 const { connectToDatabase } = require("./utils/db");
+const { connectRedis } = require("./utils/redis");
+connectRedis();
 const cors = require("cors");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const app = express();
+app.set("trust proxy", 1);
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
@@ -15,7 +18,7 @@ app.use(express.json());
 app.use(cookieParser());
 const usersRouter = require("./controllers/users");
 const authRouter = require("./controllers/auth");
-const middleware = require("./utils/middleware");
+const middleware = require("./utils/middleware/middleware");
 const postsRouter = require("./controllers/posts");
 const newsRouter = require("./controllers/news");
 const commentRouter = require("./controllers/comments");

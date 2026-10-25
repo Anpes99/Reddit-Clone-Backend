@@ -7,7 +7,7 @@ const {
   Comment,
   UserSubreddits,
 } = require("../models/index");
-const { validate } = require("../utils/middleware");
+const { validate } = require("../utils/middleware/middleware");
 const {
   postNewUserSchema,
   getUserPostsAndCommentsFeedSchema,

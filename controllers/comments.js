@@ -1,6 +1,6 @@
 const commentRouter = require("express").Router();
 const { Comment, User } = require("../models/index");
-const { validate, requireAuth } = require("../utils/middleware");
+const { validate, requireAuth } = require("../utils/middleware/middleware");
 const { postNewPostCommentSchema } = require("../validators/comment.validator");
 
 commentRouter.post(
