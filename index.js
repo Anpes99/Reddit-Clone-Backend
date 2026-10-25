@@ -7,6 +7,12 @@ const io = new Server(server);
 const postsSocket = require("./websockets/posts")(io);
 const likesSocket = require("./websockets/likes")(io);
 const {
+  registerSubredditOnlineCountSocketHandlers,
+  startSubredditOnlineCountBroadcast,
+} = require("./websockets/onlineCount");
+registerSubredditOnlineCountSocketHandlers(io);
+startSubredditOnlineCountBroadcast(io);
+const {
   startUpdateTopCommunitiesTask,
 } = require("./jobs/update-top-communities-task");
 
