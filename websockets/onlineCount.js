@@ -21,7 +21,7 @@ const leaveSubreddit = (userId, subredditName) => {
   }
 };
 
-const getOnlineCount = (subredditName) => {
+const getOnlineSubredditUserCount = (subredditName) => {
   const users = subreddits.get(subredditName);
   if (!users) return 0;
 
@@ -53,7 +53,7 @@ const registerSubredditOnlineCountSocketHandlers = (io) => {
     const publishCount = async (subredditName) => {
       io.to(`subreddit:${subredditName}`).emit(
         "subreddit:online-count",
-        getOnlineCount(subredditName),
+        getOnlineSubredditUserCount(subredditName),
       );
     };
 
@@ -100,7 +100,7 @@ const startSubredditOnlineCountBroadcast = (io) => {
     for (const subredditName of getTrackedSubredditNames()) {
       io.to(`subreddit:${subredditName}`).emit(
         "subreddit:online-count",
-        getOnlineCount(subredditName),
+        getOnlineSubredditUserCount(subredditName),
       );
     }
   }, 5000);
@@ -109,4 +109,5 @@ const startSubredditOnlineCountBroadcast = (io) => {
 module.exports = {
   registerSubredditOnlineCountSocketHandlers,
   startSubredditOnlineCountBroadcast,
+  getOnlineSubredditUserCount,
 };

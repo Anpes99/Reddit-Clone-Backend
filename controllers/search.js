@@ -11,6 +11,7 @@ const {
 const { postsOrderType } = require("../enums/post.enum");
 const { QueryTypes } = require("sequelize");
 const { generateEmbedding } = require("../utils/embeddings");
+const { getOnlineSubredditUserCount } = require("../websockets/onlineCount");
 
 searchRouter.post(
   "/suggestions",
@@ -296,7 +297,19 @@ searchRouter.post(
 
     const totalCount = await Subreddit.count({ where });
     const subreddits = await Subreddit.findAll(options);
-    return res.send({ subreddits, totalCount });
+    const onlineUserCounts = {};
+    for (const subreddit of subreddits) {
+      const onlineUserCount = getOnlineSubredditUserCount(subreddit.name);
+      onlineUserCounts[subreddit.name] = onlineUserCount;
+    }
+
+    return res.send({
+      subreddits: subreddits.map((subreddit) => ({
+        ...subreddit.dataValues,
+        onlineUserCount: onlineUserCounts[subreddit.name],
+      })),
+      totalCount,
+    });
   },
 );
 
