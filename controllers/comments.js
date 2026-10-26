@@ -1,10 +1,14 @@
 const commentRouter = require("express").Router();
 const { Comment, User } = require("../models/index");
 const { validate, requireAuth } = require("../utils/middleware/middleware");
+const {
+  createCommentRequestLimiter,
+} = require("../utils/middleware/requestRateLimiters");
 const { postNewPostCommentSchema } = require("../validators/comment.validator");
 
 commentRouter.post(
   "/",
+  createCommentRequestLimiter,
   requireAuth,
   validate(postNewPostCommentSchema),
   async (req, res) => {

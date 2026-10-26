@@ -3,7 +3,6 @@ const {
   hasSubredditPermission,
 } = require("../../config/subreddit-moderator-permissions");
 const { SubredditModerators } = require("../../models/index");
-const { default: rateLimit } = require("express-rate-limit");
 
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: "unknown endpoint" });
@@ -129,13 +128,6 @@ const requireSubredditPermission = (permission) => {
   };
 };
 
-const generalRequestLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 300,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-});
-
 module.exports = {
   errorHandler,
   tokenExtractor,
@@ -144,5 +136,4 @@ module.exports = {
   validate,
   requireAuth,
   requireSubredditPermission,
-  generalRequestLimiter,
 };

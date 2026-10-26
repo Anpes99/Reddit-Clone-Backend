@@ -22,11 +22,17 @@ const { QueryTypes } = require("sequelize");
 const {
   getUserPageOverviewPageFeedQuery,
 } = require("../queries/user/getUserPageOverviewPageFeedQuery");
+const {
+  signUpLimiter,
+  signUpPerDayLimiter,
+} = require("../utils/middleware/requestRateLimiters");
 
 require("express-async-errors");
 
 usersRouter.post(
   "/",
+  signUpLimiter,
+  signUpPerDayLimiter,
   validate(postNewUserSchema),
   async (request, response) => {
     const { body } = request;

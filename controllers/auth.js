@@ -4,7 +4,7 @@ const authRouter = require("express").Router();
 const { User, Subreddit, Post } = require("../models/index");
 const { validate } = require("../utils/middleware/middleware");
 const { loginSchema } = require("../validators/login.validator");
-const { loginIpLimiter } = require("../utils/middleware/loginIpLimiter");
+const { loginIpLimiter } = require("../utils/middleware/requestRateLimiters");
 const { redisClient } = require("../utils/redis");
 
 const WINDOW_SECONDS = 15 * 60;

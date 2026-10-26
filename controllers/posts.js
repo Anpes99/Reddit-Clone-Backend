@@ -4,6 +4,9 @@ const { sequelize } = require("../utils/db");
 const { generateEmbedding } = require("../utils/embeddings");
 const { validate, requireAuth } = require("../utils/middleware/middleware");
 const {
+  createPostRequestLimiter,
+} = require("../utils/middleware/requestRateLimiters");
+const {
   getPostSchema,
   postNewPostSchema,
 } = require("../validators/post.validator");
@@ -87,6 +90,7 @@ postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
 
 postsRouter.post(
   "/",
+  createPostRequestLimiter,
   requireAuth,
   validate(postNewPostSchema),
   async (req, res) => {

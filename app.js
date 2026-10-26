@@ -13,13 +13,17 @@ app.use(
     credentials: true,
   }),
 );
+const {
+  generalRequestLimiter,
+} = require("./utils/middleware/requestRateLimiters");
 
-const middleware = require("./utils/middleware/middleware");
-app.use(middleware.generalRequestLimiter);
+app.use(generalRequestLimiter);
 
 app.use(express.static("build"));
 app.use(express.json());
 app.use(cookieParser());
+
+const middleware = require("./utils/middleware/middleware");
 const usersRouter = require("./controllers/users");
 const authRouter = require("./controllers/auth");
 const postsRouter = require("./controllers/posts");
