@@ -7,7 +7,7 @@
 # Tech Stack
  - Frontend: React, Redux, JavaScript, Tailwind CSS, CSS, HTML
  - Backend: Node.js, Express.js, PostgreSQL, Sequelize ORM    
- - Authentication & Validation: JWT, refresh-token rotation, Joi
+ - Authentication & Validation: JWT, refresh-token rotation, Redis-based login rate limiting, Joi
  - Real-time Communication: Socket.IO
  - Storage: AWS S3
  - AI & Search: Voyage AI embeddings, semantic search
@@ -20,6 +20,8 @@
 - ✅ Password hashing
 - ✅ JWT authentication and refresh-token rotation
 - ✅ Authentication and role-based authorization
+- ✅ Redis-backed login rate limiting by IP address
+- ✅ Stricter rate limiting for login attempts targeting a specific user from the same IP address
 
 ### Backend & Database
 - ✅ Express.js REST API
