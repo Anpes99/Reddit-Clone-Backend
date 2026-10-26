@@ -1,4 +1,4 @@
-const config = require("./utils/config");
+const runtime = require("./utils/runtime");
 const { connectToDatabase } = require("./utils/db");
 const { connectRedis } = require("./utils/redis");
 connectRedis();
@@ -43,7 +43,7 @@ app.use("/api/subreddits", subredditsRouter);
 app.use("/api/utils", utilsRouter);
 app.use("/api/search", searchRouter);
 
-if (config.NODE_ENV === "production") {
+if (runtime.NODE_ENV === "production") {
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "build", "index.html"));
   });

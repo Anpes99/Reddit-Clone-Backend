@@ -1,6 +1,6 @@
 const http = require("http");
 const app = require("./app");
-const config = require("./utils/config");
+const runtime = require("./utils/runtime");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
@@ -26,8 +26,8 @@ const {
 
 startUpdateTopCommunitiesTask();
 
-const PORT = config.PORT || 3001;
-server.listen(config.PORT);
-console.log("server running on port " + config.PORT);
+const PORT = runtime.PORT || 3001;
+server.listen(runtime.PORT);
+console.log("server running on port " + runtime.PORT);
 
 module.exports = { io };

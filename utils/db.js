@@ -1,5 +1,5 @@
 const Sequelize = require("sequelize");
-const config = require("./config");
+const runtime = require("./runtime");
 
 const sequelize = new Sequelize(process.env.DATABASE_URI, {
   dialectOptions: {
