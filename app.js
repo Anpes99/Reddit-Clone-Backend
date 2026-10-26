@@ -13,12 +13,15 @@ app.use(
     credentials: true,
   }),
 );
+
+const middleware = require("./utils/middleware/middleware");
+app.use(middleware.generalRequestLimiter);
+
 app.use(express.static("build"));
 app.use(express.json());
 app.use(cookieParser());
 const usersRouter = require("./controllers/users");
 const authRouter = require("./controllers/auth");
-const middleware = require("./utils/middleware/middleware");
 const postsRouter = require("./controllers/posts");
 const newsRouter = require("./controllers/news");
 const commentRouter = require("./controllers/comments");
