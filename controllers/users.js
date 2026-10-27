@@ -6,11 +6,14 @@ const {
   Subreddit,
   Comment,
   UserSubreddits,
+  PasswordResetToken,
 } = require("../models/index");
 const { validate } = require("../utils/middleware/middleware");
 const {
   postNewUserSchema,
   getUserPostsAndCommentsFeedSchema,
+  forgottenPasswordSchema,
+  resetPasswordSchema,
 } = require("../validators/user.validator");
 const {
   USER_PAGE_CONTENT_TYPES,
@@ -26,7 +29,11 @@ const {
   signUpLimiter,
   signUpPerDayLimiter,
 } = require("../utils/middleware/requestRateLimiters");
-const { sendVerificationEmail } = require("../utils/email");
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  hashPasswordResetToken,
+} = require("../utils/email");
 
 require("express-async-errors");
 
@@ -64,8 +71,6 @@ usersRouter.post(
       email: body.email,
       passwordHash,
       avatarImageUrl: `https://api.dicebear.com/10.x/voxel-art/svg?scale=1.25&seed=${encodeURIComponent(body.username)}`,
-    }).catch((e) => {
-      return response.status(400).json("error when creating user");
     });
 
     await sendVerificationEmail({
@@ -276,6 +281,63 @@ usersRouter.get(
     }
 
     return response.json();
+  },
+);
+
+usersRouter.post(
+  "/forgotten-password",
+  validate(forgottenPasswordSchema),
+  async (request, response) => {
+    const email = request.body.email;
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return response.status(400).json({ error: "user not found" });
+    }
+
+    await sendPasswordResetEmail({ email: user.email, userId: user.id });
+
+    await response.status(200).json({
+      message: "forgotten password email sent",
+    });
+  },
+);
+
+usersRouter.post(
+  "/reset-password",
+  validate(resetPasswordSchema),
+  async (request, response) => {
+    const { password, passwordResetToken } = request.body;
+
+    const hashedPasswordResetToken = hashPasswordResetToken(passwordResetToken);
+    const dbPasswordResetToken = await PasswordResetToken.findOne({
+      where: { tokenHash: hashedPasswordResetToken },
+    });
+
+    if (!dbPasswordResetToken) {
+      return response.status(400).json({ message: "Invalid or expired token" });
+    }
+    if (dbPasswordResetToken.expiresAt <= new Date()) {
+      await dbPasswordResetToken.destroy();
+
+      return response.status(410).json({ message: "Invalid or expired token" });
+    }
+
+    const user = await User.findOne({
+      where: { id: dbPasswordResetToken.userId },
+    });
+    if (!user) {
+      return response.status(400).json({ error: "user not found" });
+    }
+
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    await user.update({ passwordHash });
+    await dbPasswordResetToken.destroy();
+    await response.status(200).json({
+      message: "user password changed",
+    });
   },
 );
 

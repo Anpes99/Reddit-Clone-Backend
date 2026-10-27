@@ -4,9 +4,14 @@ const {
   hashEmailVerificationToken,
   sendVerificationEmail,
 } = require("../utils/email.js");
+const { validate } = require("../utils/middleware/middleware.js");
+const {
+  verifyEmailSchema,
+  resendVerifyEmailEmailSchema,
+} = require("../validators/verify-email-validator.js");
 const verifyEmailRouter = require("express").Router();
 
-verifyEmailRouter.post("/", async (req, res) => {
+verifyEmailRouter.post("/", validate(verifyEmailSchema), async (req, res) => {
   const token = req.body.token;
 
   const hashedToken = hashEmailVerificationToken(token);
@@ -49,30 +54,34 @@ verifyEmailRouter.post("/", async (req, res) => {
   return res.status(200).json({ message: "Email verified" });
 });
 
-verifyEmailRouter.post("/resend", async (req, res) => {
-  const username = req.body.username;
+verifyEmailRouter.post(
+  "/resend",
+  validate(resendVerifyEmailEmailSchema),
+  async (req, res) => {
+    const username = req.body.username;
 
-  const user = await User.findOne({ where: { username } });
-  if (!user) {
-    return res.status(400).json({ message: "user not found" });
-  }
-  if (user.emailVerified) {
-    return res.status(200).json({
-      status: "EMAIL_ALREADY_VERIFIED",
-      message: "Email is already verified.",
+    const user = await User.findOne({ where: { username } });
+    if (!user) {
+      return res.status(400).json({ message: "user not found" });
+    }
+    if (user.emailVerified) {
+      return res.status(200).json({
+        status: "EMAIL_ALREADY_VERIFIED",
+        message: "Email is already verified.",
+      });
+    }
+
+    const dbEmailVerificationToken = await EmailVerificationToken.findOne({
+      where: {
+        userId: user.id,
+      },
     });
-  }
+    await dbEmailVerificationToken.destroy();
 
-  const dbEmailVerificationToken = await EmailVerificationToken.findOne({
-    where: {
-      userId: user.id,
-    },
-  });
-  await dbEmailVerificationToken.destroy();
+    await sendVerificationEmail({ email: user.email, userId: user.id });
 
-  await sendVerificationEmail({ email: user.email, userId: user.id });
-
-  return res.status(200).json({ message: "new verification email sent" });
-});
+    return res.status(200).json({ message: "new verification email sent" });
+  },
+);
 
 module.exports = verifyEmailRouter;

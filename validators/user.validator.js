@@ -28,3 +28,12 @@ export const getUserPostsAndCommentsFeedSchema = Joi.object({
   ),
   getTotalCount: Joi.boolean().default(false),
 }).unknown(false);
+
+export const forgottenPasswordSchema = Joi.object({
+  email: Joi.string().email().required(),
+}).unknown(false);
+
+export const resetPasswordSchema = Joi.object({
+  password: Joi.string().min(4).max(128).required(),
+  passwordResetToken: Joi.string().length(64).hex().required(),
+}).unknown(false);

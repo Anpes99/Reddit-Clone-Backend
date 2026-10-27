@@ -9,6 +9,7 @@ const SubredditModerators = require("./SubredditModerators");
 const SubredditLeaderboard = require("./SubredditLeaderboard");
 const SubredditLeaderboardSubreddit = require("./SubredditLeaderboardSubreddit");
 const EmailVerificationToken = require("./EmailVerificationToken");
+const PasswordResetToken = require("./PasswordResetToken");
 
 User.hasMany(Post);
 User.hasMany(Comment);
@@ -71,6 +72,8 @@ SubredditLeaderboardSubreddit.belongsTo(Subreddit, {
 EmailVerificationToken.belongsTo(User);
 User.hasMany(EmailVerificationToken);
 
+PasswordResetToken.belongsTo(User);
+User.hasMany(PasswordResetToken);
 // uncomment to sync database tables
 /*
 UserRatedPosts.sync({ alter: true });
@@ -85,8 +88,13 @@ SubredditLeaderboard.sync();
 SubredditLeaderboardSubreddit.sync();
 EmailVerificationToken.sync({
   alter: true,
-}); { alter: true }{ alter: true }{ alter: true }
- */
+});
+PasswordResetToken.sync({
+  alter: true,
+});
+
+{ alter: true }{ alter: true }{ alter: true } */
+
 module.exports = {
   User,
   Comment,
@@ -99,4 +107,5 @@ module.exports = {
   UserRatedPosts,
   UserRatedComments,
   EmailVerificationToken,
+  PasswordResetToken,
 };
