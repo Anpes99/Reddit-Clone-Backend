@@ -20,6 +20,7 @@
 - ✅ Password hashing
 - ✅ JWT authentication and refresh-token rotation
 - ✅ Mandatory email verification for all accounts, with expiring database-stored tokens, resend functionality, and email delivery using Brevo and Nodemailer
+- ✅ Secure email-based password recovery with a dedicated password reset page and hashed, database-stored reset tokens that expire after 30 minutes.
 - ✅ Authentication and role-based authorization
 - ✅ Redis-backed rate limiting for login, signup, post and comment creation, and general API requests
 
@@ -45,6 +46,7 @@
 
 - ✅ Login & Logout
 - ✅ User registration with mandatory email verification, expiring verification tokens, and email resend functionality
+- ✅ Password recovery via email with a dedicated password reset page and 30-minute expiring reset tokens
 - ✅ Edit user avatar, profile page background image and introduction
 - ✅ User profile page with overview, posts, and comments feed tabs
 
