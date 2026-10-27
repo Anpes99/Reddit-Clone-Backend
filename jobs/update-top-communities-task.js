@@ -5,7 +5,7 @@ import { sequelize } from "../utils/db.js";
 
 export function startUpdateTopCommunitiesTask() {
   cron.schedule(
-    "0 9 * * *", //  "* * * * *",
+    "0 * * * *", //  "0 9 * * *", once per day
     async () => {
       try {
         const leaderboardDate = moment()
