@@ -26,6 +26,7 @@ const {
   signUpLimiter,
   signUpPerDayLimiter,
 } = require("../utils/middleware/requestRateLimiters");
+const { sendVerificationEmail } = require("../utils/email");
 
 require("express-async-errors");
 
@@ -58,14 +59,19 @@ usersRouter.post(
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(body.password, saltRounds);
 
-    await User.create({
+    const newUser = await User.create({
       username: body.username,
+      email: body.email,
       passwordHash,
       avatarImageUrl: `https://api.dicebear.com/10.x/voxel-art/svg?scale=1.25&seed=${encodeURIComponent(body.username)}`,
     }).catch((e) => {
       return response.status(400).json("error when creating user");
     });
 
+    await sendVerificationEmail({
+      email: body.email,
+      userId: newUser.id,
+    });
     response.status(200).json("new user created");
   },
 );

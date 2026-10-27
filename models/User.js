@@ -16,6 +16,16 @@ User.init(
       unique: true,
       allowNull: false,
     },
+    email: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: false,
+    },
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     introduction: {
       type: DataTypes.TEXT,
     },

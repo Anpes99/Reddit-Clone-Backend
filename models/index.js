@@ -8,6 +8,7 @@ const UserRatedComments = require("./UserRatedComments");
 const SubredditModerators = require("./SubredditModerators");
 const SubredditLeaderboard = require("./SubredditLeaderboard");
 const SubredditLeaderboardSubreddit = require("./SubredditLeaderboardSubreddit");
+const EmailVerificationToken = require("./EmailVerificationToken");
 
 User.hasMany(Post);
 User.hasMany(Comment);
@@ -67,6 +68,8 @@ SubredditLeaderboard.belongsToMany(Subreddit, {
 SubredditLeaderboardSubreddit.belongsTo(Subreddit, {
   foreignKey: "subredditId",
 });
+EmailVerificationToken.belongsTo(User);
+User.hasMany(EmailVerificationToken);
 
 // uncomment to sync database tables
 /*
@@ -77,9 +80,12 @@ Subreddit.sync({ alter: true });
 Comment.sync({ alter: true });
 UserSubreddits.sync({ alter: true });
 UserRatedComments.sync({ alter: true });
-SubredditModerators.sync({ alter: true });
-SubredditLeaderboard.sync({ alter: true });
-SubredditLeaderboardSubreddit.sync({ alter: true }); 
+SubredditModerators.sync();
+SubredditLeaderboard.sync();
+SubredditLeaderboardSubreddit.sync();
+EmailVerificationToken.sync({
+  alter: true,
+}); { alter: true }{ alter: true }{ alter: true }
  */
 module.exports = {
   User,
@@ -92,4 +98,5 @@ module.exports = {
   UserSubreddits,
   UserRatedPosts,
   UserRatedComments,
+  EmailVerificationToken,
 };

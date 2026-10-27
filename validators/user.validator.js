@@ -14,6 +14,7 @@ export const postNewUserSchema = Joi.object({
       "Username may contain letters, numbers, underscores and hyphens only",
     )
     .required(),
+  email: Joi.string().email().required(),
   password: Joi.string().min(4).max(128).required(),
 }).unknown(false);
 

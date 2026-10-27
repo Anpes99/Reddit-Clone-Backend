@@ -1,11 +1,17 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const authRouter = require("express").Router();
-const { User, Subreddit, Post } = require("../models/index");
+const {
+  User,
+  Subreddit,
+  Post,
+  EmailVerificationToken,
+} = require("../models/index");
 const { validate } = require("../utils/middleware/middleware");
 const { loginSchema } = require("../validators/login.validator");
 const { loginIpLimiter } = require("../utils/middleware/requestRateLimiters");
 const { redisClient } = require("../utils/redis");
+const { sendVerificationEmail } = require("../utils/email");
 
 const WINDOW_SECONDS = 15 * 60;
 
@@ -65,7 +71,19 @@ authRouter.post(
         });
       }
       await redisClient.del(failureKeyIpForUsername);
+      if (!user.emailVerified) {
+        await EmailVerificationToken.destroy({ where: { userId: user.id } });
 
+        await sendVerificationEmail({
+          email: user.email,
+          userId: user.id,
+        });
+
+        return response.status(403).send({
+          email: user.email,
+          error: { status: "EMAIL_NOT_VERIFIED" },
+        });
+      }
       const userForToken = {
         username: user.username,
         id: user.id,
