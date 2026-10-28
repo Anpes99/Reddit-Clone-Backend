@@ -41,6 +41,10 @@ connectToDatabase();
 app.use(middleware.tokenExtractor);
 app.use(middleware.userExtractor);
 
+if (runtime.NODE_ENV === "production") {
+  app.use(middleware.csrfProtection);
+}
+
 app.use("/api/auth", authRouter);
 app.use("/api/loggedInUser", loggedInUserRouter);
 app.use("/api/users", usersRouter);

@@ -128,6 +128,29 @@ const requireSubredditPermission = (permission) => {
   };
 };
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+const csrfProtection = (req, res, next) => {
+  if (SAFE_METHODS.has(req.method)) {
+    return next();
+  }
+
+  const origin = req.get("Origin");
+
+  const allowedOrigin = process.env.CLIENT_URL;
+
+  if (origin !== allowedOrigin) {
+    return res.status(403).json({
+      error: {
+        message: "Invalid request origin",
+        name: "CsrfError",
+      },
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   errorHandler,
   tokenExtractor,
@@ -136,4 +159,5 @@ module.exports = {
   validate,
   requireAuth,
   requireSubredditPermission,
+  csrfProtection,
 };
