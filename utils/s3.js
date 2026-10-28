@@ -1,34 +1,37 @@
 const aws = require("aws-sdk");
 const dotenv = require("dotenv");
-dotenv.config();
 const crypto = require("crypto");
-const { promisify } = require("util");
-const randomBytes = promisify(crypto.randomBytes);
 
-const region = process.env.S3_REGION;
+dotenv.config();
 
-const bucketName = process.env.S3_BUCKET_NAME;
-const accessKeyId = process.env.S3_ACCESS_KEY;
-const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MiB
 
 const s3 = new aws.S3({
-  region,
-  accessKeyId,
-  secretAccessKey,
+  region: process.env.S3_REGION,
+  accessKeyId: process.env.S3_ACCESS_KEY,
+  secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
   signatureVersion: "v4",
 });
 
 const generateUploadURL = async () => {
-  const rawBytes = await randomBytes(16);
-  const imageName = rawBytes.toString("hex");
+  const imageName = crypto.randomBytes(16).toString("hex");
+  const key = imageName;
 
-  const params = {
-    Bucket: bucketName,
-    Key: imageName,
+  const presigned = await s3.createPresignedPost({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
     Expires: 60,
-  };
-  const uploadURL = await s3.getSignedUrlPromise("putObject", params);
-  return uploadURL;
+    Conditions: [
+      ["content-length-range", 1, MAX_FILE_SIZE],
+      ["eq", "$Content-Type", "image/jpeg"],
+    ],
+    Fields: {
+      "Content-Type": "image/jpeg",
+      key,
+    },
+  });
+
+  return { ...presigned, key };
 };
 
 module.exports = { generateUploadURL };
