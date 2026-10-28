@@ -24,6 +24,7 @@
 - ✅ Mandatory email verification for all accounts, with expiring database-stored tokens, resend functionality, and email delivery using Brevo and Nodemailer
 - ✅ Secure email-based password recovery with a dedicated password reset page and hashed, database-stored reset tokens that expire after 30 minutes
 - ✅ Authentication and role-based authorization
+- ✅ CSRF protection through origin validation for state-changing API methods
 - ✅ Redis-backed rate limiting for login, signup, post and comment creation, and general API requests
 
 ### Backend & Database
@@ -36,7 +37,7 @@
 - ✅ Responsive layouts for mobile and desktop
 
 ### Storage & Deployment
-- ✅ AWS S3 image storage
+- ✅ AWS S3 image storage with server-side file size limits for image uploads
 - ✅ Live application deployment on Heroku
 
 
