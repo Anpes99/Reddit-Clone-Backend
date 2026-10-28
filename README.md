@@ -62,7 +62,7 @@
 - ✅ Search for subreddits
 - ✅ Subreddit page with post feed
 - ✅ Real-time count of authenticated users currently viewing each subreddit using Socket.IO
-- ✅ Subreddit member count leaderboard: Automatically updates daily using a scheduled cron job, with rank-change indicators showing each subreddit's movement compared to the previous day's leaderboard.
+- ✅ Subreddit member count leaderboard: Automatically updates daily using a scheduled cron job, with rank-change indicators showing each subreddit's movement compared to the previous day's leaderboard
 
 ## Post
 
