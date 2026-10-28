@@ -12,8 +12,10 @@ const { loginSchema } = require("../validators/login.validator");
 const { loginIpLimiter } = require("../utils/middleware/requestRateLimiters");
 const { redisClient } = require("../utils/redis");
 const { sendVerificationEmail } = require("../utils/email");
+const { randomUUID } = require("node:crypto");
 
 const WINDOW_SECONDS = 15 * 60;
+const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24;
 
 authRouter.post(
   "/login",
@@ -92,12 +94,21 @@ authRouter.post(
       const token = jwt.sign(userForToken, process.env.SECRET, {
         expiresIn: 15 * 60,
       });
+      const refreshTokenId = randomUUID();
 
+      await redisClient.set(`refresh:${refreshTokenId}`, user.id, {
+        EX: REFRESH_TOKEN_EXPIRES_IN,
+      });
       const refreshToken = jwt.sign(
-        { ...userForToken, type: "refresh" },
+        {
+          ...userForToken,
+          type: "refresh",
+          refreshTokenId,
+          absoluteExpiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        },
         process.env.REFRESH_SECRET,
         {
-          expiresIn: 60 * 60 * 24,
+          expiresIn: REFRESH_TOKEN_EXPIRES_IN,
         },
       );
 
@@ -142,6 +153,9 @@ authRouter.post("/refresh", async (req, res) => {
     const decodedToken = jwt.verify(token, process.env.REFRESH_SECRET, {
       algorithms: ["HS256"],
     });
+    if (!decodedToken || decodedToken.absoluteExpiresAt <= Date.now()) {
+      throw new Error("Invalid or expired refresh token");
+    }
 
     if (decodedToken.type !== "refresh") {
       return res.status(401).json({
@@ -151,7 +165,18 @@ authRouter.post("/refresh", async (req, res) => {
         },
       });
     }
-
+    const redisTokenUserId = Number(
+      await redisClient.get(`refresh:${decodedToken.refreshTokenId}`),
+    );
+    if (!redisTokenUserId || redisTokenUserId !== decodedToken.id) {
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/api/auth",
+      });
+      throw new Error("Refresh token revoked or invalid");
+    }
     const user = await User.findByPk(decodedToken.id);
 
     if (!user) {
@@ -159,9 +184,9 @@ authRouter.post("/refresh", async (req, res) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        path: "/",
+        path: "/api/auth",
       });
-
+      await redisClient.del(`refresh:${decodedToken.refreshTokenId}`);
       return res.status(401).json({
         error: {
           message: "User not found",
@@ -179,13 +204,41 @@ authRouter.post("/refresh", async (req, res) => {
       expiresIn: 15 * 60,
     });
 
+    const refreshTokenId = randomUUID();
+    await redisClient.del(`refresh:${decodedToken.refreshTokenId}`);
+    await redisClient.set(`refresh:${refreshTokenId}`, user.id, {
+      EX: REFRESH_TOKEN_EXPIRES_IN,
+    });
+    const refreshToken = jwt.sign(
+      {
+        ...userForToken,
+        type: "refresh",
+        refreshTokenId,
+        absoluteExpiresAt: decodedToken.absoluteExpiresAt,
+      },
+      process.env.REFRESH_SECRET,
+      {
+        expiresIn: Math.min(
+          REFRESH_TOKEN_EXPIRES_IN,
+          Math.floor((decodedToken.absoluteExpiresAt - Date.now()) / 1000),
+        ),
+      },
+    );
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/api/auth",
+    });
+
     return res.json({ accessToken, username: user.username });
   } catch {
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/",
+      path: "/api/auth",
     });
 
     return res.status(401).json({
@@ -198,6 +251,14 @@ authRouter.post("/refresh", async (req, res) => {
 });
 
 authRouter.post("/logout", async (req, res) => {
+  const token = req.cookies?.refreshToken;
+
+  const decodedToken = jwt.verify(token, process.env.REFRESH_SECRET, {
+    algorithms: ["HS256"],
+  });
+
+  await redisClient.del(`refresh:${decodedToken.refreshTokenId}`);
+
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
