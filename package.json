@@ -24,6 +24,7 @@
     "express": "^4.17.2",
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
     "joi": "^18.2.9",
     "jsonwebtoken": "^8.5.1",
     "moment": "^2.31.0",

@@ -5,7 +5,36 @@ connectRedis();
 const cors = require("cors");
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
+
 const app = express();
+
+// Configure security headers before your routes.
+app.use(
+  helmet({
+    // Prevent  site from being embedded in frames.
+    xFrameOptions: {
+      action: "deny",
+    },
+
+    // Enable HSTS in production only.
+    strictTransportSecurity:
+      runtime.NODE_ENV === "production"
+        ? {
+            maxAge: 31536000, // 1 year
+            includeSubDomains: false,
+          }
+        : false,
+
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "frame-ancestors": ["'none'"],
+      },
+    },
+  }),
+);
+
 app.set("trust proxy", 1);
 app.use(
   cors({
