@@ -31,12 +31,7 @@ app.use(
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         "default-src": ["'self'"],
         "frame-ancestors": ["'none'"],
-        "img-src": [
-          "'self'",
-          "https://api.dicebear.com",
-          "https://test-312515-website-clone-1.s3.eu-north-1.amazonaws.com",
-          "https://dims.apnews.com",
-        ],
+        "img-src": ["'self'", "https:", "data:"],
       },
     },
   }),
