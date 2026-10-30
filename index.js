@@ -4,8 +4,8 @@ const runtime = require("./utils/runtime");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-const postsSocket = require("./websockets/posts")(io);
-const likesSocket = require("./websockets/likes")(io);
+require("./websockets/posts")(io);
+require("./websockets/likes")(io);
 const {
   registerSubredditOnlineCountSocketHandlers,
   startSubredditOnlineCountBroadcast,
@@ -16,18 +16,10 @@ const {
   startUpdateTopCommunitiesTask,
 } = require("./jobs/update-top-communities-task");
 
-const {
-  User,
-  Comment,
-  Post,
-  Subreddit,
-  UserSubreddits,
-} = require("./models/index");
-
 startUpdateTopCommunitiesTask();
 
 const PORT = runtime.PORT || 3001;
-server.listen(runtime.PORT);
-console.log("server running on port " + runtime.PORT);
+server.listen(PORT);
+console.log("server running on port " + PORT);
 
 module.exports = { io };

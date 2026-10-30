@@ -109,7 +109,9 @@ describe("POST / verification", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({ message: "Email verified" });
-    expect(hashEmailVerificationToken).toHaveBeenCalledWith(rawVerificationToken);
+    expect(hashEmailVerificationToken).toHaveBeenCalledWith(
+      rawVerificationToken,
+    );
     expect(EmailVerificationToken.findOne).toHaveBeenCalledWith({
       where: { tokenHash: `hashed-email-${rawVerificationToken}` },
     });

@@ -18,12 +18,15 @@ commentRouter.post(
         .json({ error: "Authentication token expired or invalid." });
     }
 
-    const { text, directReplyToPost, subredditId, userId, commentId, postId } =
+    const { text, directReplyToPost, subredditId, commentId, postId } =
       req.body;
 
-    if (
-      !(text && typeof directReplyToPost === "boolean" && subredditId && postId)
-    ) {
+    if (!(
+      text &&
+      typeof directReplyToPost === "boolean" &&
+      subredditId &&
+      postId
+    )) {
       return res.status(400).json("Please include required information");
     }
 

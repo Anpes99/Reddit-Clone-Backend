@@ -184,7 +184,9 @@ test("ranks a closer subreddit name ahead of a more popular weaker match", async
   expect(response.statusCode).toBe(200);
   expect(Number(response.body.totalCount)).toBeGreaterThanOrEqual(2);
 
-  const resultNames = response.body.subreddits.map((subreddit) => subreddit.name);
+  const resultNames = response.body.subreddits.map(
+    (subreddit) => subreddit.name,
+  );
   const exactMatchIndex = resultNames.indexOf(exactMatchName);
   const nearMatchIndex = resultNames.indexOf(nearMatchName);
 

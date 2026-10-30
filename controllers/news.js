@@ -3,7 +3,7 @@ const axios = require("axios");
 newsRouter.get("", (req, res) => {
   axios
     .get(
-      `https://newsapi.org/v2/top-headlines?pageSize=4&country=us&apiKey=${process.env.NEWS_API_KEY}`
+      `https://newsapi.org/v2/top-headlines?pageSize=4&country=us&apiKey=${process.env.NEWS_API_KEY}`,
     )
     .then((result) => {
       return res.json(result.data);

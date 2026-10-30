@@ -122,12 +122,9 @@ beforeEach(() => {
 
 describe("subreddit membership", () => {
   it("allows an authenticated user to join a subreddit", async () => {
-    const response = await request(
-      "POST",
-      "/subreddits/34/user",
-      undefined,
-      { Authorization: "Bearer test-token" },
-    );
+    const response = await request("POST", "/subreddits/34/user", undefined, {
+      Authorization: "Bearer test-token",
+    });
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toBe("User successfully joined subreddit");
@@ -138,12 +135,9 @@ describe("subreddit membership", () => {
   });
 
   it("allows an authenticated user to leave a subreddit", async () => {
-    const response = await request(
-      "DELETE",
-      "/subreddits/34/user",
-      undefined,
-      { Authorization: "Bearer test-token" },
-    );
+    const response = await request("DELETE", "/subreddits/34/user", undefined, {
+      Authorization: "Bearer test-token",
+    });
 
     expect(response.statusCode).toBe(204);
     expect(UserSubreddits.destroy).toHaveBeenCalledWith({
@@ -156,12 +150,9 @@ describe("subreddit membership", () => {
     duplicateMembership.name = "SequelizeUniqueConstraintError";
     UserSubreddits.create.mockRejectedValue(duplicateMembership);
 
-    const response = await request(
-      "POST",
-      "/subreddits/34/user",
-      undefined,
-      { Authorization: "Bearer test-token" },
-    );
+    const response = await request("POST", "/subreddits/34/user", undefined, {
+      Authorization: "Bearer test-token",
+    });
 
     expect(response.statusCode).toBe(409);
     expect(response.body).toBe("User is already a member of this subreddit");
@@ -170,12 +161,9 @@ describe("subreddit membership", () => {
   it("returns 204 when leaving a subreddit the user never joined", async () => {
     UserSubreddits.destroy.mockResolvedValue(0);
 
-    const response = await request(
-      "DELETE",
-      "/subreddits/34/user",
-      undefined,
-      { Authorization: "Bearer test-token" },
-    );
+    const response = await request("DELETE", "/subreddits/34/user", undefined, {
+      Authorization: "Bearer test-token",
+    });
 
     expect(response.statusCode).toBe(204);
   });
@@ -267,8 +255,7 @@ describe("moderated subreddit settings", () => {
       {
         description: "Updated community description",
         subredditIconUrl: "https://example.test/new-icon.png",
-        subredditPageBackgroundImageUrl:
-          "https://example.test/background.png",
+        subredditPageBackgroundImageUrl: "https://example.test/background.png",
       },
       { Authorization: "Bearer test-token" },
     );
@@ -282,8 +269,7 @@ describe("moderated subreddit settings", () => {
     expect(subreddit.update).toHaveBeenCalledWith({
       iconUrl: "https://example.test/new-icon.png",
       description: "Updated community description",
-      subredditPageBackgroundImageUrl:
-        "https://example.test/background.png",
+      subredditPageBackgroundImageUrl: "https://example.test/background.png",
     });
   });
 
@@ -291,9 +277,7 @@ describe("moderated subreddit settings", () => {
     ["limited moderator", "moderator_limited"],
     ["non-moderator", null],
   ])("denies settings changes to a %s", async (_label, role) => {
-    SubredditModerators.findOne.mockResolvedValue(
-      role ? { role } : null,
-    );
+    SubredditModerators.findOne.mockResolvedValue(role ? { role } : null);
 
     const response = await request(
       "PATCH",

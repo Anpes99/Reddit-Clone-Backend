@@ -1,6 +1,4 @@
-const {
-  postNewPostCommentSchema,
-} = require("../validators/comment.validator");
+const { postNewPostCommentSchema } = require("../validators/comment.validator");
 const {
   updateLoggedInUserSchema,
 } = require("../validators/loggedInUser.validator");
@@ -56,8 +54,9 @@ describe("postNewPostCommentSchema", () => {
   };
 
   it("accepts a reply and converts numeric strings", () => {
-    expect(expectValid(postNewPostCommentSchema, { ...comment, postId: "17" }))
-      .toMatchObject({ postId: 17 });
+    expect(
+      expectValid(postNewPostCommentSchema, { ...comment, postId: "17" }),
+    ).toMatchObject({ postId: 17 });
   });
 
   it.each([
@@ -111,9 +110,17 @@ describe("loginSchema", () => {
   });
 
   it.each([
-    ["a username over 25 characters", { username: "a".repeat(26) }, ["username"]],
+    [
+      "a username over 25 characters",
+      { username: "a".repeat(26) },
+      ["username"],
+    ],
     ["a password under 4 characters", { password: "abc" }, ["password"]],
-    ["a password over 128 characters", { password: "a".repeat(129) }, ["password"]],
+    [
+      "a password over 128 characters",
+      { password: "a".repeat(129) },
+      ["password"],
+    ],
   ])("rejects %s", (description, overrides, path) => {
     expectInvalid(
       loginSchema,
@@ -146,7 +153,11 @@ describe("post schemas", () => {
   it.each([
     ["a missing title", { title: undefined }, ["title"]],
     ["a title over 300 characters", { title: "a".repeat(301) }, ["title"]],
-    ["a non-http image URL", { imageUrl: "ftp://example.test/a.png" }, ["imageUrl"]],
+    [
+      "a non-http image URL",
+      { imageUrl: "ftp://example.test/a.png" },
+      ["imageUrl"],
+    ],
   ])("rejects a new post with %s", (description, overrides, path) => {
     expectInvalid(postNewPostSchema, { title: "A post", ...overrides }, path);
   });
@@ -201,7 +212,11 @@ describe("subreddit schemas", () => {
 
   it.each([
     ["a name under 2 characters", { communityName: "a" }, ["communityName"]],
-    ["a name over 21 characters", { communityName: "a".repeat(22) }, ["communityName"]],
+    [
+      "a name over 21 characters",
+      { communityName: "a".repeat(22) },
+      ["communityName"],
+    ],
     ["a missing description", { description: undefined }, ["description"]],
     [
       "a javascript: icon URL",

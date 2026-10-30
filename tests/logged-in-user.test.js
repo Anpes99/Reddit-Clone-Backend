@@ -186,7 +186,10 @@ describe("PATCH /api/loggedInUser", () => {
   it.each([
     ["targets another user by id", { id: 99, introduction: "Hijacked" }],
     ["sets a field outside the profile", { karma: 1000000 }],
-    ["uses a javascript: avatar URL", { userAvatarImageUrl: "javascript:alert(1)" }],
+    [
+      "uses a javascript: avatar URL",
+      { userAvatarImageUrl: "javascript:alert(1)" },
+    ],
   ])("rejects a body that %s", async (description, payload) => {
     const response = await request("PATCH", "/", payload, authHeader());
 

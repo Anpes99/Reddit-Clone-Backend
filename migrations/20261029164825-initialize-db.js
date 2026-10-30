@@ -48,7 +48,9 @@ module.exports = {
       );
 
       if (tables.length === BASELINE_TABLES.length) {
-        console.log("Baseline skipped: database already has the baseline schema.");
+        console.log(
+          "Baseline skipped: database already has the baseline schema.",
+        );
         return;
       }
 
@@ -85,8 +87,9 @@ module.exports = {
       for (const [extensionName, objectNames] of Object.entries(
         EXTENSION_OBJECTS,
       )) {
-        const schema = extensions.find(({ name }) => name === extensionName)
-          ?.schema;
+        const schema = extensions.find(
+          ({ name }) => name === extensionName,
+        )?.schema;
 
         if (!schema) {
           throw new Error(

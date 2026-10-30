@@ -176,9 +176,9 @@ test("comment inserts and deletes keep descendant and post comment counts in syn
 
   await deleteComment(nestedReplyId);
 
-  expect(await getDescendantCounts([rootId, replyId, siblingReplyId])).toEqual(
-    [2, 0, 0],
-  );
+  expect(await getDescendantCounts([rootId, replyId, siblingReplyId])).toEqual([
+    2, 0, 0,
+  ]);
   expect(await getPostCommentCount()).toBe(3);
 
   await deleteComment(siblingReplyId);

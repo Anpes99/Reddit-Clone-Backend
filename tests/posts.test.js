@@ -232,10 +232,7 @@ describe("GET /posts/:id", () => {
           },
         ],
         order: [
-          [
-            { literal: 'comments."up_votes"-comments."down_votes"' },
-            "DESC",
-          ],
+          [{ literal: 'comments."up_votes"-comments."down_votes"' }, "DESC"],
         ],
       }),
     );

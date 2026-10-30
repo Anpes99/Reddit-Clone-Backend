@@ -1,5 +1,5 @@
 const Sequelize = require("sequelize");
-const runtime = require("./runtime");
+require("dotenv").config();
 
 const sequelize = new Sequelize(
   process.env.NODE_ENV === "test"

@@ -70,12 +70,7 @@ jest.mock("../utils/email", () => ({
   hashPasswordResetToken: jest.fn(),
 }));
 
-const {
-  User,
-  Post,
-  Comment,
-  UserSubreddits,
-} = require("../models/index");
+const { User, Post, Comment, UserSubreddits } = require("../models/index");
 const { sequelize } = require("../utils/db");
 const usersRouter = require("../controllers/users");
 
@@ -338,14 +333,10 @@ describe("GET /users/:username/feed", () => {
       ],
       totalCount: 11,
     });
-    expect(sequelize.query).toHaveBeenNthCalledWith(
-      1,
-      "overview-feed-query",
-      {
-        replacements: { userId: 12, offset: 20 },
-        type: QueryTypes.SELECT,
-      },
-    );
+    expect(sequelize.query).toHaveBeenNthCalledWith(1, "overview-feed-query", {
+      replacements: { userId: 12, offset: 20 },
+      type: QueryTypes.SELECT,
+    });
     expect(sequelize.query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining("COUNT(*) FROM posts"),

@@ -154,7 +154,9 @@ subredditsRouter.post(
       });
 
       if (subredditAlreadyExists) {
-        return res.status(409).json("A subreddit with this name already exists.");
+        return res
+          .status(409)
+          .json("A subreddit with this name already exists.");
       }
 
       return res.json("Successfully created new subreddit");

@@ -190,16 +190,19 @@ describe("userExtractor", () => {
         return `${header}.${payload}.${signature}`;
       },
     ],
-  ])("passes a JsonWebTokenError for a token %s", (description, createToken) => {
-    const request = createAuthRequest(`Bearer ${createToken()}`);
-    const next = jest.fn();
+  ])(
+    "passes a JsonWebTokenError for a token %s",
+    (description, createToken) => {
+      const request = createAuthRequest(`Bearer ${createToken()}`);
+      const next = jest.fn();
 
-    userExtractor(request, createResponse(), next);
+      userExtractor(request, createResponse(), next);
 
-    expect(request.user).toBeUndefined();
-    expect(next).toHaveBeenCalledTimes(1);
-    expect(next.mock.calls[0][0].name).toBe("JsonWebTokenError");
-  });
+      expect(request.user).toBeUndefined();
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next.mock.calls[0][0].name).toBe("JsonWebTokenError");
+    },
+  );
 
   it("passes a TokenExpiredError for an expired token", () => {
     const token = jwt.sign(

@@ -207,27 +207,28 @@ test("post vote changes persist scores and update author karma", async () => {
   await socketHandlers.likePost({ postId, userId: voterId }, upvoteResult);
 
   expect(upvoteResult).toHaveBeenCalledWith({ success: true, newRating: 1 });
-  expect(await getVoteState("user_rated_posts", "post_id", postId)).toMatchObject({
+  expect(
+    await getVoteState("user_rated_posts", "post_id", postId),
+  ).toMatchObject({
     up_votes: 1,
     down_votes: 0,
     karma: 1,
     rating: 1,
   });
-  expect(await UserRatedPosts.count({ where: { postId, userId: voterId } })).toBe(
-    1,
-  );
+  expect(
+    await UserRatedPosts.count({ where: { postId, userId: voterId } }),
+  ).toBe(1);
 
   const downvoteResult = jest.fn();
-  await socketHandlers.dislikePost(
-    { postId, userId: voterId },
-    downvoteResult,
-  );
+  await socketHandlers.dislikePost({ postId, userId: voterId }, downvoteResult);
 
   expect(downvoteResult).toHaveBeenCalledWith({
     success: true,
     newRating: -1,
   });
-  expect(await getVoteState("user_rated_posts", "post_id", postId)).toMatchObject({
+  expect(
+    await getVoteState("user_rated_posts", "post_id", postId),
+  ).toMatchObject({
     up_votes: 0,
     down_votes: 1,
     karma: -1,
@@ -244,15 +245,17 @@ test("post vote changes persist scores and update author karma", async () => {
     success: true,
     newRating: 0,
   });
-  expect(await getVoteState("user_rated_posts", "post_id", postId)).toMatchObject({
+  expect(
+    await getVoteState("user_rated_posts", "post_id", postId),
+  ).toMatchObject({
     up_votes: 0,
     down_votes: 0,
     karma: 0,
     rating: 0,
   });
-  expect(await UserRatedPosts.count({ where: { postId, userId: voterId } })).toBe(
-    0,
-  );
+  expect(
+    await UserRatedPosts.count({ where: { postId, userId: voterId } }),
+  ).toBe(0);
   expect(io.emit).toHaveBeenCalledTimes(3);
 });
 
