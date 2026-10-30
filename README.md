@@ -25,6 +25,7 @@
 - ✅ Secure email-based password recovery with a dedicated password reset page and hashed, database-stored reset tokens that expire after 30 minutes
 - ✅ Authentication and role-based authorization
 - ✅ CSRF protection through origin validation for state-changing API methods
+- ✅ Security headers using Helmet, including clickjacking protection, Content Security Policy (CSP) to restrict resource loading and prevent unauthorized framing, and production-only HSTS with a one-year max age.
 - ✅ Redis-backed rate limiting for login, signup, post and comment creation, and general API requests
 
 ### Backend & Database
@@ -244,7 +245,8 @@
 
 
 
-
+## Database Diagram
+<img width="1698" height="870" alt="db-diagram" src="https://github.com/user-attachments/assets/08b3d44f-6c62-40bb-980c-3b8ca49d1c03" />
 
 
 
