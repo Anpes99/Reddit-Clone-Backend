@@ -8,6 +8,7 @@
  - Frontend: React, Redux, JavaScript, Tailwind CSS, CSS, HTML
  - Backend: Node.js, Express.js, PostgreSQL, Sequelize ORM, Redis
  - Authentication & Validation: JWT, refresh-token rotation and revocation, email verification, Redis-backed API rate limiting, Joi
+ - Testing: Jest, unit and PostgreSQL integration tests
  - Email Services: Brevo, Nodemailer
  - Real-time Communication: Socket.IO
  - Storage: AWS S3
@@ -32,6 +33,9 @@
 - ✅ Express.js REST API
 - ✅ PostgreSQL with Sequelize ORM
 - ✅ Joi request validation
+- ✅ Versioned database migrations with Sequelize CLI, built from a single baseline schema
+- ✅ Database triggers that keep vote karma, comment counts, nested reply counts and subreddit member counts in sync
+- ✅ Foreign key constraints with cascade rules that protect data integrity when users, posts or subreddits are deleted
 
 ### Frontend
 - ✅ Redux-based state management
@@ -41,7 +45,16 @@
 - ✅ AWS S3 image storage with server-side file size limits for image uploads
 - ✅ Live application deployment on Heroku
 
+### Testing
+- ✅ 150+ automated tests covering unit and integration testing
+- ✅ Unit tests for API routes, authentication middleware, JWT handling, CSRF protection and Joi validation rules
+- ✅ Integration tests against a real PostgreSQL database for semantic vector search, typo-tolerant subreddit search, voting and karma, and trigger-maintained counters
+- ✅ Isolated test database with a safety check that refuses to run if it points at the main database
 
+```bash
+# Set TEST_DATABASE_URI in .env (must differ from DATABASE_URI)
+npm test
+```
 
 
 
