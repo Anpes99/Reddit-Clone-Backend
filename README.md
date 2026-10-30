@@ -6,6 +6,14 @@
 
 ## [Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/) · [Frontend Repository](https://github.com/Anpes99/Reddit-Clone-Frontend)
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+>>>>>>> 402fbe299d15c1a1de65bd62ec403fda099082fe
 ## Try the Live Demo
 
 Explore the application without creating an account using the demo credentials below.
@@ -16,6 +24,15 @@ Explore the application without creating an account using the demo credentials b
 | **Password** | `password` |
 
 [**Open Live Demo →**](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -326,9 +343,36 @@ parent-directory/
   Reddit-Clone-Frontend/
 ```
 
+<<<<<<< HEAD
 ### Quick start with Docker
 
 API keys go in a `docker.env` file in the backend repository:
+=======
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Local development
+
+### Quick start with Docker
+
+Clone this repository and the [frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) into the same parent directory.
+
+API keys go in a `docker.env` file:
+>>>>>>> 402fbe299d15c1a1de65bd62ec403fda099082fe
 
 - [Voyage AI](https://www.voyageai.com/) (required, free): post embeddings for semantic search. Without this key, creating posts and searching posts sorted by "Top" fail. Searching by "New" still works.
 - [NewsAPI](https://newsapi.org/) (optional, free): only used for the small news section below the header on the home page.
@@ -358,14 +402,22 @@ Every demo user (`demo_user1` to `demo_user6`) logs in with the password `passwo
 - PostgreSQL with the `vector` and `pg_trgm` extensions available
 - Redis
 
+<<<<<<< HEAD
 From the parent directory, create a local PostgreSQL database, then configure the backend:
+=======
+Clone this repository and the [frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) into the same parent directory. From that parent directory, create a local PostgreSQL database, then configure the backend:
+>>>>>>> 402fbe299d15c1a1de65bd62ec403fda099082fe
 
 ```bash
 cd Reddit-Clone-Backend
 cp .env.example .env
 ```
 
+<<<<<<< HEAD
 In `Reddit-Clone-Backend/.env`, set `DATABASE_URI` to your local PostgreSQL connection string (for example, `postgres://USER:PASSWORD@localhost:5432/DB_NAME`), `REDIS_URI` to your Redis URL, and provide local values for `SECRET` and `REFRESH_SECRET`. Keep `.env` private; do not commit credentials. `TEST_DATABASE_URI` is only needed for backend tests and must point to a separately created test database. The `.env.example` file lists optional credentials for email, S3 uploads, news, and search integrations; those features require their respective services and credentials.
+=======
+In `Reddit-Clone-Backend/.env`, set `DATABASE_URI` to your local PostgreSQL connection string (for example, `postgres://USER:PASSWORD@localhost:5432/DB_NAME`), `REDIS_URI` to your Redis URL, and provide local values for `SECRET` and `REFRESH_SECRET`. `TEST_DATABASE_URI` is only needed for backend tests and must point to a separately created test database. The .env.example file lists optional credentials for email, S3 uploads, news, and search integrations; those features require their respective services and credentials.
+>>>>>>> 402fbe299d15c1a1de65bd62ec403fda099082fe
 
 Install dependencies, migrate the development database, and start the API:
 
@@ -388,9 +440,42 @@ The frontend runs at `http://localhost:3000` and proxies API requests to the bac
 
 ### Backend tests
 
+<<<<<<< HEAD
 Create a separate PostgreSQL test database and set `TEST_DATABASE_URI` in the backend `.env` to its connection string. Never point it at your development or production database. `npm test` runs the test-database safety check, applies migrations to that database, then runs the Jest suite:
+=======
+Create a separate PostgreSQL test database and set `TEST_DATABASE_URI` in the backend `.env` to its connection string. `npm test` runs the test-database safety check, applies migrations to that database, then runs the Jest suite:
+>>>>>>> 402fbe299d15c1a1de65bd62ec403fda099082fe
 
 ```bash
 cd Reddit-Clone-Backend
 npm test
 ```
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> 402fbe299d15c1a1de65bd62ec403fda099082fe
