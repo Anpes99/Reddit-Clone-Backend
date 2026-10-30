@@ -1,7 +1,11 @@
 # A full-stack Reddit-clone
+
+![Tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg)
+
 ### A full-stack Reddit-clone application built with React, Redux, Node.js, and PostgreSQL.
 
 ## [Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/) · [Frontend Repository](https://github.com/Anpes99/Reddit-Clone-Frontend)
+
 
 
 # Tech Stack
@@ -108,7 +112,28 @@ npm test
 
 
 
+## Engineering Highlights
 
+**Semantic post search with pgvector**
+Posts are embedded with Voyage AI and stored in a pgvector column with an HNSW index, so "top" search ranks by meaning rather than keywords. The query embedding is returned to the client and reused for the next pages of results, so scrolling doesn't call the embedding API again. Newest-first search uses PostgreSQL trigram similarity instead.
+
+**Counters maintained by database triggers**
+User karma, post comment counts, nested reply counts and subreddit member counts are kept in sync by PostgreSQL triggers instead of application code, so they stay correct when requests overlap. Nested reply counts use a recursive query to update every ancestor comment, and karma ignores votes on your own content.
+
+**Refresh-token rotation with revocation**
+Access tokens last 15 minutes. Each refresh token has an ID stored in Redis; refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately.
+
+**Typo-tolerant subreddit search**
+Subreddit search uses `pg_trgm` word similarity, so near-misses still match, ranked by similarity and then by member count.
+
+**Real-time presence and voting**
+Socket.IO pushes vote changes to every viewer instantly and tracks how many signed-in users are viewing each subreddit, dropping users who haven't been seen for 60 seconds.
+
+**Leaderboard with history**
+A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which is what allows the rank-change indicators to work on top communities leaderboard.
+
+**Tested and safe to migrate**
+150+ unit and integration tests run in CI against a real PostgreSQL database. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
 
 
 
