@@ -1,10 +1,10 @@
-import Joi from "joi";
+const Joi = require("joi");
 
-export const verifyEmailSchema = Joi.object({
+const verifyEmailSchema = Joi.object({
   token: Joi.string().length(64).hex().required(),
 }).unknown(false);
 
-export const resendVerifyEmailEmailSchema = Joi.object({
+const resendVerifyEmailEmailSchema = Joi.object({
   username: Joi.string()
     .trim()
     .min(1)
@@ -15,3 +15,8 @@ export const resendVerifyEmailEmailSchema = Joi.object({
     )
     .required(),
 }).unknown(false);
+
+module.exports = {
+  verifyEmailSchema,
+  resendVerifyEmailEmailSchema,
+};

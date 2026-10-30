@@ -1,11 +1,11 @@
-import Joi from "joi";
-import { postsOrderType } from "../enums/post.enum.js";
+const Joi = require("joi");
+const { postsOrderType } = require("../enums/post.enum.js");
 
-export const searchSuggestionsSchema = Joi.object({
+const searchSuggestionsSchema = Joi.object({
   searchWord: Joi.string().min(1).max(500),
 }).unknown(false);
 
-export const searchPostsSchema = Joi.object({
+const searchPostsSchema = Joi.object({
   searchQuery: Joi.string().min(1).max(500),
   offset: Joi.number().integer().min(0).default(0),
   limit: Joi.number().integer().min(1).max(100),
@@ -13,8 +13,14 @@ export const searchPostsSchema = Joi.object({
   prevSearchWordEmbedding: Joi.string().max(10000),
 }).unknown(false);
 
-export const searchSubredditsSchema = Joi.object({
+const searchSubredditsSchema = Joi.object({
   searchQuery: Joi.string().min(1).max(500),
   offset: Joi.number().integer().min(0),
   limit: Joi.number().integer().min(1).max(100),
 }).unknown(false);
+
+module.exports = {
+  searchSuggestionsSchema,
+  searchPostsSchema,
+  searchSubredditsSchema,
+};

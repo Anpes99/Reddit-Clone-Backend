@@ -150,7 +150,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
     );
     return res.send({
       posts: resultPosts,
-      totalCount: resultPosts[0].totalCount,
+      totalCount: resultPosts[0]?.totalCount ?? 0,
       searchWordEmbedding: vectorValue,
     });
 

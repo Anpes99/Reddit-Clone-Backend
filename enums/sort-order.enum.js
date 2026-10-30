@@ -1,4 +1,8 @@
-export const SortOrder = Object.freeze({
+const SortOrder = Object.freeze({
   ASC: "ASC",
   DESC: "DESC",
 });
+
+module.exports = {
+  SortOrder,
+};

@@ -21,14 +21,14 @@ verifyEmailRouter.post("/", validate(verifyEmailSchema), async (req, res) => {
       tokenHash: hashedToken,
     },
   });
-  if (dbEmailVerificationToken.usedAt) {
-    return res.status(200).json({ message: "email already verified" });
-  }
-
   if (!dbEmailVerificationToken) {
     return res.status(403).json({
       message: "Invalid or expired token",
     });
+  }
+
+  if (dbEmailVerificationToken.usedAt) {
+    return res.status(200).json({ message: "email already verified" });
   }
 
   if (dbEmailVerificationToken.expiresAt <= new Date()) {

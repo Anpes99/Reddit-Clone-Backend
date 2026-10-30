@@ -74,26 +74,6 @@ User.hasMany(EmailVerificationToken);
 
 PasswordResetToken.belongsTo(User);
 User.hasMany(PasswordResetToken);
-// uncomment to sync database tables
-/*
-UserRatedPosts.sync({ alter: true });
-User.sync({ alter: true });
-Post.sync({ alter: true });
-Subreddit.sync({ alter: true });
-Comment.sync({ alter: true });
-UserSubreddits.sync({ alter: true });
-UserRatedComments.sync({ alter: true });
-SubredditModerators.sync();
-SubredditLeaderboard.sync();
-SubredditLeaderboardSubreddit.sync();
-EmailVerificationToken.sync({
-  alter: true,
-});
-PasswordResetToken.sync({
-  alter: true,
-});
-
-{ alter: true }{ alter: true }{ alter: true } */
 
 module.exports = {
   User,

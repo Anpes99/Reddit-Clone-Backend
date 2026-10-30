@@ -1,10 +1,6 @@
-import Joi from "joi";
+const Joi = require("joi");
 
-export const getLoggedInUserSchema = Joi.object({
-  username: Joi.string().min(1).max(25).required(),
-}).unknown(false);
-
-export const updateLoggedInUserSchema = Joi.object({
+const updateLoggedInUserSchema = Joi.object({
   introduction: Joi.string().min(1).max(500),
   userAvatarImageUrl: Joi.string()
     .uri({ scheme: ["https", "http"] })
@@ -15,3 +11,7 @@ export const updateLoggedInUserSchema = Joi.object({
     .max(2048)
     .allow(null, ""),
 }).unknown(false);
+
+module.exports = {
+  updateLoggedInUserSchema,
+};

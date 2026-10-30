@@ -6,8 +6,10 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node index.js",
     "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "pretest": "npm run db:migrate:test",
     "test": "cross-env NODE_ENV=test jest --verbose --runInBand",
     "start:test": "cross-env NODE_ENV=test node index.js",
+    "db:migrate:test": "cross-env NODE_ENV=test node scripts/verify-test-database.js && cross-env NODE_ENV=test sequelize-cli db:migrate --config config/sequelize-cli.js --env test",
     "db:migrate:prod": "cross-env NODE_ENV=production npx sequelize-cli db:migrate --config config/sequelize-cli.js",
     "db:migrate:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate --config config/sequelize-cli.js",
     "db:migrate:undo:prod": "cross-env NODE_ENV=production npx sequelize-cli db:migrate:undo --config config/sequelize-cli.js",
@@ -39,7 +41,9 @@
   },
   "author": "",
   "devDependencies": {
-    "nodemon": "^2.0.15"
+    "jest": "^30.5.2",
+    "nodemon": "^2.0.15",
+    "sequelize-cli": "^6.6.5"
   },
   "license": "ISC"
 }

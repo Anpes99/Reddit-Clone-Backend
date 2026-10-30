@@ -2,54 +2,51 @@ const loggedInUserRouter = require("express").Router();
 const { User, Subreddit, Post } = require("../models/index");
 const { validate, requireAuth } = require("../utils/middleware/middleware");
 const {
-  getLoggedInUserSchema,
   updateLoggedInUserSchema,
 } = require("../validators/loggedInUser.validator");
 
-loggedInUserRouter.get(
-  "/",
-  validate(getLoggedInUserSchema, "query"),
-  requireAuth,
-  async (request, response) => {
-    const { query } = request;
-    try {
-      const user = await User.findOne({
-        where: { username: query.username },
-        include: [
-          {
-            model: Subreddit,
-            attributes: ["name", "id"],
-            as: "subreddits",
-            required: false,
+loggedInUserRouter.get("/", requireAuth, async (request, response) => {
+  try {
+    const user = await User.findOne({
+      where: { username: request.user.username },
+      include: [
+        {
+          model: Subreddit,
+          attributes: ["name", "id"],
+          as: "subreddits",
+          required: false,
+        },
+        {
+          model: Post,
+          as: "ratedPosts",
+          attributes: ["id"],
+          through: {
+            attributes: ["rating"],
           },
-          {
-            model: Post,
-            as: "ratedPosts",
-            attributes: ["id"],
-            through: {
-              attributes: ["rating"],
-            },
-            required: false,
-          },
-        ],
-      });
+          required: false,
+        },
+      ],
+    });
 
-      response.status(200).send({
-        username: user.username,
-        id: user.id,
-        subreddits: user.subreddits,
-        ratedPosts: user.ratedPosts.map((post) => ({
-          id: post.id,
-          rating: post.UserRatedPosts.rating,
-        })),
-        avatarImageUrl: user.avatarImageUrl,
-        profilePageBackgroundImageUrl: user.profilePageBackgroundImageUrl,
-      });
-    } catch (error) {
-      response.status(401).json(error);
+    if (!user) {
+      return response.status(404).json({ error: "user not found" });
     }
-  },
-);
+
+    response.status(200).send({
+      username: user.username,
+      id: user.id,
+      subreddits: user.subreddits,
+      ratedPosts: user.ratedPosts.map((post) => ({
+        id: post.id,
+        rating: post.UserRatedPosts.rating,
+      })),
+      avatarImageUrl: user.avatarImageUrl,
+      profilePageBackgroundImageUrl: user.profilePageBackgroundImageUrl,
+    });
+  } catch (error) {
+    response.status(401).json(error);
+  }
+});
 
 loggedInUserRouter.patch(
   "/",

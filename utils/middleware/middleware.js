@@ -28,7 +28,6 @@ const userExtractor = (req, res, next) => {
       return next(e);
     }
   }
-  console.log("here");
 
   next();
 };

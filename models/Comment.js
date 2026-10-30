@@ -16,6 +16,10 @@ Comment.init(
       allowNull: false,
       references: { model: "posts", key: "id" },
     },
+    commentId: {
+      type: DataTypes.INTEGER,
+      references: { model: "comments", key: "id" },
+    },
     upVotes: {
       type: DataTypes.INTEGER,
       allowNull: false,

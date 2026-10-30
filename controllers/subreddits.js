@@ -31,6 +31,9 @@ subredditsRouter.post("/:subredditId/user", requireAuth, async (req, res) => {
     });
     return res.json("User successfully joined subreddit");
   } catch (e) {
+    if (e.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json("User is already a member of this subreddit");
+    }
     console.log(e);
     return res
       .status(500)
@@ -120,15 +123,17 @@ subredditsRouter.post(
   async (req, res) => {
     try {
       const { communityName, description, subredditIconUrl } = req.body;
+      let subredditAlreadyExists = false;
+
       await sequelize.transaction(async (t) => {
-        const subredditAlreadyExists = await Subreddit.findOne({
+        const existingSubreddit = await Subreddit.findOne({
           where: { name: communityName },
         });
-        if (subredditAlreadyExists) {
-          return res
-            .status(409)
-            .json("A subreddit with this name already exists.");
+        if (existingSubreddit) {
+          subredditAlreadyExists = true;
+          return;
         }
+
         const createdSubreddit = await Subreddit.create(
           {
             name: communityName,
@@ -147,6 +152,10 @@ subredditsRouter.post(
           { transaction: t },
         );
       });
+
+      if (subredditAlreadyExists) {
+        return res.status(409).json("A subreddit with this name already exists.");
+      }
 
       return res.json("Successfully created new subreddit");
     } catch (e) {

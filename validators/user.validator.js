@@ -1,10 +1,10 @@
-import Joi from "joi";
-import {
+const Joi = require("joi");
+const {
   USER_PAGE_CONTENT_SORT_BY_TYPES,
   USER_PAGE_CONTENT_TYPES,
-} from "../enums/user.enum.js";
+} = require("../enums/user.enum.js");
 
-export const postNewUserSchema = Joi.object({
+const postNewUserSchema = Joi.object({
   username: Joi.string()
     .trim()
     .min(1)
@@ -18,7 +18,7 @@ export const postNewUserSchema = Joi.object({
   password: Joi.string().min(4).max(128).required(),
 }).unknown(false);
 
-export const getUserPostsAndCommentsFeedSchema = Joi.object({
+const getUserPostsAndCommentsFeedSchema = Joi.object({
   offset: Joi.number().integer().default(0),
   contentType: Joi.string()
     .valid(...Object.values(USER_PAGE_CONTENT_TYPES))
@@ -29,11 +29,18 @@ export const getUserPostsAndCommentsFeedSchema = Joi.object({
   getTotalCount: Joi.boolean().default(false),
 }).unknown(false);
 
-export const forgottenPasswordSchema = Joi.object({
+const forgottenPasswordSchema = Joi.object({
   email: Joi.string().email().required(),
 }).unknown(false);
 
-export const resetPasswordSchema = Joi.object({
+const resetPasswordSchema = Joi.object({
   password: Joi.string().min(4).max(128).required(),
   passwordResetToken: Joi.string().length(64).hex().required(),
 }).unknown(false);
+
+module.exports = {
+  postNewUserSchema,
+  getUserPostsAndCommentsFeedSchema,
+  forgottenPasswordSchema,
+  resetPasswordSchema,
+};

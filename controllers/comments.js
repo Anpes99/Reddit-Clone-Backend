@@ -26,18 +26,37 @@ commentRouter.post(
     ) {
       return res.status(400).json("Please include required information");
     }
-    await Comment.create({
-      text,
-      directReplyToPost,
-      commentId,
-      subredditId,
-      userId: req.user.id,
-      postId,
-    }).catch((e) => {
+
+    if (commentId) {
+      const parentComment = await Comment.findByPk(commentId);
+
+      if (!parentComment) {
+        return res.status(404).json({
+          error: "Parent comment not found.",
+        });
+      }
+
+      if (parentComment.postId !== postId) {
+        return res.status(400).json({
+          error: "Parent comment belongs to a different post.",
+        });
+      }
+    }
+
+    try {
+      await Comment.create({
+        text,
+        directReplyToPost,
+        commentId,
+        subredditId,
+        userId: req.user.id,
+        postId,
+      });
+    } catch (e) {
       return res
         .status(500)
         .json("something went wrong while creating new comment");
-    });
+    }
 
     return res.json("comment created");
   },

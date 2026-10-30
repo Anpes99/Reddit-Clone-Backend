@@ -1,20 +1,25 @@
 const Sequelize = require("sequelize");
 const runtime = require("./runtime");
 
-const sequelize = new Sequelize(process.env.DATABASE_URI, {
-  dialectOptions: {
-    ...(process.env.NODE_ENV === "production"
-      ? {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false,
-          },
-        }
-      : {
-          ssl: false,
-        }),
+const sequelize = new Sequelize(
+  process.env.NODE_ENV === "test"
+    ? process.env.TEST_DATABASE_URI
+    : process.env.DATABASE_URI,
+  {
+    dialectOptions: {
+      ...(process.env.NODE_ENV === "production"
+        ? {
+            ssl: {
+              require: true,
+              rejectUnauthorized: false,
+            },
+          }
+        : {
+            ssl: false,
+          }),
+    },
   },
-});
+);
 
 const connectToDatabase = async () => {
   try {

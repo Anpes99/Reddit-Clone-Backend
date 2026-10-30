@@ -15,4 +15,8 @@ module.exports = {
     use_env_variable: "DATABASE_URI",
     dialect: "postgres",
   },
+  test: {
+    use_env_variable: "TEST_DATABASE_URI",
+    dialect: "postgres",
+  },
 };
