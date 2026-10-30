@@ -6,6 +6,80 @@
 
 ## [Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/) · [Frontend Repository](https://github.com/Anpes99/Reddit-Clone-Frontend)
 
+## Local development
+
+### Quick start with Docker
+
+Clone this repository and the [frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) into the same parent directory.
+
+API keys go in a `docker.env` file:
+
+- [Voyage AI](https://www.voyageai.com/) (required, free): post embeddings for semantic search. Without this key, creating posts and searching posts sorted by "Top" fail. Searching by "New" still works.
+- [NewsAPI](https://newsapi.org/) (optional, free): only used for the small news section below the header on the home page.
+
+```bash
+cd Reddit-Clone-Backend
+cp docker.env.example docker.env
+# Set VOYAGE_API_KEY (and optionally NEWS_API_KEY) in docker.env
+docker compose up --build
+```
+
+This starts PostgreSQL (with pgvector), Redis and the app, runs the migrations, and serves the production build at `http://localhost:3001`. Signup verification and password reset emails are caught by Mailpit at `http://localhost:8025`. Image uploads also need S3 credentials in `docker.env`. Stop with `docker compose down` (add `-v` to also delete the database).
+
+To fill the app with demo users, communities, posts, comments and votes, run this while it's up:
+
+```bash
+docker compose exec app npm run seed
+```
+
+Every demo user (`demo_user1` to `demo_user6`) logs in with the password `password`.
+
+### Manual setup
+
+#### Prerequisites
+
+- Node.js and npm
+- PostgreSQL with the `vector` and `pg_trgm` extensions available
+- Redis
+
+Clone this repository and the [frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) into the same parent directory. From that parent directory, create a local PostgreSQL database, then configure the backend:
+
+```bash
+cd Reddit-Clone-Backend
+cp .env.example .env
+```
+
+In `Reddit-Clone-Backend/.env`, set `DATABASE_URI` to your local PostgreSQL connection string (for example, `postgres://USER:PASSWORD@localhost:5432/DB_NAME`), `REDIS_URI` to your Redis URL, and provide local values for `SECRET` and `REFRESH_SECRET`. `TEST_DATABASE_URI` is only needed for backend tests and must point to a separately created test database. The .env.example file lists optional credentials for email, S3 uploads, news, and search integrations; those features require their respective services and credentials.
+
+Install dependencies, migrate the development database, and start the API:
+
+```bash
+cd Reddit-Clone-Backend
+npm ci
+npm run db:migrate:dev
+npm run dev
+```
+
+In a second terminal, start the frontend:
+
+```bash
+cd Reddit-Clone-Frontend
+npm ci
+npm start
+```
+
+The frontend runs at `http://localhost:3000` and proxies API requests to the backend at `http://localhost:3001`.
+
+### Backend tests
+
+Create a separate PostgreSQL test database and set `TEST_DATABASE_URI` in the backend `.env` to its connection string. `npm test` runs the test-database safety check, applies migrations to that database, then runs the Jest suite:
+
+```bash
+cd Reddit-Clone-Backend
+npm test
+```
+
+
 
 
 # Tech Stack
@@ -300,8 +374,6 @@ npm test
 
 ## Application Architecture
 <img width="1206" height="816" alt="Screenshot From 2026-10-30 16-14-14" src="https://github.com/user-attachments/assets/038a3d84-a1be-458c-9ec5-4401749e41b7" />
-
-
 
 
 

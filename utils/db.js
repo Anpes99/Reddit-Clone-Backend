@@ -7,7 +7,9 @@ const sequelize = new Sequelize(
     : process.env.DATABASE_URI,
   {
     dialectOptions: {
-      ...(process.env.NODE_ENV === "production"
+      // Set DATABASE_SSL=false for a local production run (e.g. Docker).
+      ...(process.env.NODE_ENV === "production" &&
+      process.env.DATABASE_SSL !== "false"
         ? {
             ssl: {
               require: true,

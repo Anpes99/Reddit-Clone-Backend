@@ -1,0 +1,70 @@
+# Run the whole app from this directory with: docker compose up --build
+# Expects the frontend repository to be cloned next to this one.
+# Then open http://localhost:3001 (app) and http://localhost:8025 (emails)
+services:
+  app:
+    build:
+      # Parent directory, so the image can build both repositories
+      context: ..
+      dockerfile: Reddit-Clone-Backend/Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      # API keys: Voyage (required), NewsAPI and S3 (optional).
+      # Copy docker.env.example to docker.env and fill them in.
+      - path: docker.env
+        required: false
+    environment:
+      DATABASE_URI: postgres://postgres:postgres@db:5432/reddit
+      DATABASE_SSL: "false"
+      REDIS_URI: redis://redis:6379
+      CLIENT_URL: http://localhost:3001
+      PORT: 3001
+      SECRET: ${SECRET:-local-docker-secret}
+      REFRESH_SECRET: ${REFRESH_SECRET:-local-docker-refresh-secret}
+      # Emails (signup verification, password reset) are caught by Mailpit
+      BREVO_SMTP_HOST: mailpit
+      BREVO_SMTP_PORT: 1025
+      BREVO_SMTP_USER: local
+      BREVO_SMTP_KEY: local
+      MAIL_FROM: noreply@reddit-clone.local
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: reddit
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d reddit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+volumes:
+  db-data:
