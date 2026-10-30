@@ -20,6 +20,42 @@
  - Deployment: Heroku
 
 
+
+
+
+## Engineering Highlights
+
+**Semantic post search with pgvector**
+Posts are embedded with Voyage AI and stored in a pgvector column with an HNSW index, so "top" search ranks by meaning rather than keywords. The query embedding is returned to the client and reused for the next pages of results, so scrolling doesn't call the embedding API again. Newest-first search uses PostgreSQL trigram similarity instead.
+
+**Counters maintained by database triggers**
+User karma, post comment counts, nested reply counts and subreddit member counts are kept in sync by PostgreSQL triggers instead of application code, so they stay correct when requests overlap. Nested reply counts use a recursive query to update every ancestor comment, and karma ignores votes on your own content.
+
+**Refresh-token rotation with revocation**
+Access tokens last 15 minutes. Each refresh token has an ID stored in Redis; refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately.
+
+**Typo-tolerant subreddit search**
+Subreddit search uses `pg_trgm` word similarity, so near-misses still match, ranked by similarity and then by member count.
+
+**Real-time presence and voting**
+Socket.IO pushes vote changes to every viewer instantly and tracks how many signed-in users are viewing each subreddit, dropping users who haven't been seen for 60 seconds.
+
+**Leaderboard with history**
+A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which is what allows the rank-change indicators to work on top communities leaderboard.
+
+**Tested and safe to migrate**
+150+ unit and integration tests run in CI against a real PostgreSQL database. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
+
+
+
+
+
+
+
+
+
+
+
 ## Key Features
 
 ### Authentication & Security
@@ -108,34 +144,6 @@ npm test
 - ✅ **Semantic post search** using Voyage AI embeddings to find relevant posts based on meaning, not just keywords
 - ✅ Typo-tolerant subreddit search
 - ✅ Search bar with subreddit suggestions
-
-
-
-
-## Engineering Highlights
-
-**Semantic post search with pgvector**
-Posts are embedded with Voyage AI and stored in a pgvector column with an HNSW index, so "top" search ranks by meaning rather than keywords. The query embedding is returned to the client and reused for the next pages of results, so scrolling doesn't call the embedding API again. Newest-first search uses PostgreSQL trigram similarity instead.
-
-**Counters maintained by database triggers**
-User karma, post comment counts, nested reply counts and subreddit member counts are kept in sync by PostgreSQL triggers instead of application code, so they stay correct when requests overlap. Nested reply counts use a recursive query to update every ancestor comment, and karma ignores votes on your own content.
-
-**Refresh-token rotation with revocation**
-Access tokens last 15 minutes. Each refresh token has an ID stored in Redis; refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately.
-
-**Typo-tolerant subreddit search**
-Subreddit search uses `pg_trgm` word similarity, so near-misses still match, ranked by similarity and then by member count.
-
-**Real-time presence and voting**
-Socket.IO pushes vote changes to every viewer instantly and tracks how many signed-in users are viewing each subreddit, dropping users who haven't been seen for 60 seconds.
-
-**Leaderboard with history**
-A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which is what allows the rank-change indicators to work on top communities leaderboard.
-
-**Tested and safe to migrate**
-150+ unit and integration tests run in CI against a real PostgreSQL database. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
-
-
 
 
 
@@ -290,11 +298,8 @@ A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps o
 
 
 
-
-
-
-
-
+## Application Architecture
+<img width="1206" height="816" alt="Screenshot From 2026-10-30 16-14-14" src="https://github.com/user-attachments/assets/038a3d84-a1be-458c-9ec5-4401749e41b7" />
 
 
 
