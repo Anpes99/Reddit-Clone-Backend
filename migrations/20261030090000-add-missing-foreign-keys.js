@@ -49,6 +49,36 @@ const FOREIGN_KEY_INDEXES = [
 const constraintName = ({ table, column }) => `${table}_${column}_fkey`;
 const indexName = ({ table, column }) => `${table}_${column}_idx`;
 
+// Some databases already have a foreign key on these columns, possibly under
+// another name or with other rules. Dropping whatever exists before adding the
+// intended constraint gives every database the same end state.
+const dropForeignKeysOnColumn = async (
+  queryInterface,
+  { table, column },
+  transaction,
+) => {
+  const [constraints] = await queryInterface.sequelize.query(
+    `
+      SELECT quote_ident(constraint_info.conname) AS name
+      FROM pg_catalog.pg_constraint constraint_info
+      JOIN pg_catalog.pg_attribute attribute
+        ON attribute.attrelid = constraint_info.conrelid
+        AND attribute.attnum = ANY (constraint_info.conkey)
+      WHERE constraint_info.contype = 'f'
+        AND constraint_info.conrelid = CAST(:table AS regclass)
+        AND attribute.attname = :column;
+    `,
+    { replacements: { table: `public.${table}`, column }, transaction },
+  );
+
+  for (const { name } of constraints) {
+    await queryInterface.sequelize.query(
+      `ALTER TABLE public.${table} DROP CONSTRAINT ${name};`,
+      { transaction },
+    );
+  }
+};
+
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
@@ -80,6 +110,7 @@ module.exports = {
       }
 
       for (const foreignKey of FOREIGN_KEYS) {
+        await dropForeignKeysOnColumn(queryInterface, foreignKey, transaction);
         await queryInterface.sequelize.query(
           `
             ALTER TABLE public.${foreignKey.table}
@@ -94,7 +125,7 @@ module.exports = {
 
       for (const index of FOREIGN_KEY_INDEXES) {
         await queryInterface.sequelize.query(
-          `CREATE INDEX ${indexName(index)} ON public.${index.table} USING btree (${index.column});`,
+          `CREATE INDEX IF NOT EXISTS ${indexName(index)} ON public.${index.table} USING btree (${index.column});`,
           { transaction },
         );
       }
@@ -105,14 +136,14 @@ module.exports = {
     await queryInterface.sequelize.transaction(async (transaction) => {
       for (const index of FOREIGN_KEY_INDEXES) {
         await queryInterface.sequelize.query(
-          `DROP INDEX public.${indexName(index)};`,
+          `DROP INDEX IF EXISTS public.${indexName(index)};`,
           { transaction },
         );
       }
 
       for (const foreignKey of FOREIGN_KEYS) {
         await queryInterface.sequelize.query(
-          `ALTER TABLE public.${foreignKey.table} DROP CONSTRAINT ${constraintName(foreignKey)};`,
+          `ALTER TABLE public.${foreignKey.table} DROP CONSTRAINT IF EXISTS ${constraintName(foreignKey)};`,
           { transaction },
         );
       }
