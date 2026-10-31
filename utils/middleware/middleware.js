@@ -3,6 +3,8 @@ const {
   hasSubredditPermission,
 } = require("../../config/subreddit-moderator-permissions");
 const { SubredditModerators } = require("../../models/index");
+const pinoHttp = require("pino-http");
+const logger = require("../logger");
 
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: "unknown endpoint" });
@@ -72,7 +74,12 @@ const errorHandler = (error, request, response, next) => {
       .send({ error: { message: error.message, name: error.name } });
   }
 
-  next(error);
+  logger.error(error);
+  if (response.headersSent) {
+    return next(error);
+  }
+
+  return response.status(500).json({ error: "something went wrong" });
 };
 
 const validate = (schema, property = "body") => {
@@ -150,6 +157,34 @@ const csrfProtection = (req, res, next) => {
   next();
 };
 
+const httpLogger = pinoHttp({
+  logger,
+
+  serializers: {
+    req(req) {
+      return {
+        method: req.method,
+        url: req.url,
+        remoteAddress: req.remoteAddress,
+      };
+    },
+
+    res(res) {
+      return {
+        statusCode: res.statusCode,
+      };
+    },
+  },
+
+  customSuccessMessage(req, res) {
+    return `${req.method} ${req.url} completed`;
+  },
+
+  customErrorMessage(req, res, err) {
+    return `${req.method} ${req.url} failed`;
+  },
+});
+
 module.exports = {
   errorHandler,
   tokenExtractor,
@@ -159,4 +194,5 @@ module.exports = {
   requireAuth,
   requireSubredditPermission,
   csrfProtection,
+  httpLogger,
 };

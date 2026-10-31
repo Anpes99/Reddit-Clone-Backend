@@ -30,11 +30,12 @@ startSubredditOnlineCountBroadcast(io);
 const {
   startUpdateTopCommunitiesTask,
 } = require("./jobs/update-top-communities-task");
+const logger = require("./utils/logger");
 
 startUpdateTopCommunitiesTask();
 
 const PORT = runtime.PORT || 3001;
 server.listen(PORT);
-console.log("server running on port " + PORT);
+logger.info("server running on port " + PORT);
 
 module.exports = { io };

@@ -7,10 +7,11 @@ const cors = require("cors");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
-
+const middleware = require("./utils/middleware/middleware");
 const app = express();
 
-// Configure security headers before your routes.
+app.use(middleware.httpLogger);
+
 app.use(
   helmet({
     // Prevent  site from being embedded in frames.
@@ -56,7 +57,6 @@ app.use(express.static("build"));
 app.use(express.json());
 app.use(cookieParser());
 
-const middleware = require("./utils/middleware/middleware");
 const usersRouter = require("./controllers/users");
 const authRouter = require("./controllers/auth");
 const postsRouter = require("./controllers/posts");
