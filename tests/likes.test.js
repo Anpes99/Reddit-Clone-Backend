@@ -13,6 +13,14 @@ jest.mock("../models/index", () => ({
   },
 }));
 
+jest.mock("../utils/db", () => ({
+  sequelize: {
+    transaction: jest.fn((callback) => callback(mockTransaction)),
+  },
+}));
+
+const mockTransaction = { id: "test-transaction" };
+
 const {
   Comment,
   Post,
@@ -24,6 +32,8 @@ const registerLikeHandlers = require("../websockets/likes");
 const createSocketHarness = () => {
   const socketHandlers = {};
   const socket = {
+    data: { user: { id: 8 } },
+    use: jest.fn(),
     on: jest.fn((eventName, handler) => {
       socketHandlers[eventName] = handler;
     }),
@@ -61,20 +71,30 @@ describe("repeated upvotes", () => {
     });
     UserRatedPosts.destroy.mockImplementation(async () => {
       existingVote = null;
+      return 1;
     });
     const { io, socketHandlers } = createSocketHarness();
     const firstResult = jest.fn();
     const secondResult = jest.fn();
 
-    await socketHandlers.likePost({ postId: 21, userId: 8 }, firstResult);
-    await socketHandlers.likePost({ postId: 21, userId: 8 }, secondResult);
+    await socketHandlers.likePost({ postId: 21 }, firstResult);
+    await socketHandlers.likePost({ postId: 21 }, secondResult);
 
     expect(firstResult).toHaveBeenCalledWith({ success: true, newRating: 1 });
     expect(secondResult).toHaveBeenCalledWith({ success: true, newRating: 0 });
     expect(UserRatedPosts.create).toHaveBeenCalledTimes(1);
-    expect(UserRatedPosts.destroy).toHaveBeenCalledWith({ where: { id: 34 } });
-    expect(post.increment).toHaveBeenCalledWith("upVotes", { by: 1 });
-    expect(post.decrement).toHaveBeenCalledWith("upVotes", { by: 1 });
+    expect(UserRatedPosts.destroy).toHaveBeenCalledWith({
+      where: { id: 34, rating: 1 },
+      transaction: mockTransaction,
+    });
+    expect(post.increment).toHaveBeenCalledWith("upVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
+    expect(post.decrement).toHaveBeenCalledWith("upVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
     expect(existingVote).toBeNull();
     expect(io.emit).toHaveBeenNthCalledWith(1, "post_likes_changed", {
       postId: 21,
@@ -101,18 +121,26 @@ describe("repeated upvotes", () => {
     });
     UserRatedComments.destroy.mockImplementation(async () => {
       existingVote = null;
+      return 1;
     });
     const { io, socketHandlers } = createSocketHarness();
 
-    await socketHandlers.likeComment({ commentId: 55, userId: 8 });
-    await socketHandlers.likeComment({ commentId: 55, userId: 8 });
+    await socketHandlers.likeComment({ commentId: 55 });
+    await socketHandlers.likeComment({ commentId: 55 });
 
     expect(UserRatedComments.create).toHaveBeenCalledTimes(1);
     expect(UserRatedComments.destroy).toHaveBeenCalledWith({
-      where: { id: 89 },
+      where: { id: 89, rating: 1 },
+      transaction: mockTransaction,
     });
-    expect(comment.increment).toHaveBeenCalledWith("upVotes", { by: 1 });
-    expect(comment.decrement).toHaveBeenCalledWith("upVotes", { by: 1 });
+    expect(comment.increment).toHaveBeenCalledWith("upVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
+    expect(comment.decrement).toHaveBeenCalledWith("upVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
     expect(existingVote).toBeNull();
     expect(io.emit).toHaveBeenNthCalledWith(1, "comment_likes_changed", {
       commentId: 55,
@@ -141,22 +169,30 @@ describe("repeated downvotes", () => {
     });
     UserRatedPosts.destroy.mockImplementation(async () => {
       existingVote = null;
+      return 1;
     });
     const { io, socketHandlers } = createSocketHarness();
     const firstResult = jest.fn();
     const secondResult = jest.fn();
 
-    await socketHandlers.dislikePost({ postId: 21, userId: 8 }, firstResult);
-    await socketHandlers.dislikePost({ postId: 21, userId: 8 }, secondResult);
+    await socketHandlers.dislikePost({ postId: 21 }, firstResult);
+    await socketHandlers.dislikePost({ postId: 21 }, secondResult);
 
     expect(firstResult).toHaveBeenCalledWith({ success: true, newRating: -1 });
     expect(secondResult).toHaveBeenCalledWith({ success: true, newRating: 0 });
     expect(UserRatedPosts.create).toHaveBeenCalledTimes(1);
     expect(UserRatedPosts.destroy).toHaveBeenCalledWith({
-      where: { userId: 8, postId: 21 },
+      where: { userId: 8, postId: 21, rating: -1 },
+      transaction: mockTransaction,
     });
-    expect(post.increment).toHaveBeenCalledWith("downVotes", { by: 1 });
-    expect(post.decrement).toHaveBeenCalledWith("downVotes", { by: 1 });
+    expect(post.increment).toHaveBeenCalledWith("downVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
+    expect(post.decrement).toHaveBeenCalledWith("downVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
     expect(existingVote).toBeNull();
     expect(io.emit).toHaveBeenNthCalledWith(1, "post_likes_changed", {
       postId: 21,
@@ -183,18 +219,26 @@ describe("repeated downvotes", () => {
     });
     UserRatedComments.destroy.mockImplementation(async () => {
       existingVote = null;
+      return 1;
     });
     const { io, socketHandlers } = createSocketHarness();
 
-    await socketHandlers.dislikeComment({ commentId: 55, userId: 8 });
-    await socketHandlers.dislikeComment({ commentId: 55, userId: 8 });
+    await socketHandlers.dislikeComment({ commentId: 55 });
+    await socketHandlers.dislikeComment({ commentId: 55 });
 
     expect(UserRatedComments.create).toHaveBeenCalledTimes(1);
     expect(UserRatedComments.destroy).toHaveBeenCalledWith({
-      where: { id: 89 },
+      where: { id: 89, rating: -1 },
+      transaction: mockTransaction,
     });
-    expect(comment.increment).toHaveBeenCalledWith("downVotes", { by: 1 });
-    expect(comment.decrement).toHaveBeenCalledWith("downVotes", { by: 1 });
+    expect(comment.increment).toHaveBeenCalledWith("downVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
+    expect(comment.decrement).toHaveBeenCalledWith("downVotes", {
+      by: 1,
+      transaction: mockTransaction,
+    });
     expect(existingVote).toBeNull();
     expect(io.emit).toHaveBeenNthCalledWith(1, "comment_likes_changed", {
       commentId: 55,

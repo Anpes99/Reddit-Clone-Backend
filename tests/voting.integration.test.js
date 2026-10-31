@@ -34,9 +34,11 @@ let commentId;
 let socketHandlers;
 let io;
 
-const createSocketHarness = () => {
+const createSocketHarness = (userId) => {
   const handlers = {};
   const socket = {
+    data: { user: { id: userId } },
+    use: () => {},
     on: (eventName, handler) => {
       handlers[eventName] = handler;
     },
@@ -167,7 +169,8 @@ beforeAll(async () => {
   );
   commentId = comment.id;
 
-  ({ handlers: socketHandlers, socketServer: io } = createSocketHarness());
+  ({ handlers: socketHandlers, socketServer: io } =
+    createSocketHarness(voterId));
 });
 
 beforeEach(() => {
@@ -299,4 +302,63 @@ test("comment vote changes persist scores and update author karma", async () => 
     await UserRatedComments.count({ where: { commentId, userId: voterId } }),
   ).toBe(0);
   expect(io.emit).toHaveBeenCalledTimes(3);
+});
+
+describe("concurrent votes", () => {
+  // The losing request of each race logs the rejected write; keep the
+  // expected errors out of the test output.
+  beforeEach(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    console.log.mockRestore();
+  });
+
+  test("concurrent first votes on a post are counted once", async () => {
+    const results = [jest.fn(), jest.fn()];
+    await Promise.all(
+      results.map((result) => socketHandlers.likePost({ postId }, result)),
+    );
+
+    const succeeded = results.filter((result) =>
+      result.mock.calls.some(([response]) => response.success),
+    );
+    expect(succeeded.length).toBeGreaterThanOrEqual(1);
+    expect(
+      await getVoteState("user_rated_posts", "post_id", postId),
+    ).toMatchObject({ up_votes: 1, down_votes: 0, karma: 1, rating: 1 });
+    expect(
+      await UserRatedPosts.count({ where: { postId, userId: voterId } }),
+    ).toBe(1);
+  });
+
+  test("concurrent cancels of a post upvote decrement once", async () => {
+    // Continues from the previous test, where the voter has upvoted the post.
+    await Promise.all([
+      socketHandlers.likePost({ postId }, jest.fn()),
+      socketHandlers.likePost({ postId }, jest.fn()),
+    ]);
+
+    expect(
+      await getVoteState("user_rated_posts", "post_id", postId),
+    ).toMatchObject({ up_votes: 0, down_votes: 0, karma: 0, rating: 0 });
+    expect(
+      await UserRatedPosts.count({ where: { postId, userId: voterId } }),
+    ).toBe(0);
+  });
+
+  test("concurrent first votes on a comment are counted once", async () => {
+    await Promise.all([
+      socketHandlers.likeComment({ commentId }),
+      socketHandlers.likeComment({ commentId }),
+    ]);
+
+    expect(
+      await getVoteState("user_rated_comments", "comment_id", commentId),
+    ).toMatchObject({ up_votes: 1, down_votes: 0, karma: 1, rating: 1 });
+    expect(
+      await UserRatedComments.count({ where: { commentId, userId: voterId } }),
+    ).toBe(1);
+  });
 });

@@ -146,7 +146,6 @@ describe("POST /posts", () => {
     expect(response.body).toBe("New post created");
     expect(Subreddit.findOne).toHaveBeenCalledWith({
       where: { name: "technology" },
-      required: true,
     });
     expect(generateEmbedding).toHaveBeenCalledWith(
       "A useful title\n\nPost body",
@@ -190,10 +189,8 @@ describe("POST /posts", () => {
       { Authorization: "Bearer test-token" },
     );
 
-    expect(response.statusCode).toBe(400);
-    expect(response.body).toBe(
-      "missing information. Please include all required information.",
-    );
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toBe("subreddit not found");
     expect(generateEmbedding).not.toHaveBeenCalled();
     expect(Post.create).not.toHaveBeenCalled();
   });
@@ -242,7 +239,8 @@ describe("GET /posts/:id", () => {
   });
 
   it("uses the requested comment sort field and order", async () => {
-    Post.findByPk.mockResolvedValue(null);
+    const post = { id: 56, title: "A useful title" };
+    Post.findByPk.mockResolvedValue(post);
 
     const response = await request(
       "GET",
@@ -250,12 +248,21 @@ describe("GET /posts/:id", () => {
     );
 
     expect(response.statusCode).toBe(200);
-    expect(response.body).toEqual({ post: null });
+    expect(response.body).toEqual({ post });
     expect(Post.findByPk).toHaveBeenCalledWith(
       "56",
       expect.objectContaining({
         order: [[Comment, "createdAt", "ASC"]],
       }),
     );
+  });
+
+  it("returns 404 when the post does not exist", async () => {
+    Post.findByPk.mockResolvedValue(null);
+
+    const response = await request("GET", "/posts/56");
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toBe("post not found");
   });
 });
