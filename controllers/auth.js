@@ -253,11 +253,22 @@ authRouter.post("/refresh", async (req, res) => {
 authRouter.post("/logout", async (req, res) => {
   const token = req.cookies?.refreshToken;
 
-  const decodedToken = jwt.verify(token, process.env.REFRESH_SECRET, {
-    algorithms: ["HS256"],
-  });
+  let decodedToken;
+  if (token) {
+    try {
+      decodedToken = jwt.verify(token, process.env.REFRESH_SECRET, {
+        algorithms: ["HS256"],
+      });
+    } catch {}
+  }
 
-  await redisClient.del(`refresh:${decodedToken.refreshTokenId}`);
+  if (decodedToken) {
+    try {
+      await redisClient.del(`refresh:${decodedToken.refreshTokenId}`);
+    } catch (error) {
+      console.error("Failed to revoke refresh token:", error.message);
+    }
+  }
 
   res.clearCookie("refreshToken", {
     httpOnly: true,

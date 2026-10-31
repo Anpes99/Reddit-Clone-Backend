@@ -298,3 +298,55 @@ describe("POST /refresh and POST /logout", () => {
     expect(replayResponse.statusCode).toBe(401);
   });
 });
+
+describe("POST /logout without a revocable token", () => {
+  const expectCookieCleared = (response) => {
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([expect.stringContaining("refreshToken=;")]),
+    );
+  };
+
+  it("logs out without a refresh cookie", async () => {
+    const response = await postRequest("/logout");
+
+    expect(response.statusCode).toBe(204);
+    expect(redisClient.del).not.toHaveBeenCalled();
+    expectCookieCleared(response);
+  });
+
+  it("logs out with an invalid refresh cookie", async () => {
+    const response = await postRequest(
+      "/logout",
+      {},
+      "refreshToken=not-a-valid-token",
+    );
+
+    expect(response.statusCode).toBe(204);
+    expect(redisClient.del).not.toHaveBeenCalled();
+    expectCookieCleared(response);
+  });
+
+  it("still logs out when the token cannot be revoked in Redis", async () => {
+    const consoleError = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const refreshTokenId = "redis-down-refresh-token-id";
+    redisClient.del.mockRejectedValueOnce(new Error("Redis unavailable"));
+
+    const response = await postRequest(
+      "/logout",
+      {},
+      `refreshToken=${createRefreshToken(refreshTokenId)}`,
+    );
+
+    expect(response.statusCode).toBe(204);
+    expect(redisClient.del).toHaveBeenCalledWith(`refresh:${refreshTokenId}`);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to revoke refresh token:",
+      "Redis unavailable",
+    );
+    expectCookieCleared(response);
+
+    consoleError.mockRestore();
+  });
+});
