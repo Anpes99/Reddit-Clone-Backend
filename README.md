@@ -1,331 +1,136 @@
-# A full-stack Reddit-clone
+# Full-stack Reddit Clone
 
-![Tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg)
+![Backend tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg) ![Frontend tests](https://github.com/Anpes99/Reddit-Clone-Frontend/actions/workflows/test.yml/badge.svg)
 
-### A full-stack Reddit-clone application built with React, Redux, Node.js, and PostgreSQL.
+A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
 
-## [Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/) · [Frontend Repository](https://github.com/Anpes99/Reddit-Clone-Frontend)
+**[Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)** · [Frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) · [Backend repository](https://github.com/Anpes99/Reddit-Clone-Backend)
 
-## Try the Live Demo
-
-Explore the application without creating an account using the demo credentials below.
-
-| Credential | Value |
+| Demo login | |
 |---|---|
 | **Username** | `demo_user` |
 | **Password** | `password` |
 
-[**Open Live Demo →**](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)
+## Tech Stack
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Tech Stack
- - Frontend: React, Redux, JavaScript, Tailwind CSS, CSS, HTML
- - Backend: Node.js, Express.js, PostgreSQL, Sequelize ORM, Redis
- - Authentication & Validation: JWT, refresh-token rotation and revocation, email verification, Redis-backed API rate limiting, Joi
- - Testing: Jest, unit and PostgreSQL integration tests
- - Email Services: Brevo, Nodemailer
- - Real-time Communication: Socket.IO
- - Storage: AWS S3
- - AI & Search: Voyage AI embeddings, semantic search
- - Deployment: Heroku
-
-
-
-
+- **Frontend:** React 18, Redux Toolkit, React Router, Tailwind CSS, Material UI, Formik + Yup, Socket.IO client
+- **Backend:** Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, Socket.IO, Joi
+- **Auth & security:** JWT access tokens, rotating refresh tokens revoked in Redis, email verification, Helmet, CSRF origin checks, Redis-backed rate limiting
+- **Integrations:** Voyage AI embeddings, AWS S3, Brevo + Nodemailer
+- **Testing & tooling:** Jest, React Testing Library, PostgreSQL integration tests, GitHub Actions CI, Docker Compose, ESLint, Prettier
+- **Deployment:** Heroku
 
 ## Engineering Highlights
 
+### Backend & data
+
 **Semantic post search with pgvector**
-Posts are embedded with Voyage AI and stored in a pgvector column with an HNSW index, so "top" search ranks by meaning rather than keywords. The query embedding is returned to the client and reused for the next pages of results, so scrolling doesn't call the embedding API again. Newest-first search uses PostgreSQL trigram similarity instead.
+Posts are embedded with Voyage AI and stored in a pgvector column with an HNSW index, so "top" search ranks results by meaning rather than keywords. The query embedding is returned to the client and reused for the next pages of results, so infinite scrolling doesn't call the embedding API again. Newest-first search uses PostgreSQL trigram similarity instead.
 
 **Counters maintained by database triggers**
 User karma, post comment counts, nested reply counts and subreddit member counts are kept in sync by PostgreSQL triggers instead of application code, so they stay correct when requests overlap. Nested reply counts use a recursive query to update every ancestor comment, and karma ignores votes on your own content.
 
-**Refresh-token rotation with revocation**
-Access tokens last 15 minutes. Each refresh token has an ID stored in Redis; refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately.
+**Concurrency-safe voting**
+Each vote change runs in a database transaction, and the vote row is only updated if it still holds the value that was read. Two votes arriving at the same moment can't be double-counted or leave the score out of sync.
 
 **Typo-tolerant subreddit search**
-Subreddit search uses `pg_trgm` word similarity, so near-misses still match, ranked by similarity and then by member count.
-
-**Real-time presence and voting**
-Socket.IO pushes vote changes to every viewer instantly and tracks how many signed-in users are viewing each subreddit, dropping users who haven't been seen for 60 seconds.
+Subreddit search uses `pg_trgm` word similarity, so near-misses still match. Results are ranked by similarity, then by member count.
 
 **Leaderboard with history**
-A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which is what allows the rank-change indicators to work on top communities leaderboard.
+A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which powers the rank-change indicators on the top communities leaderboard.
 
-**Tested and safe to migrate**
-150+ unit and integration tests run in CI against a real PostgreSQL database. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
+### Auth & real-time
 
+**Refresh-token rotation with revocation**
+Access tokens last 15 minutes. Each refresh token has an ID stored in Redis. Refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately.
 
-
-
-
-
-
-
-
-
-
-## Key Features
-
-### Authentication & Security
-- ✅ Password hashing
-- ✅ JWT authentication and refresh-token rotation
-- ✅ Refresh-token revocation using Redis to invalidate old or revoked refresh tokens, preventing their reuse and strengthening session security
-- ✅ Mandatory email verification for all accounts, with expiring database-stored tokens, resend functionality, and email delivery using Brevo and Nodemailer
-- ✅ Secure email-based password recovery with a dedicated password reset page and hashed, database-stored reset tokens that expire after 30 minutes
-- ✅ Authentication and role-based authorization
-- ✅ CSRF protection through origin validation for state-changing API methods
-- ✅ Security headers using Helmet, including clickjacking protection, Content Security Policy (CSP) to restrict resource loading and prevent unauthorized framing, and production-only HSTS with a one-year max age.
-- ✅ Redis-backed rate limiting for login, signup, post and comment creation, and general API requests
-
-### Backend & Database
-- ✅ Express.js REST API
-- ✅ PostgreSQL with Sequelize ORM
-- ✅ Joi request validation
-- ✅ Versioned database migrations with Sequelize CLI, built from a single baseline schema
-- ✅ Database triggers that keep vote karma, comment counts, nested reply counts and subreddit member counts in sync
-- ✅ Foreign key constraints with cascade rules that protect data integrity when users, posts or subreddits are deleted
+**Authenticated, rate-limited WebSockets**
+Socket.IO connections are authenticated with the same JWT as the REST API. Voting over the socket requires a signed-in user and is rate-limited in Redis to one vote per user per post or comment every 3 seconds. Vote changes are pushed to every viewer instantly, and the app tracks how many signed-in users are viewing each subreddit, dropping users who haven't been seen for 60 seconds.
 
 ### Frontend
-- ✅ Redux-based state management
-- ✅ Responsive layouts for mobile and desktop
 
-### Storage & Deployment
-- ✅ AWS S3 image storage with server-side file size limits for image uploads
-- ✅ Live application deployment on Heroku
+**Silent token refresh shared by HTTP and WebSockets**
+An Axios interceptor catches expired access tokens, refreshes them once and retries the original request, and shows a notification when the user is rate limited. A Redux listener middleware watches the access token and reconnects the socket whenever it changes (login, refresh or logout), so real-time features always act as the current user.
 
-### Testing
-- ✅ 150+ automated tests covering unit and integration testing
-- ✅ Unit tests for API routes, authentication middleware, JWT handling, CSRF protection and Joi validation rules
-- ✅ Integration tests against a real PostgreSQL database for semantic vector search, typo-tolerant subreddit search, voting and karma, and trigger-maintained counters
-- ✅ Isolated test database with a safety check that refuses to run if it points at the main database
+**Direct-to-S3 image uploads**
+Images are uploaded straight from the browser to S3 with presigned POST fields, with file size limits enforced on the server, so image data never passes through the API.
 
-```bash
-# Set TEST_DATABASE_URI in .env (must differ from DATABASE_URI)
-npm test
-```
+### Quality
 
+**250+ tests in CI**
+173 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 82 frontend tests (React Testing Library) run on every push with GitHub Actions. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
 
+## Features
 
+**Users**
+- Sign-up with mandatory email verification (hashed, expiring tokens, with resend)
+- Login and logout, plus password recovery by email with 30-minute reset links
+- Profile page with overview, posts and comments tabs, and an editable avatar, background image and introduction
 
-## User
+**Communities**
+- Create, join, leave and search subreddits
+- Owners and moderators can edit the icon, background image and description
+- Live count of signed-in users viewing each subreddit
+- Top communities leaderboard with daily rank-change indicators
 
-- ✅ Login & Logout
-- ✅ User registration with mandatory email verification, expiring verification tokens, and email resend functionality
-- ✅ Password recovery via email with a dedicated password reset page and 30-minute expiring reset tokens
-- ✅ Edit user avatar, profile page background image and introduction
-- ✅ User profile page with overview, posts, and comments feed tabs
+**Posts & comments**
+- Create posts with images, then upvote and downvote them, with scores updating live for every viewer
+- Feeds sorted by new or top, with infinite scrolling
+- Nested comment threads with voting, replies and on-demand loading of deeper replies
 
+**Search**
+- Semantic post search that matches meaning, not just keywords
+- Typo-tolerant subreddit search, with subreddit suggestions in the search bar
 
-## Subreddit
+**Security**
+- Password hashing, JWT auth with refresh-token rotation and revocation, role-based authorization
+- CSRF protection through origin validation on state-changing requests
+- Helmet security headers, including a Content Security Policy, clickjacking protection and production-only HSTS
+- Redis-backed rate limiting on login, sign-up, posting, commenting, voting and general API traffic
 
-- ✅ Create subreddit
-- ✅ Edit subreddit icon, subreddit page background image and description  (Moderator and Owner)
-- ✅ Join subreddit
-- ✅ Leave subreddit
-- ✅ Search for subreddits
-- ✅ Subreddit page with post feed
-- ✅ Real-time count of authenticated users currently viewing each subreddit using Socket.IO
-- ✅ Subreddit member count leaderboard: Automatically updates daily using a scheduled cron job, with rank-change indicators showing each subreddit's movement compared to the previous day's leaderboard
+**Responsive UI** for mobile and desktop.
 
-## Post
+## Testing
 
-- ✅ Create post
-- ✅ Vote post
-- ✅ Add an image to a post
-- ✅ Sort post feed by new and top
-- ✅ Search for posts
-- ✅ Infinite scrolling for posts
-- ✅ Post page with comment section
-- ✅ Real-time post vote count updates using Socket.IO
+| | Tests | What's covered |
+|---|---|---|
+| **Backend** | 173 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
+| **Frontend** | 82 | Sign-in, sign-up and password-reset forms, the Axios token-refresh interceptor, socket reconnection on token change, post and comment voting, nested comment threads, post and comment creation, joining subreddits, Redux state and S3 uploads |
 
+Backend tests use a separate test database and refuse to run if it points at the main database.
 
-## Comments
+## Screenshots
 
-- ✅ Create comment
-- ✅ Vote comment
-- ✅ Real-time comment vote count updates using Socket.IO
-- ✅ Nested comments
+### Homepage (mobile)
+<img width="233" height="411" alt="Homepage on mobile" src="https://github.com/user-attachments/assets/37ee39c8-69e3-41c9-b505-bef79b0b862e" />
 
-
-## Search
-
-- ✅ **Semantic post search** using Voyage AI embeddings to find relevant posts based on meaning, not just keywords
-- ✅ Typo-tolerant subreddit search
-- ✅ Search bar with subreddit suggestions
-
-
-
-
-
-
-
-
-
-
-
-
-### Homepage mobile view
-<img width="233" height="411" alt="frontpage_mobile2" src="https://github.com/user-attachments/assets/37ee39c8-69e3-41c9-b505-bef79b0b862e" />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Responsive web design
-<img width="785" height="330" alt="frontpage_responsive3" src="https://github.com/user-attachments/assets/38550ff2-4667-4656-86a0-8419ff32f1c4" />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### Responsive layout
+<img width="785" height="330" alt="Responsive homepage" src="https://github.com/user-attachments/assets/38550ff2-4667-4656-86a0-8419ff32f1c4" />
 
 ### Subreddit creation and customization
-<img width="800" height="450" alt="subreddit_creation2" src="https://github.com/user-attachments/assets/ac979222-11fa-4877-a8f9-0712b7ee2c4e" />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<img width="800" height="450" alt="Subreddit creation" src="https://github.com/user-attachments/assets/ac979222-11fa-4877-a8f9-0712b7ee2c4e" />
 
 ### User creation and customization
-<img width="800" height="450" alt="user_creation1" src="https://github.com/user-attachments/assets/d1fb21e2-8e20-403a-947e-0c4b37474838" />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<img width="800" height="450" alt="User creation" src="https://github.com/user-attachments/assets/d1fb21e2-8e20-403a-947e-0c4b37474838" />
 
 ### Post creation
-<img width="578" height="328" alt="post_creation6" src="https://github.com/user-attachments/assets/4395a951-ba95-48a8-8430-7e5596b078e5" />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<img width="578" height="328" alt="Post creation" src="https://github.com/user-attachments/assets/4395a951-ba95-48a8-8430-7e5596b078e5" />
 
 ### Post page and nested comments
-<img width="800" height="450" alt="postpage3" src="https://github.com/user-attachments/assets/154f6507-67a7-4ac2-ab38-ee17e5e6a916" />
-
-
-
-
-
-
-
-
-
-
-
-
-
+<img width="800" height="450" alt="Post page" src="https://github.com/user-attachments/assets/154f6507-67a7-4ac2-ab38-ee17e5e6a916" />
 
 ### Search page and semantic search
-<img width="355" height="638" alt="searchpage_mobile8" src="https://github.com/user-attachments/assets/c1c08007-1050-4632-9ce2-eb06f1962970" />
+<img width="355" height="638" alt="Search page" src="https://github.com/user-attachments/assets/c1c08007-1050-4632-9ce2-eb06f1962970" />
 
+## Architecture
 
-
-
-
-
+<img width="1206" height="816" alt="Application architecture" src="https://github.com/user-attachments/assets/038a3d84-a1be-458c-9ec5-4401749e41b7" />
 
 ## Database Diagram
-<img width="1698" height="870" alt="db-diagram" src="https://github.com/user-attachments/assets/08b3d44f-6c62-40bb-980c-3b8ca49d1c03" />
 
+<img width="1698" height="870" alt="Database diagram" src="https://github.com/user-attachments/assets/08b3d44f-6c62-40bb-980c-3b8ca49d1c03" />
 
-
-
-
-## Application Architecture
-<img width="1206" height="816" alt="Screenshot From 2026-10-30 16-14-14" src="https://github.com/user-attachments/assets/038a3d84-a1be-458c-9ec5-4401749e41b7" />
-
-## Local development
+## Local Development
 
 Clone this repository and the [frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) into the same parent directory. Both are needed to run the app:
 
@@ -349,7 +154,7 @@ cp docker.env.example docker.env
 docker compose up --build
 ```
 
-This starts PostgreSQL (with pgvector), Redis and the app, runs the migrations, and serves the production build at `http://localhost:3001`. Signup verification and password reset emails are caught by Mailpit at `http://localhost:8025`. Image uploads also need S3 credentials in `docker.env`. Stop with `docker compose down` (add `-v` to also delete the database).
+This starts PostgreSQL (with pgvector), Redis and the app, runs the migrations, and serves the production build at `http://localhost:3001`. Sign-up verification and password reset emails are caught by Mailpit at `http://localhost:8025`. Image uploads also need S3 credentials in `docker.env`. Stop with `docker compose down` (add `-v` to also delete the database).
 
 To fill the app with demo users, communities, posts, comments and votes, run this while it's up:
 
@@ -395,11 +200,18 @@ npm start
 
 The frontend runs at `http://localhost:3000` and proxies API requests to the backend at `http://localhost:3001`.
 
-### Backend tests
+### Running the tests
 
-Create a separate PostgreSQL test database and set `TEST_DATABASE_URI` in the backend `.env` to its connection string. Never point it at your development or production database. `npm test` runs the test-database safety check, applies migrations to that database, then runs the Jest suite:
+**Backend:** create a separate PostgreSQL test database and set `TEST_DATABASE_URI` in the backend `.env` to its connection string. Never point it at your development or production database. `npm test` runs the test-database safety check, applies migrations to that database, then runs the Jest suite:
 
 ```bash
 cd Reddit-Clone-Backend
+npm test
+```
+
+**Frontend:** no database or running backend needed:
+
+```bash
+cd Reddit-Clone-Frontend
 npm test
 ```
