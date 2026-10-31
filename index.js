@@ -14,7 +14,7 @@ io.use((socket, next) => {
     socket.data.user = decoded;
     next();
   } catch (error) {
-    socket.data = null;
+    socket.data.user = null;
     next();
   }
 });

@@ -76,7 +76,7 @@ const throttleCommentLikes =
 
 const requireAuth =
   (socket) =>
-  ([event, ...args], next) => {
+  ([event], next) => {
     const protectedEvents = [
       "likePost",
       "dislikePost",
@@ -86,7 +86,7 @@ const requireAuth =
     if (!protectedEvents.includes(event)) {
       return next();
     }
-    if (!socket.data.user.id) {
+    if (!socket.data?.user?.id) {
       return next(new Error("Not authenticated"));
     }
     return next();
@@ -94,7 +94,7 @@ const requireAuth =
 
 module.exports = function (io) {
   io.on("connection", (socket) => {
-    socket.use(requireAuth);
+    socket.use(requireAuth(socket));
 
     socket.use(throttlePostLikes(socket));
 
