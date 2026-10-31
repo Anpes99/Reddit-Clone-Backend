@@ -47,7 +47,7 @@ const getTrackedSubredditNames = () => {
 
 const registerSubredditOnlineCountSocketHandlers = (io) => {
   io.on("connection", (socket) => {
-    const userId = socket.handshake.auth.userId;
+    const userId = socket.data?.user?.id;
     let currentSubredditName = null;
 
     const publishCount = async (subredditName) => {

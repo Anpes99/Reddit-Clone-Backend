@@ -4,6 +4,7 @@ const {
   UserRatedPosts,
   UserRatedComments,
 } = require("../models/index");
+const { redisClient } = require("../utils/redis");
 const {
   cancelCommentUpvote,
   cancelCommentDownvote,
@@ -19,9 +20,72 @@ const {
   createNewPostDownvote,
 } = require("./utils");
 
+const throttlePostLikes =
+  (socket) =>
+  async ([event, ...args], next) => {
+    const throttledEvents = ["likePost", "dislikePost"];
+    if (!throttledEvents.includes(event)) {
+      return next();
+    }
+
+    const userId = socket.data.user.id;
+    const postId = args[0]?.postId;
+
+    if (!postId) {
+      return next(new Error("Post ID is required"));
+    }
+
+    const key = `rl:vote:post:${userId}:${postId}`;
+
+    try {
+      const ok = await redisClient.set(key, "1", { PX: 3000, NX: true });
+      if (!ok) return next(new Error("Rate limit exceeded"));
+      next();
+    } catch (e) {
+      console.error("rate limit check failed", e);
+      next(); // allow the vote through if Redis fails
+    }
+  };
+
+const throttleCommentLikes =
+  (socket) =>
+  async ([event, ...args], next) => {
+    const throttledEvents = ["likeComment", "dislikeComment"];
+    if (!throttledEvents.includes(event)) {
+      return next();
+    }
+
+    const userId = socket.data.user.id;
+    const commentId = args[0]?.commentId;
+
+    if (!commentId) {
+      return next(new Error("Comment ID is required"));
+    }
+
+    const key = `rl:vote:comment:${userId}:${commentId}`;
+
+    try {
+      const ok = await redisClient.set(key, "1", { PX: 3000, NX: true });
+      if (!ok) return next(new Error("Rate limit exceeded"));
+      next();
+    } catch (e) {
+      console.error("rate limit check failed", e);
+      next(); // allow the vote through if Redis fails
+    }
+  };
+
 module.exports = function (io) {
   io.on("connection", (socket) => {
-    socket.on("likePost", async ({ postId, userId }, cb) => {
+    socket.use(throttlePostLikes(socket));
+
+    socket.use(throttleCommentLikes(socket));
+
+    socket.on("likePost", async ({ postId }, cb) => {
+      if (!socket.data?.user) {
+        return;
+      }
+      const userId = socket.data.user.id;
+
       try {
         const post = await Post.findByPk(postId);
 
@@ -77,7 +141,11 @@ module.exports = function (io) {
         return cb({ success: false });
       }
     });
-    socket.on("dislikePost", async ({ postId, userId }, cb) => {
+    socket.on("dislikePost", async ({ postId }, cb) => {
+      if (!socket.data?.user) {
+        return;
+      }
+      const userId = socket.data.user.id;
       try {
         const post = await Post.findByPk(postId);
         if (!post) {
@@ -114,7 +182,11 @@ module.exports = function (io) {
       }
     });
 
-    socket.on("likeComment", async ({ commentId, userId }) => {
+    socket.on("likeComment", async ({ commentId }) => {
+      if (!socket.data?.user) {
+        return;
+      }
+      const userId = socket.data.user.id;
       try {
         if (!commentId || !userId) {
           throw new Error("Missing commentId or userId");
@@ -148,7 +220,11 @@ module.exports = function (io) {
       }
     });
 
-    socket.on("dislikeComment", async ({ commentId, userId }) => {
+    socket.on("dislikeComment", async ({ commentId }) => {
+      if (!socket.data?.user) {
+        return;
+      }
+      const userId = socket.data.user.id;
       try {
         if (!commentId || !userId) {
           throw new Error("Missing commentId or userId");
