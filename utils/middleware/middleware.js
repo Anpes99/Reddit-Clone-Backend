@@ -44,7 +44,7 @@ const requireAuth = (req, res, next) => {
 
 const errorHandler = (error, request, response, next) => {
   if (error.name === "ValidationError") {
-    console.log(error.message);
+    console.error(error.message);
     return response
       .status(400)
       .send({ error: { message: error.message, name: error.name } });
@@ -60,13 +60,13 @@ const errorHandler = (error, request, response, next) => {
       .send({ error: { message: error.message, name: error.name } });
   }
   if (error.name === "TypeError") {
-    console.log(error.message);
+    console.error(error.message);
     return response
       .status(500)
       .send({ error: { message: error.message, name: error.name } });
   }
   if (error.name === "CastError") {
-    console.log(error.message);
+    console.error(error.message);
     return response
       .status(400)
       .send({ error: { message: error.message, name: error.name } });
@@ -86,7 +86,7 @@ const validate = (schema, property = "body") => {
       console.log(error.details);
       return res.status(400).json({
         message: "Validation failed",
-        defailts: error.details,
+        details: error.details,
       });
     }
 

@@ -1,3 +1,4 @@
+require("express-async-errors");
 const runtime = require("./utils/runtime");
 const { connectToDatabase } = require("./utils/db");
 const { connectRedis } = require("./utils/redis");

@@ -15,7 +15,7 @@ const postNewPostSchema = Joi.object({
   imageUrl: Joi.string()
     .uri({ scheme: ["https", "http"] })
     .max(4096),
-  subredditName: Joi.string().min(1).max(25),
+  subredditName: Joi.string().min(1).max(25).required(),
 }).unknown(false);
 
 module.exports = {

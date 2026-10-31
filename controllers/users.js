@@ -35,8 +35,6 @@ const {
   hashPasswordResetToken,
 } = require("../utils/email");
 
-require("express-async-errors");
-
 usersRouter.post(
   "/",
   signUpLimiter,

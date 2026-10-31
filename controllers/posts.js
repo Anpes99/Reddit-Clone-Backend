@@ -11,40 +11,6 @@ const {
   postNewPostSchema,
 } = require("../validators/post.validator");
 
-// postsRouter.get("/", async (req, res) => {
-//   const order = req.query.order;
-//   const sortBy = req.query.sortBy;
-//   const offset = req.query.offset || null;
-//   const limit = req.query.limit || 10;
-//   const subredditName = req.query.subredditName;
-//   let subredditId;
-//   if (subredditName) {
-//     const subreddit = await Subreddit.findOne({
-//       where: { name: subredditName },
-//     });
-//     subredditId = subreddit.id;
-//   }
-
-//   const totalCount = await Post.count({});
-
-//   const options = {
-//     order: [["createdAt", "DESC"]],
-//     offset,
-//     limit,
-//     include: [
-//       { model: User, attributes: ["username"] },
-//       { model: Subreddit, attributes: ["name"] },
-//     ],
-//   };
-
-//   if (subredditId) options.where = { subredditId: subredditId };
-
-//   if (order && sortBy) options.order = [[sortBy, order]];
-
-//   const posts = await Post.findAll(options);
-//   return res.send({ posts, totalCount });
-// });
-
 postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
   const order = req.query.order;
   const sortBy = req.query.sortBy;
@@ -80,12 +46,18 @@ postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
           ]
         : [[Comment, sortBy, order || "DESC"]],
   };
-
-  const post = await Post.findByPk(req.params.id, options).catch((e) =>
-    console.log(e),
-  );
-
-  return res.send({ post });
+  try {
+    const post = await Post.findByPk(req.params.id, options);
+    if (!post) {
+      return res.status(404).json("post not found");
+    }
+    return res.send({ post });
+  } catch (e) {
+    console.error(e);
+    return res
+      .status(500)
+      .json("Something went wrong when trying to find post");
+  }
 });
 
 postsRouter.post(
@@ -98,10 +70,13 @@ postsRouter.post(
 
     const subreddit = await Subreddit.findOne({
       where: { name: subredditName },
-      required: true,
     });
 
-    if (!title || !text || !subreddit?.id) {
+    if (!subreddit) {
+      return res.status(404).json("subreddit not found");
+    }
+
+    if (!title || !text) {
       return res
         .status(400)
         .json("missing information. Please include all required information.");
@@ -111,7 +86,7 @@ postsRouter.post(
 
     const embedding = await generateEmbedding(textForEmbedding, "document");
 
-    if (req.user.id) {
+    try {
       await Post.create({
         title: title,
         text: text,
@@ -119,17 +94,13 @@ postsRouter.post(
         userId: req.user.id,
         subredditId: subreddit.id,
         embedding,
-      }).catch((e) => {
-        console.log(e);
-        return res.status(400).json("error when creating new post:");
       });
-
-      return res.status(201).json("New post created");
-    } else {
-      return res
-        .status(401)
-        .send("you have to be logged in to create new posts");
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json("error when creating new post");
     }
+
+    return res.status(201).json("New post created");
   },
 );
 
