@@ -1,6 +1,6 @@
 # A full-stack Reddit-clone
 
-![Tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg)
+![Backend tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg) ![Frontend tests](https://github.com/Anpes99/Reddit-Clone-Frontend/actions/workflows/test.yml/badge.svg)
 
 ### A full-stack Reddit-clone application built with React, Redux, Node.js, and PostgreSQL.
 
