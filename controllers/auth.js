@@ -267,7 +267,9 @@ authRouter.post("/logout", async (req, res) => {
       decodedToken = jwt.verify(token, process.env.REFRESH_SECRET, {
         algorithms: ["HS256"],
       });
-    } catch {}
+    } catch {
+      // eslint-disable-next-line no-empty
+    }
   }
 
   if (decodedToken) {
