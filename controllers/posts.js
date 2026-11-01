@@ -12,57 +12,53 @@ const {
   postNewPostSchema,
 } = require("../validators/post.validator");
 
-postsRouter.get(
-  "/:id",
-  validate(getPostSchema, "query"),
-  async (req, res) => {
-    const order = req.query.order;
-    const sortBy = req.query.sortBy;
+postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
+  const order = req.query.order;
+  const sortBy = req.query.sortBy;
 
-    const options = {
-      include: [
-        {
-          model: Comment,
-          where: { directReplyToPost: true },
-          include: [
-            {
-              model: User,
-              attributes: ["username", "avatarImageUrl"],
-              required: true,
-            },
-          ],
-          required: false,
-        },
-        { model: Subreddit, as: "subreddit", required: false },
-        {
-          model: User,
-          attributes: ["username"],
-          required: true,
-        },
-      ],
-      order:
-        sortBy === "upVotes" || !sortBy
-          ? [
-              [
-                sequelize.literal('comments."up_votes"-comments."down_votes"'),
-                order || "DESC",
-              ],
-            ]
-          : [[Comment, sortBy, order || "DESC"]],
-    };
+  const options = {
+    include: [
+      {
+        model: Comment,
+        where: { directReplyToPost: true },
+        include: [
+          {
+            model: User,
+            attributes: ["username", "avatarImageUrl"],
+            required: true,
+          },
+        ],
+        required: false,
+      },
+      { model: Subreddit, as: "subreddit", required: false },
+      {
+        model: User,
+        attributes: ["username"],
+        required: true,
+      },
+    ],
+    order:
+      sortBy === "upVotes" || !sortBy
+        ? [
+            [
+              sequelize.literal('comments."up_votes"-comments."down_votes"'),
+              order || "DESC",
+            ],
+          ]
+        : [[Comment, sortBy, order || "DESC"]],
+  };
 
-    const post = await Post.findByPk(req.params.id, options);
-    if (!post) {
-      throw new AppError({
-        status: 404,
-        code: "POST_NOT_FOUND",
-        message: "post not found",
-        details: {},
-      });
-    }
-    return res.send({ post });
-  },
-);
+  const post = await Post.findByPk(req.params.id, options);
+  if (!post) {
+    throw new AppError({
+      status: 404,
+      code: "POST_NOT_FOUND",
+      message: "post not found",
+      details: {},
+    });
+  }
+  return res.send({ post });
+});
 
 postsRouter.post(
   "/",

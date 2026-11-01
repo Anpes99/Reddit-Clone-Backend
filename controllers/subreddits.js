@@ -49,20 +49,16 @@ subredditsRouter.post(
     }
   },
 );
-subredditsRouter.delete(
-  "/:subredditId/user",
-  requireAuth,
-  async (req, res) => {
-    await UserSubreddits.destroy({
-      where: {
-        userId: req.user.id,
-        subredditId: Number(req.params.subredditId),
-      },
-    });
+subredditsRouter.delete("/:subredditId/user", requireAuth, async (req, res) => {
+  await UserSubreddits.destroy({
+    where: {
+      userId: req.user.id,
+      subredditId: Number(req.params.subredditId),
+    },
+  });
 
-    return res.status(204).json("User successfully removed from subreddit");
-  },
-);
+  return res.status(204).json("User successfully removed from subreddit");
+});
 
 subredditsRouter.get(
   "/",
