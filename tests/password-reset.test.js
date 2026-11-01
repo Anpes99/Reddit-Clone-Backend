@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
@@ -67,6 +68,7 @@ const userRouter = require("../controllers/users");
 const app = express();
 app.use(express.json());
 app.use("/", userRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 
@@ -150,8 +152,12 @@ describe("POST /forgotten-password", () => {
       email: "missing@example.com",
     });
 
-    expect(response.statusCode).toBe(400);
-    expect(response.body).toEqual({ error: "user not found" });
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toEqual({
+      code: "USER_NOT_FOUND",
+      message: "user not found",
+      details: {},
+    });
     expect(sendPasswordResetEmail).not.toHaveBeenCalled();
   });
 });
@@ -194,7 +200,11 @@ describe("POST /reset-password", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.body).toEqual({ message: "Invalid or expired token" });
+    expect(response.body).toEqual({
+      code: "INVALID_OR_EXPIRED_TOKEN",
+      message: "Invalid or expired token",
+      details: {},
+    });
     expect(User.findOne).not.toHaveBeenCalled();
     expect(bcrypt.hash).not.toHaveBeenCalled();
   });
@@ -212,7 +222,11 @@ describe("POST /reset-password", () => {
     });
 
     expect(response.statusCode).toBe(410);
-    expect(response.body).toEqual({ message: "Invalid or expired token" });
+    expect(response.body).toEqual({
+      code: "EXPIRED_TOKEN",
+      message: "expired token",
+      details: {},
+    });
     expect(resetToken.destroy).toHaveBeenCalledTimes(1);
     expect(User.findOne).not.toHaveBeenCalled();
   });

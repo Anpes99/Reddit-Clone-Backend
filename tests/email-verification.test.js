@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
@@ -38,6 +39,7 @@ const verifyEmailRouter = require("../controllers/verifyEmail");
 const app = express();
 app.use(express.json());
 app.use("/", verifyEmailRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 const rawVerificationToken = "a".repeat(64);
@@ -128,7 +130,11 @@ describe("POST / verification", () => {
     const response = await postJson("/", { token: rawVerificationToken });
 
     expect(response.statusCode).toBe(403);
-    expect(response.body).toEqual({ message: "Invalid or expired token" });
+    expect(response.body).toEqual({
+      code: "INVALID_OR_EXPIRED_TOKEN",
+      message: "Invalid or expired token",
+      details: {},
+    });
     expect(User.findByPk).not.toHaveBeenCalled();
   });
 
@@ -143,7 +149,11 @@ describe("POST / verification", () => {
     const response = await postJson("/", { token: rawVerificationToken });
 
     expect(response.statusCode).toBe(410);
-    expect(response.body).toEqual({ message: "Invalid or expired token" });
+    expect(response.body).toEqual({
+      code: "EXPIRED_TOKEN",
+      message: "expired token",
+      details: {},
+    });
     expect(verificationToken.destroy).toHaveBeenCalledTimes(1);
     expect(User.findByPk).not.toHaveBeenCalled();
   });

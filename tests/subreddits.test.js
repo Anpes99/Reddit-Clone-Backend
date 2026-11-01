@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
@@ -62,6 +63,7 @@ const subredditsRouter = require("../controllers/subreddits");
 const app = express();
 app.use(express.json());
 app.use("/subreddits", subredditsRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 
@@ -155,7 +157,11 @@ describe("subreddit membership", () => {
     });
 
     expect(response.statusCode).toBe(409);
-    expect(response.body).toBe("User is already a member of this subreddit");
+    expect(response.body).toEqual({
+      code: "USER_ALREADY_SUBREDDIT_MEMBER",
+      message: "User is already a member of this subreddit",
+      details: {},
+    });
   });
 
   it("returns 204 when leaving a subreddit the user never joined", async () => {
@@ -233,7 +239,11 @@ describe("subreddit creation and ownership", () => {
     );
 
     expect(response.statusCode).toBe(409);
-    expect(response.body).toBe("A subreddit with this name already exists.");
+    expect(response.body).toEqual({
+      code: "SUBREDDIT_ALREADY_EXISTS",
+      message: "A subreddit with this name already exists.",
+      details: {},
+    });
     expect(Subreddit.create).not.toHaveBeenCalled();
     expect(SubredditModerators.create).not.toHaveBeenCalled();
   });
@@ -287,7 +297,11 @@ describe("moderated subreddit settings", () => {
     );
 
     expect(response.statusCode).toBe(403);
-    expect(response.body).toEqual({ error: "Forbidden" });
+    expect(response.body).toEqual({
+      code: "FORBIDDEN",
+      message: "Forbidden",
+      details: {},
+    });
     expect(Subreddit.findByPk).not.toHaveBeenCalled();
   });
 

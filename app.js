@@ -94,7 +94,7 @@ if (runtime.NODE_ENV === "production") {
     res.sendFile(path.join(__dirname, "build", "index.html"));
   });
 }
-app.use(middleware.errorHandler);
 app.use(middleware.unknownEndpoint);
+app.use(middleware.errorHandler);
 
 module.exports = app;

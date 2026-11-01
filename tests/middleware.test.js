@@ -28,6 +28,7 @@ const {
   userExtractor,
   validate,
 } = require("../utils/middleware/middleware");
+const { AppError } = require("../errors");
 const { SubredditModerators } = require("../models/index");
 const {
   hasSubredditPermission,
@@ -75,28 +76,24 @@ describe("validate", () => {
     expect(response.status).not.toHaveBeenCalled();
   });
 
-  it("returns 400 and stops the chain for invalid input", () => {
+  it("throws a 400 AppError and stops the chain for invalid input", () => {
     const request = { body: { username: "" } };
-    const response = createResponse();
     const next = jest.fn();
 
-    validate(schema)(request, response, next);
-
-    expect(response.status).toHaveBeenCalledWith(400);
-    expect(response.body).toMatchObject({ message: "Validation failed" });
+    expect(() => validate(schema)(request, createResponse(), next)).toThrow(
+      expect.objectContaining({ status: 400, code: "VALIDATION_FAILED" }),
+    );
     expect(next).not.toHaveBeenCalled();
   });
 });
 
 describe("requireAuth", () => {
-  it("returns 401 when the request has no authenticated user", () => {
-    const response = createResponse();
+  it("throws a 401 AppError when the request has no authenticated user", () => {
     const next = jest.fn();
 
-    requireAuth({}, response, next);
-
-    expect(response.status).toHaveBeenCalledWith(401);
-    expect(response.body).toEqual({ error: "Authentication required" });
+    expect(() => requireAuth({}, createResponse(), next)).toThrow(
+      expect.objectContaining({ status: 401, code: "AUTHENTICATION_REQUIRED" }),
+    );
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -191,20 +188,20 @@ describe("userExtractor", () => {
       },
     ],
   ])(
-    "passes a JsonWebTokenError for a token %s",
+    "throws a JsonWebTokenError for a token %s",
     (description, createToken) => {
       const request = createAuthRequest(`Bearer ${createToken()}`);
       const next = jest.fn();
 
-      userExtractor(request, createResponse(), next);
-
+      expect(() => userExtractor(request, createResponse(), next)).toThrow(
+        expect.objectContaining({ name: "JsonWebTokenError" }),
+      );
       expect(request.user).toBeUndefined();
-      expect(next).toHaveBeenCalledTimes(1);
-      expect(next.mock.calls[0][0].name).toBe("JsonWebTokenError");
+      expect(next).not.toHaveBeenCalled();
     },
   );
 
-  it("passes a TokenExpiredError for an expired token", () => {
+  it("throws a TokenExpiredError for an expired token", () => {
     const token = jwt.sign(
       {
         username: "test-user",
@@ -216,11 +213,11 @@ describe("userExtractor", () => {
     const request = createAuthRequest(`Bearer ${token}`);
     const next = jest.fn();
 
-    userExtractor(request, createResponse(), next);
-
+    expect(() => userExtractor(request, createResponse(), next)).toThrow(
+      expect.objectContaining({ name: "TokenExpiredError" }),
+    );
     expect(request.user).toBeUndefined();
-    expect(next).toHaveBeenCalledTimes(1);
-    expect(next.mock.calls[0][0].name).toBe("TokenExpiredError");
+    expect(next).not.toHaveBeenCalled();
   });
 });
 
@@ -231,13 +228,32 @@ describe("errorHandler", () => {
     return error;
   };
 
+  it("sends an AppError with its status, code, message and details", () => {
+    const response = createResponse();
+    const next = jest.fn();
+    const error = new AppError({
+      status: 403,
+      code: "EMAIL_NOT_VERIFIED",
+      message: "email not verified",
+      details: { email: "test@example.com" },
+    });
+
+    errorHandler(error, {}, response, next);
+
+    expect(response.status).toHaveBeenCalledWith(403);
+    expect(response.body).toEqual({
+      code: "EMAIL_NOT_VERIFIED",
+      message: "email not verified",
+      details: { email: "test@example.com" },
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it.each([
-    ["ValidationError", 400],
-    ["TokenExpiredError", 401],
-    ["JsonWebTokenError", 401],
-    ["TypeError", 500],
-    ["CastError", 400],
-  ])("maps %s to status %i", (name, statusCode) => {
+    ["ValidationError", 400, "VALIDATION_ERROR"],
+    ["TokenExpiredError", 401, "TOKEN_EXPIRED_ERROR"],
+    ["JsonWebTokenError", 401, "JWT_ERROR"],
+  ])("maps %s to status %i", (name, statusCode, code) => {
     const response = createResponse();
     const next = jest.fn();
 
@@ -245,14 +261,36 @@ describe("errorHandler", () => {
 
     expect(response.status).toHaveBeenCalledWith(statusCode);
     expect(response.body).toEqual({
-      error: { message: `${name} message`, name },
+      code,
+      message: `${name} message`,
+      details: {},
     });
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("passes unknown errors on to the next handler", () => {
-    const error = createError("SomethingElse");
+  it("hides the message of unknown errors behind a generic 500", () => {
     const response = createResponse();
+    const next = jest.fn();
+
+    errorHandler(
+      createError("TypeError", "secret internals"),
+      {},
+      response,
+      next,
+    );
+
+    expect(response.status).toHaveBeenCalledWith(500);
+    expect(response.body).toEqual({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "something went wrong",
+      details: {},
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("passes the error on when the response has already been sent", () => {
+    const error = createError("SomethingElse");
+    const response = { ...createResponse(), headersSent: true };
     const next = jest.fn();
 
     errorHandler(error, {}, response, next);
@@ -265,14 +303,12 @@ describe("errorHandler", () => {
 describe("requireSubredditPermission", () => {
   const checkPermission = requireSubredditPermission("settings.manage");
 
-  it("returns 401 when the request has no user", async () => {
-    const response = createResponse();
+  it("rejects with a 401 AppError when the request has no user", async () => {
     const next = jest.fn();
 
-    await checkPermission({ params: { subredditId: "5" } }, response, next);
-
-    expect(response.status).toHaveBeenCalledWith(401);
-    expect(response.body).toEqual({ error: "Unauthorized" });
+    await expect(
+      checkPermission({ params: { subredditId: "5" } }, createResponse(), next),
+    ).rejects.toMatchObject({ status: 401, code: "UNAUTHORIZED" });
     expect(SubredditModerators.findOne).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
@@ -291,64 +327,61 @@ describe("requireSubredditPermission", () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
-  it("returns 403 when the user has no moderator permission", async () => {
-    const response = createResponse();
+  it("rejects with a 403 when the user has no moderator permission", async () => {
     const next = jest.fn();
     SubredditModerators.findOne.mockResolvedValue({
       role: "moderator_limited",
     });
 
-    await checkPermission(
-      { user: { id: 12 }, params: { subredditId: "5" } },
-      response,
-      next,
-    );
+    await expect(
+      checkPermission(
+        { user: { id: 12 }, params: { subredditId: "5" } },
+        createResponse(),
+        next,
+      ),
+    ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
 
-    expect(response.status).toHaveBeenCalledWith(403);
-    expect(response.body).toEqual({ error: "Forbidden" });
     expect(next).not.toHaveBeenCalled();
   });
 
   it("denies a moderator the owner-only moderators.manage action", async () => {
-    const response = createResponse();
     const next = jest.fn();
     const checkOwnerPermission =
       requireSubredditPermission("moderators.manage");
     SubredditModerators.findOne.mockResolvedValue({ role: "moderator" });
 
-    await checkOwnerPermission(
-      { user: { id: 12 }, params: { subredditId: "5" } },
-      response,
-      next,
-    );
+    await expect(
+      checkOwnerPermission(
+        { user: { id: 12 }, params: { subredditId: "5" } },
+        createResponse(),
+        next,
+      ),
+    ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
 
     expect(hasSubredditPermission("moderator", "moderators.manage")).toBe(
       false,
     );
-    expect(response.status).toHaveBeenCalledWith(403);
-    expect(response.body).toEqual({ error: "Forbidden" });
     expect(next).not.toHaveBeenCalled();
   });
 
   it("denies a limited moderator the moderator-level users.manage action", async () => {
-    const response = createResponse();
     const next = jest.fn();
     const checkModeratorPermission = requireSubredditPermission("users.manage");
     SubredditModerators.findOne.mockResolvedValue({
       role: "moderator_limited",
     });
 
-    await checkModeratorPermission(
-      { user: { id: 12 }, params: { subredditId: "5" } },
-      response,
-      next,
-    );
+    await expect(
+      checkModeratorPermission(
+        { user: { id: 12 }, params: { subredditId: "5" } },
+        createResponse(),
+        next,
+      ),
+    ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
 
     expect(hasSubredditPermission("moderator_limited", "users.manage")).toBe(
       false,
     );
-    expect(response.status).toHaveBeenCalledWith(403);
-    expect(response.body).toEqual({ error: "Forbidden" });
     expect(next).not.toHaveBeenCalled();
   });
 });
@@ -388,18 +421,14 @@ describe("csrfProtection", () => {
         method: "POST",
         get: jest.fn().mockReturnValue(origin),
       };
-      const response = createResponse();
       const next = jest.fn();
 
-      csrfProtection(request, response, next);
-
-      expect(response.status).toHaveBeenCalledWith(403);
-      expect(response.body).toEqual({
-        error: {
-          message: "Invalid request origin",
-          name: "CsrfError",
-        },
-      });
+      expect(() => csrfProtection(request, createResponse(), next)).toThrow(
+        expect.objectContaining({
+          status: 403,
+          code: "INVALID_REQUEST_ORIGIN",
+        }),
+      );
       expect(next).not.toHaveBeenCalled();
     },
   );

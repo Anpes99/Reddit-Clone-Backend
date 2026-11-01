@@ -7,7 +7,7 @@ const {
 const postNewUserSchema = Joi.object({
   username: Joi.string()
     .trim()
-    .min(1)
+    .min(2)
     .max(25)
     .regex(
       /^[A-Za-z0-9_-]+$/,

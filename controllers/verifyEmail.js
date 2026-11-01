@@ -1,3 +1,4 @@
+const { AppError } = require("../errors/index.js");
 const EmailVerificationToken = require("../models/EmailVerificationToken.js");
 const User = require("../models/User.js");
 const {
@@ -11,58 +12,77 @@ const {
 } = require("../validators/verify-email-validator.js");
 const verifyEmailRouter = require("express").Router();
 
-verifyEmailRouter.post("/", validate(verifyEmailSchema), async (req, res) => {
-  const token = req.body.token;
+verifyEmailRouter.post(
+  "/",
+  validate(verifyEmailSchema),
+  async (req, res, next) => {
+    const token = req.body.token;
 
-  const hashedToken = hashEmailVerificationToken(token);
+    const hashedToken = hashEmailVerificationToken(token);
 
-  const dbEmailVerificationToken = await EmailVerificationToken.findOne({
-    where: {
-      tokenHash: hashedToken,
-    },
-  });
-  if (!dbEmailVerificationToken) {
-    return res.status(403).json({
-      message: "Invalid or expired token",
+    const dbEmailVerificationToken = await EmailVerificationToken.findOne({
+      where: {
+        tokenHash: hashedToken,
+      },
     });
-  }
+    if (!dbEmailVerificationToken) {
+      throw new AppError({
+        status: 403,
+        code: "INVALID_OR_EXPIRED_TOKEN",
+        message: "Invalid or expired token",
+        details: {},
+      });
+    }
 
-  if (dbEmailVerificationToken.usedAt) {
-    return res.status(200).json({ message: "email already verified" });
-  }
+    if (dbEmailVerificationToken.usedAt) {
+      return res.status(200).json({ message: "email already verified" });
+    }
 
-  if (dbEmailVerificationToken.expiresAt <= new Date()) {
-    await dbEmailVerificationToken.destroy();
+    if (dbEmailVerificationToken.expiresAt <= new Date()) {
+      await dbEmailVerificationToken.destroy();
 
-    return res.status(410).json({
-      message: "Invalid or expired token",
+      throw new AppError({
+        status: 410,
+        code: "EXPIRED_TOKEN",
+        message: "expired token",
+        details: {},
+      });
+    }
+
+    const user = await User.findByPk(dbEmailVerificationToken.userId);
+    if (!user) {
+      await dbEmailVerificationToken.destroy();
+
+      throw new AppError({
+        status: 403,
+        code: "INVALID_OR_EXPIRED_TOKEN",
+        message: "Invalid or expired token",
+        details: {},
+      });
+    }
+    await user.update({ emailVerified: true });
+    await dbEmailVerificationToken.update({
+      usedAt: new Date(),
     });
-  }
 
-  const user = await User.findByPk(dbEmailVerificationToken.userId);
-  if (!user) {
-    await dbEmailVerificationToken.destroy();
-    return res.status(403).json({
-      message: "Invalid or expired token",
-    });
-  }
-  await user.update({ emailVerified: true });
-  await dbEmailVerificationToken.update({
-    usedAt: new Date(),
-  });
-
-  return res.status(200).json({ message: "Email verified" });
-});
+    return res.status(200).json({ message: "Email verified" });
+  },
+);
 
 verifyEmailRouter.post(
   "/resend",
   validate(resendVerifyEmailEmailSchema),
-  async (req, res) => {
+  async (req, res, next) => {
     const username = req.body.username;
 
     const user = await User.findOne({ where: { username } });
     if (!user) {
-      return res.status(400).json({ message: "user not found" });
+      throw new AppError({
+        status: 404,
+        code: "USER_NOT_FOUND",
+        message: "user not found",
+        details: {},
+      });
     }
     if (user.emailVerified) {
       return res.status(200).json({

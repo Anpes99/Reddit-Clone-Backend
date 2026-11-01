@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 const { Op, QueryTypes } = require("sequelize");
@@ -61,6 +62,7 @@ const searchRouter = require("../controllers/search");
 const app = express();
 app.use(express.json());
 app.use(searchRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 

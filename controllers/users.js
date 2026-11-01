@@ -34,31 +34,26 @@ const {
   sendPasswordResetEmail,
   hashPasswordResetToken,
 } = require("../utils/email");
+const { AppError } = require("../errors");
 
 usersRouter.post(
   "/",
   signUpLimiter,
   signUpPerDayLimiter,
   validate(postNewUserSchema),
-  async (request, response) => {
+  async (request, response, next) => {
     const { body } = request;
 
     const userFound = await User.findOne({
       where: { username: body.username },
     });
     if (userFound) {
-      return response.status(400).json({ error: "username already taken" });
-    }
-
-    if (!(body.username && body.password)) {
-      return response
-        .status(400)
-        .json({ error: "username or password missing" });
-    }
-    if (!(body.username.length > 2 && body.password.length > 2)) {
-      return response
-        .status(400)
-        .json({ error: "username or password is too short" });
+      throw new AppError({
+        status: 400,
+        code: "USERNAME_ALREADY_TAKEN",
+        message: "username already taken",
+        details: {},
+      });
     }
 
     const saltRounds = 10;
@@ -79,12 +74,17 @@ usersRouter.post(
   },
 );
 
-usersRouter.get("/:username", async (request, response) => {
+usersRouter.get("/:username", async (request, response, next) => {
   const username = request.params.username;
 
   const user = await User.findOne({ where: { username } });
   if (!user) {
-    return response.status(404).json({ error: "user not found" });
+    throw new AppError({
+      status: 404,
+      code: "USER_NOT_FOUND",
+      message: "user not found",
+      details: {},
+    });
   }
 
   const subredditsJoinedCount = await UserSubreddits.count({
@@ -120,7 +120,7 @@ usersRouter.get("/:username", async (request, response) => {
 usersRouter.get(
   "/:username/feed",
   validate(getUserPostsAndCommentsFeedSchema, "query"),
-  async (request, response) => {
+  async (request, response, next) => {
     const { username } = request.params;
     const { offset, contentType, sortByType, getTotalCount } = request.query;
 
@@ -128,7 +128,12 @@ usersRouter.get(
       where: { username },
     });
     if (!user) {
-      return response.status(404).json({ error: "user not found" });
+      throw new AppError({
+        status: 404,
+        code: "USER_NOT_FOUND",
+        message: "user not found",
+        details: {},
+      });
     }
     if (contentType === USER_PAGE_CONTENT_TYPES.POSTS) {
       const posts = await Post.findAll({
@@ -237,45 +242,41 @@ usersRouter.get(
     }
 
     if (contentType === USER_PAGE_CONTENT_TYPES.OVERVIEW) {
-      try {
-        const result = await sequelize.query(getUserPageOverviewPageFeedQuery, {
-          replacements: { userId: user.id, offset },
-          type: QueryTypes.SELECT,
-        });
+      const result = await sequelize.query(getUserPageOverviewPageFeedQuery, {
+        replacements: { userId: user.id, offset },
+        type: QueryTypes.SELECT,
+      });
 
-        const totalCount = getTotalCount
-          ? await sequelize.query(
-              `
+      const totalCount = getTotalCount
+        ? await sequelize.query(
+            `
           SELECT
           (SELECT COUNT(*) FROM posts WHERE user_id = :userId) +
           (SELECT COUNT(*) FROM comments WHERE user_id = :userId)
           AS totalCount;
                   
           `,
-              {
-                replacements: { userId: user.id },
-                type: QueryTypes.SELECT,
-              },
-            )
-          : undefined;
-
-        return response.send({
-          feedItems: result.map(({ total_count, ...item }) => ({
-            data: {
-              ...item.data,
-              subreddit: item.subreddit,
-              user: item.user,
-              post: item.post,
+            {
+              replacements: { userId: user.id },
+              type: QueryTypes.SELECT,
             },
-            type: item.type,
-          })),
-          totalCount: totalCount?.[0]?.totalcount
-            ? Number(totalCount[0].totalcount)
-            : undefined,
-        });
-      } catch (e) {
-        console.log(e);
-      }
+          )
+        : undefined;
+
+      return response.send({
+        feedItems: result.map(({ total_count, ...item }) => ({
+          data: {
+            ...item.data,
+            subreddit: item.subreddit,
+            user: item.user,
+            post: item.post,
+          },
+          type: item.type,
+        })),
+        totalCount: totalCount?.[0]?.totalcount
+          ? Number(totalCount[0].totalcount)
+          : undefined,
+      });
     }
 
     return response.json();
@@ -285,12 +286,17 @@ usersRouter.get(
 usersRouter.post(
   "/forgotten-password",
   validate(forgottenPasswordSchema),
-  async (request, response) => {
+  async (request, response, next) => {
     const email = request.body.email;
 
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return response.status(400).json({ error: "user not found" });
+      throw new AppError({
+        status: 404,
+        code: "USER_NOT_FOUND",
+        message: "user not found",
+        details: {},
+      });
     }
 
     await sendPasswordResetEmail({ email: user.email, userId: user.id });
@@ -304,7 +310,7 @@ usersRouter.post(
 usersRouter.post(
   "/reset-password",
   validate(resetPasswordSchema),
-  async (request, response) => {
+  async (request, response, next) => {
     const { password, passwordResetToken } = request.body;
 
     const hashedPasswordResetToken = hashPasswordResetToken(passwordResetToken);
@@ -313,19 +319,33 @@ usersRouter.post(
     });
 
     if (!dbPasswordResetToken) {
-      return response.status(400).json({ message: "Invalid or expired token" });
+      throw new AppError({
+        status: 400,
+        code: "INVALID_OR_EXPIRED_TOKEN",
+        message: "Invalid or expired token",
+        details: {},
+      });
     }
     if (dbPasswordResetToken.expiresAt <= new Date()) {
       await dbPasswordResetToken.destroy();
-
-      return response.status(410).json({ message: "Invalid or expired token" });
+      throw new AppError({
+        status: 410,
+        code: "EXPIRED_TOKEN",
+        message: "expired token",
+        details: {},
+      });
     }
 
     const user = await User.findOne({
       where: { id: dbPasswordResetToken.userId },
     });
     if (!user) {
-      return response.status(400).json({ error: "user not found" });
+      throw new AppError({
+        status: 404,
+        code: "USER_NOT_FOUND",
+        message: "user not found",
+        details: {},
+      });
     }
 
     const saltRounds = 10;

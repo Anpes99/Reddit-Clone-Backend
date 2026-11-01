@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 const jwt = require("jsonwebtoken");
@@ -132,7 +133,11 @@ describe("GET /api/loggedInUser", () => {
     const response = await request("GET", "/", undefined, authHeader());
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toEqual({ error: "user not found" });
+    expect(response.body).toEqual({
+      code: "USER_NOT_FOUND",
+      message: "user not found",
+      details: {},
+    });
   });
 
   it("requires authentication", async () => {
@@ -153,7 +158,7 @@ describe("GET /api/loggedInUser", () => {
     });
 
     expect(response.statusCode).toBe(401);
-    expect(response.body.error.name).toBe("JsonWebTokenError");
+    expect(response.body.code).toBe("JWT_ERROR");
     expect(User.findOne).not.toHaveBeenCalled();
   });
 });
@@ -194,7 +199,7 @@ describe("PATCH /api/loggedInUser", () => {
     const response = await request("PATCH", "/", payload, authHeader());
 
     expect(response.statusCode).toBe(400);
-    expect(response.body).toMatchObject({ message: "Validation failed" });
+    expect(response.body).toMatchObject({ code: "VALIDATION_FAILED" });
     expect(User.findByPk).not.toHaveBeenCalled();
   });
 
@@ -209,7 +214,11 @@ describe("PATCH /api/loggedInUser", () => {
     );
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toEqual({ error: "user not found" });
+    expect(response.body).toEqual({
+      code: "USER_NOT_FOUND",
+      message: "user not found",
+      details: {},
+    });
   });
 
   it("requires authentication", async () => {

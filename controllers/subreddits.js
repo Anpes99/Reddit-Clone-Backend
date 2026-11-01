@@ -4,6 +4,7 @@ const {
   SubredditModeratorRole,
   SubredditPermissions,
 } = require("../enums/subreddit.enum");
+const { AppError } = require("../errors");
 const {
   Subreddit,
   UserSubreddits,
@@ -23,25 +24,35 @@ const {
   updateSubredditSchema,
 } = require("../validators/subreddit.validator");
 
-subredditsRouter.post("/:subredditId/user", requireAuth, async (req, res) => {
-  try {
-    await UserSubreddits.create({
-      userId: req.user.id,
-      subredditId: req.params.subredditId,
-    });
-    return res.json("User successfully joined subreddit");
-  } catch (e) {
-    if (e.name === "SequelizeUniqueConstraintError") {
-      return res.status(409).json("User is already a member of this subreddit");
+subredditsRouter.post(
+  "/:subredditId/user",
+  requireAuth,
+  async (req, res, next) => {
+    try {
+      await UserSubreddits.create({
+        userId: req.user.id,
+        subredditId: req.params.subredditId,
+      });
+      return res.json("User successfully joined subreddit");
+    } catch (e) {
+      if (e.name === "SequelizeUniqueConstraintError") {
+        return next(
+          new AppError({
+            status: 409,
+            code: "USER_ALREADY_SUBREDDIT_MEMBER",
+            message: "User is already a member of this subreddit",
+            details: {},
+          }),
+        );
+      }
+      next(e);
     }
-    console.log(e);
-    return res
-      .status(500)
-      .json("Something went wrong while saving saving subreddit member");
-  }
-});
-subredditsRouter.delete("/:subredditId/user", requireAuth, async (req, res) => {
-  try {
+  },
+);
+subredditsRouter.delete(
+  "/:subredditId/user",
+  requireAuth,
+  async (req, res, next) => {
     await UserSubreddits.destroy({
       where: {
         userId: req.user.id,
@@ -50,18 +61,13 @@ subredditsRouter.delete("/:subredditId/user", requireAuth, async (req, res) => {
     });
 
     return res.status(204).json("User successfully removed from subreddit");
-  } catch (e) {
-    console.log(e);
-    return res
-      .status(500)
-      .json("Something went wrong while removing user from subreddit");
-  }
-});
+  },
+);
 
 subredditsRouter.get(
   "/",
   validate(getSubredditsSchema, "query"),
-  async (req, res) => {
+  async (req, res, next) => {
     const { limit, sortBy, order } = req.query;
 
     if (sortBy === SUBREDDIT_ORDER_BY_TYPES.MEMBER_COUNT) {
@@ -74,15 +80,13 @@ subredditsRouter.get(
       return res.send(result);
     }
 
-    const subreddits = await sequelize
-      .query(
-        `
+    const subreddits = await sequelize.query(
+      `
     SELECT subreddits.*
     FROM subreddits
     GROUP BY subreddits.id;
   `,
-      )
-      .catch((e) => console.log(e));
+    );
 
     return res.send(subreddits[0]);
   },
@@ -102,8 +106,11 @@ subredditsRouter.get(
         })
       : undefined;
     if (!result) {
-      return res.status(404).json({
-        error: "Subreddit not found",
+      throw new AppError({
+        status: 404,
+        code: "SUBREDDIT_NOT_FOUND",
+        message: "Subreddit not found",
+        details: {},
       });
     }
 
@@ -120,52 +127,48 @@ subredditsRouter.post(
   "/",
   requireAuth,
   validate(postNewSubredditSchema),
-  async (req, res) => {
-    try {
-      const { communityName, description, subredditIconUrl } = req.body;
-      let subredditAlreadyExists = false;
+  async (req, res, next) => {
+    const { communityName, description, subredditIconUrl } = req.body;
+    let subredditAlreadyExists = false;
 
-      await sequelize.transaction(async (t) => {
-        const existingSubreddit = await Subreddit.findOne({
-          where: { name: communityName },
-        });
-        if (existingSubreddit) {
-          subredditAlreadyExists = true;
-          return;
-        }
-
-        const createdSubreddit = await Subreddit.create(
-          {
-            name: communityName,
-            description,
-            creatorId: req.user.id,
-            iconUrl: subredditIconUrl,
-          },
-          { transaction: t },
-        );
-        await SubredditModerators.create(
-          {
-            userId: req.user.id,
-            subredditId: createdSubreddit.id,
-            role: SubredditModeratorRole.OWNER,
-          },
-          { transaction: t },
-        );
+    await sequelize.transaction(async (t) => {
+      const existingSubreddit = await Subreddit.findOne({
+        where: { name: communityName },
       });
-
-      if (subredditAlreadyExists) {
-        return res
-          .status(409)
-          .json("A subreddit with this name already exists.");
+      if (existingSubreddit) {
+        subredditAlreadyExists = true;
+        return;
       }
 
-      return res.json("Successfully created new subreddit");
-    } catch (e) {
-      console.log(e);
-      return res
-        .status(500)
-        .json("Something went wrong while creating new subreddit");
+      const createdSubreddit = await Subreddit.create(
+        {
+          name: communityName,
+          description,
+          creatorId: req.user.id,
+          iconUrl: subredditIconUrl,
+        },
+        { transaction: t },
+      );
+      await SubredditModerators.create(
+        {
+          userId: req.user.id,
+          subredditId: createdSubreddit.id,
+          role: SubredditModeratorRole.OWNER,
+        },
+        { transaction: t },
+      );
+    });
+
+    if (subredditAlreadyExists) {
+      throw new AppError({
+        status: 409,
+        code: "SUBREDDIT_ALREADY_EXISTS",
+        message: "A subreddit with this name already exists.",
+        details: {},
+      });
     }
+
+    return res.json("Successfully created new subreddit");
   },
 );
 
@@ -175,25 +178,18 @@ subredditsRouter.patch(
   requireSubredditPermission(SubredditPermissions.SETTINGS_MANAGE),
   validate(updateSubredditSchema),
   async (req, res) => {
-    try {
-      const { subredditIconUrl, description, subredditPageBackgroundImageUrl } =
-        req.body;
-      const subredditId = req.params.subredditId;
+    const { subredditIconUrl, description, subredditPageBackgroundImageUrl } =
+      req.body;
+    const subredditId = req.params.subredditId;
 
-      const subredditToUpdate = await Subreddit.findByPk(subredditId);
+    const subredditToUpdate = await Subreddit.findByPk(subredditId);
 
-      await subredditToUpdate.update({
-        iconUrl: subredditIconUrl,
-        description,
-        subredditPageBackgroundImageUrl,
-      });
-      return res.json(subredditToUpdate);
-    } catch (e) {
-      console.log(e);
-      return res
-        .status(500)
-        .json("Something went wrong while creating new subreddit");
-    }
+    await subredditToUpdate.update({
+      iconUrl: subredditIconUrl,
+      description,
+      subredditPageBackgroundImageUrl,
+    });
+    return res.json(subredditToUpdate);
   },
 );
 

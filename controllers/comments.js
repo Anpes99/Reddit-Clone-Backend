@@ -1,4 +1,5 @@
 const commentRouter = require("express").Router();
+const { AppError } = require("../errors");
 const { Comment, User } = require("../models/index");
 const { validate, requireAuth } = require("../utils/middleware/middleware");
 const {
@@ -8,16 +9,10 @@ const { postNewPostCommentSchema } = require("../validators/comment.validator");
 
 commentRouter.post(
   "/",
-  createCommentRequestLimiter,
   requireAuth,
+  createCommentRequestLimiter,
   validate(postNewPostCommentSchema),
-  async (req, res) => {
-    if (!req?.user?.id) {
-      return res
-        .status(401)
-        .json({ error: "Authentication token expired or invalid." });
-    }
-
+  async (req, res, next) => {
     const { text, directReplyToPost, subredditId, commentId, postId } =
       req.body;
 
@@ -27,45 +22,50 @@ commentRouter.post(
       subredditId &&
       postId
     )) {
-      return res.status(400).json("Please include required information");
+      throw new AppError({
+        status: 400,
+        code: "MISSING_INFORMATION",
+        message: "Please include required information",
+        details: {},
+      });
     }
 
     if (commentId) {
       const parentComment = await Comment.findByPk(commentId);
 
       if (!parentComment) {
-        return res.status(404).json({
-          error: "Parent comment not found.",
+        throw new AppError({
+          status: 404,
+          code: "PARENT_COMMENT_NOT_FOUND",
+          message: "Parent comment not found.",
+          details: {},
         });
       }
 
       if (parentComment.postId !== postId) {
-        return res.status(400).json({
-          error: "Parent comment belongs to a different post.",
+        throw new AppError({
+          status: 400,
+          code: "WRONG_COMMENT_POST",
+          message: "Parent comment belongs to a different post.",
+          details: {},
         });
       }
     }
 
-    try {
-      await Comment.create({
-        text,
-        directReplyToPost,
-        commentId,
-        subredditId,
-        userId: req.user.id,
-        postId,
-      });
-    } catch (e) {
-      return res
-        .status(500)
-        .json("something went wrong while creating new comment");
-    }
+    await Comment.create({
+      text,
+      directReplyToPost,
+      commentId,
+      subredditId,
+      userId: req.user.id,
+      postId,
+    });
 
     return res.json("comment created");
   },
 );
 
-commentRouter.get("/moreComments/:id", async (req, res) => {
+commentRouter.get("/moreComments/:id", async (req, res, next) => {
   const id = req.params.id;
   const comments = await Comment.findAll({
     where: { commentId: id },

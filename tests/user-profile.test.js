@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 const { QueryTypes } = require("sequelize");
@@ -77,6 +78,7 @@ const usersRouter = require("../controllers/users");
 const app = express();
 app.use(express.json());
 app.use("/users", usersRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 
@@ -171,7 +173,11 @@ describe("GET /users/:username profile", () => {
     const response = await getJson("/users/missing-user");
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toEqual({ error: "user not found" });
+    expect(response.body).toEqual({
+      code: "USER_NOT_FOUND",
+      message: "user not found",
+      details: {},
+    });
     expect(UserSubreddits.count).not.toHaveBeenCalled();
     expect(sequelize.query).not.toHaveBeenCalled();
   });
@@ -355,7 +361,11 @@ describe("GET /users/:username/feed", () => {
     );
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toEqual({ error: "user not found" });
+    expect(response.body).toEqual({
+      code: "USER_NOT_FOUND",
+      message: "user not found",
+      details: {},
+    });
     expect(Post.findAll).not.toHaveBeenCalled();
     expect(Comment.findAll).not.toHaveBeenCalled();
     expect(sequelize.query).not.toHaveBeenCalled();

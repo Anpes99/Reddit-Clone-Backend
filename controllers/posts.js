@@ -1,4 +1,5 @@
 const postsRouter = require("express").Router();
+const { AppError } = require("../errors");
 const { User, Comment, Post, Subreddit } = require("../models/index");
 const { sequelize } = require("../utils/db");
 const { generateEmbedding } = require("../utils/embeddings");
@@ -11,61 +12,64 @@ const {
   postNewPostSchema,
 } = require("../validators/post.validator");
 
-postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
-  const order = req.query.order;
-  const sortBy = req.query.sortBy;
+postsRouter.get(
+  "/:id",
+  validate(getPostSchema, "query"),
+  async (req, res, next) => {
+    const order = req.query.order;
+    const sortBy = req.query.sortBy;
 
-  const options = {
-    include: [
-      {
-        model: Comment,
-        where: { directReplyToPost: true },
-        include: [
-          {
-            model: User,
-            attributes: ["username", "avatarImageUrl"],
-            required: true,
-          },
-        ],
-        required: false,
-      },
-      { model: Subreddit, as: "subreddit", required: false },
-      {
-        model: User,
-        attributes: ["username"],
-        required: true,
-      },
-    ],
-    order:
-      sortBy === "upVotes" || !sortBy
-        ? [
-            [
-              sequelize.literal('comments."up_votes"-comments."down_votes"'),
-              order || "DESC",
-            ],
-          ]
-        : [[Comment, sortBy, order || "DESC"]],
-  };
-  try {
+    const options = {
+      include: [
+        {
+          model: Comment,
+          where: { directReplyToPost: true },
+          include: [
+            {
+              model: User,
+              attributes: ["username", "avatarImageUrl"],
+              required: true,
+            },
+          ],
+          required: false,
+        },
+        { model: Subreddit, as: "subreddit", required: false },
+        {
+          model: User,
+          attributes: ["username"],
+          required: true,
+        },
+      ],
+      order:
+        sortBy === "upVotes" || !sortBy
+          ? [
+              [
+                sequelize.literal('comments."up_votes"-comments."down_votes"'),
+                order || "DESC",
+              ],
+            ]
+          : [[Comment, sortBy, order || "DESC"]],
+    };
+
     const post = await Post.findByPk(req.params.id, options);
     if (!post) {
-      return res.status(404).json("post not found");
+      throw new AppError({
+        status: 404,
+        code: "POST_NOT_FOUND",
+        message: "post not found",
+        details: {},
+      });
     }
     return res.send({ post });
-  } catch (e) {
-    console.error(e);
-    return res
-      .status(500)
-      .json("Something went wrong when trying to find post");
-  }
-});
+  },
+);
 
 postsRouter.post(
   "/",
-  createPostRequestLimiter,
   requireAuth,
+  createPostRequestLimiter,
   validate(postNewPostSchema),
-  async (req, res) => {
+  async (req, res, next) => {
     const { title, text, subredditName, imageUrl } = req.body;
 
     const subreddit = await Subreddit.findOne({
@@ -73,32 +77,36 @@ postsRouter.post(
     });
 
     if (!subreddit) {
-      return res.status(404).json("subreddit not found");
+      throw new AppError({
+        status: 404,
+        code: "SUBREDDIT_NOT_FOUND",
+        message: "subreddit not found",
+        details: {},
+      });
     }
 
     if (!title || !text) {
-      return res
-        .status(400)
-        .json("missing information. Please include all required information.");
+      throw new AppError({
+        status: 400,
+        code: "MISSING_INFORMATION",
+        message:
+          "missing information. Please include all required information.",
+        details: {},
+      });
     }
 
     const textForEmbedding = `${title}\n\n${text}`;
 
     const embedding = await generateEmbedding(textForEmbedding, "document");
 
-    try {
-      await Post.create({
-        title: title,
-        text: text,
-        imageUrl,
-        userId: req.user.id,
-        subredditId: subreddit.id,
-        embedding,
-      });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).json("error when creating new post");
-    }
+    await Post.create({
+      title: title,
+      text: text,
+      imageUrl,
+      userId: req.user.id,
+      subredditId: subreddit.id,
+      embedding,
+    });
 
     return res.status(201).json("New post created");
   },

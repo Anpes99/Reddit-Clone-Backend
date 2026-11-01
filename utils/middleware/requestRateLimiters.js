@@ -1,12 +1,24 @@
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { redisClient } from "../redis.js";
+import { AppError } from "../../errors/index.js";
+
+const tooManyRequestsError = (message) =>
+  new AppError({
+    status: 429,
+    code: "TOO_MANY_REQUESTS",
+    message: message,
+    details: {},
+  });
 
 export const generalRequestLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 300,
   standardHeaders: "draft-8",
   legacyHeaders: false,
+  handler: (req, res, next) => {
+    next(tooManyRequestsError("Too many requests. Please try again later."));
+  },
 });
 
 export const loginIpLimiter = rateLimit({
@@ -20,8 +32,10 @@ export const loginIpLimiter = rateLimit({
     prefix: "rl:login:ip:",
   }),
 
-  message: {
-    error: "Too many login attempts. Please try again later.",
+  handler: (req, res, next) => {
+    next(
+      tooManyRequestsError("Too many login attempts. Please try again later."),
+    );
   },
 });
 
@@ -36,8 +50,10 @@ export const signUpLimiter = rateLimit({
     prefix: "rl:signup:ip:",
   }),
 
-  message: {
-    error: "Too many signup requests. Please try again later.",
+  handler: (req, res, next) => {
+    next(
+      tooManyRequestsError("Too many signup requests. Please try again later."),
+    );
   },
 });
 
@@ -52,8 +68,10 @@ export const signUpPerDayLimiter = rateLimit({
     prefix: "rl:signup-day:ip:",
   }),
 
-  message: {
-    error: "Too many signup requests. Please try again later.",
+  handler: (req, res, next) => {
+    next(
+      tooManyRequestsError("Too many signup requests. Please try again later."),
+    );
   },
 });
 
@@ -67,8 +85,13 @@ export const createPostRequestLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
   }),
   keyGenerator: (req) => `create-post:user:${req.user.id}`,
-  message: {
-    error: "Too many create post requests. Please try again later.",
+
+  handler: (req, res, next) => {
+    next(
+      tooManyRequestsError(
+        "Too many create post requests. Please try again later.",
+      ),
+    );
   },
 });
 
@@ -82,7 +105,12 @@ export const createCommentRequestLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
   }),
   keyGenerator: (req) => `create-comment:user:${req.user.id}`,
-  message: {
-    error: "Too many create comment requests. Please try again later.",
+
+  handler: (req, res, next) => {
+    next(
+      tooManyRequestsError(
+        "Too many create comment requests. Please try again later.",
+      ),
+    );
   },
 });

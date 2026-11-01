@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
@@ -61,6 +62,7 @@ const userRouter = require("../controllers/users");
 const app = express();
 app.use(express.json());
 app.use("/users", userRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 
@@ -153,7 +155,11 @@ describe("POST /users signup", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.body).toEqual({ error: "username already taken" });
+    expect(response.body).toEqual({
+      code: "USERNAME_ALREADY_TAKEN",
+      message: "username already taken",
+      details: {},
+    });
     expect(User.create).not.toHaveBeenCalled();
     expect(sendVerificationEmail).not.toHaveBeenCalled();
   });

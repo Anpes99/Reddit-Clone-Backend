@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
@@ -36,6 +37,7 @@ const commentRouter = require("../controllers/comments");
 const app = express();
 app.use(express.json());
 app.use(commentRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 
@@ -107,7 +109,11 @@ test("returns 404 and does not create a reply when the parent comment ID is inva
   });
 
   expect(response.statusCode).toBe(404);
-  expect(response.body).toEqual({ error: "Parent comment not found." });
+  expect(response.body).toEqual({
+    code: "PARENT_COMMENT_NOT_FOUND",
+    message: "Parent comment not found.",
+    details: {},
+  });
   expect(Comment.findByPk).toHaveBeenCalledWith(9999);
   expect(Comment.create).not.toHaveBeenCalled();
 });
@@ -145,7 +151,7 @@ test("rejects a client-supplied user ID", async () => {
   });
 
   expect(response.statusCode).toBe(400);
-  expect(response.body.message).toBe("Validation failed");
+  expect(response.body.code).toBe("VALIDATION_FAILED");
   expect(Comment.create).not.toHaveBeenCalled();
 });
 
@@ -187,7 +193,9 @@ test("rejects a reply whose parent comment belongs to a different post", async (
 
   expect(response.statusCode).toBe(400);
   expect(response.body).toEqual({
-    error: "Parent comment belongs to a different post.",
+    code: "WRONG_COMMENT_POST",
+    message: "Parent comment belongs to a different post.",
+    details: {},
   });
   expect(Comment.create).not.toHaveBeenCalled();
 });
@@ -203,7 +211,11 @@ test("returns a single 500 response when comment creation fails", async () => {
   });
 
   expect(response.statusCode).toBe(500);
-  expect(response.body).toBe("something went wrong while creating new comment");
+  expect(response.body).toEqual({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "something went wrong",
+    details: {},
+  });
 });
 
 test("retrieves replies for a parent comment with author details", async () => {

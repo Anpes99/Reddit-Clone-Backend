@@ -5,9 +5,15 @@ const {
 const { SubredditModerators } = require("../../models/index");
 const pinoHttp = require("pino-http");
 const logger = require("../logger");
+const { AppError } = require("../../errors");
 
 const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: "unknown endpoint" });
+  throw new AppError({
+    status: 404,
+    code: "UNKNOWN_ENDPOINT",
+    message: "unknown endpoint",
+    details: {},
+  });
 };
 
 const tokenExtractor = (request, response, next) => {
@@ -23,12 +29,9 @@ const userExtractor = (req, res, next) => {
 
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     const token = authorization.substring(7);
-    try {
-      const decodedToken = jwt.verify(token, process.env.SECRET);
-      req.user = { username: decodedToken.username, id: decodedToken.id };
-    } catch (e) {
-      return next(e);
-    }
+
+    const decodedToken = jwt.verify(token, process.env.SECRET);
+    req.user = { username: decodedToken.username, id: decodedToken.id };
   }
 
   next();
@@ -36,8 +39,11 @@ const userExtractor = (req, res, next) => {
 
 const requireAuth = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({
-      error: "Authentication required",
+    throw new AppError({
+      status: 401,
+      code: "AUTHENTICATION_REQUIRED",
+      message: "Authentication required",
+      details: {},
     });
   }
 
@@ -45,41 +51,46 @@ const requireAuth = (req, res, next) => {
 };
 
 const errorHandler = (error, request, response, next) => {
-  if (error.name === "ValidationError") {
-    console.error(error.message);
-    return response
-      .status(400)
-      .send({ error: { message: error.message, name: error.name } });
-  }
-  if (error.name === "TokenExpiredError") {
-    return response
-      .status(401)
-      .send({ error: { message: error.message, name: error.name } });
-  }
-  if (error.name === "JsonWebTokenError") {
-    return response
-      .status(401)
-      .send({ error: { message: error.message, name: error.name } });
-  }
-  if (error.name === "TypeError") {
-    console.error(error.message);
-    return response
-      .status(500)
-      .send({ error: { message: error.message, name: error.name } });
-  }
-  if (error.name === "CastError") {
-    console.error(error.message);
-    return response
-      .status(400)
-      .send({ error: { message: error.message, name: error.name } });
-  }
-
-  logger.error(error);
   if (response.headersSent) {
     return next(error);
   }
+  if (error instanceof AppError) {
+    return response.status(error.status).send({
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
+  }
 
-  return response.status(500).json({ error: "something went wrong" });
+  if (error.name === "ValidationError") {
+    return response.status(400).send({
+      code: "VALIDATION_ERROR",
+      message: error.message,
+      details: {},
+    });
+  }
+  if (error.name === "TokenExpiredError") {
+    return response.status(401).send({
+      code: "TOKEN_EXPIRED_ERROR",
+      message: error.message,
+      details: {},
+    });
+  }
+  if (error.name === "JsonWebTokenError") {
+    return response.status(401).send({
+      code: "JWT_ERROR",
+      message: error.message,
+      details: {},
+    });
+  }
+
+  logger.error(error);
+
+  return response.status(500).send({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "something went wrong",
+    details: {},
+  });
 };
 
 const validate = (schema, property = "body") => {
@@ -90,10 +101,11 @@ const validate = (schema, property = "body") => {
     });
 
     if (error) {
-      console.log(error.details);
-      return res.status(400).json({
-        message: "Validation failed",
-        details: error.details,
+      throw new AppError({
+        status: 400,
+        code: "VALIDATION_FAILED",
+        message: "validation failed",
+        details: {},
       });
     }
 
@@ -104,33 +116,35 @@ const validate = (schema, property = "body") => {
 
 const requireSubredditPermission = (permission) => {
   return async (req, res, next) => {
-    try {
-      const userId = req.user?.id;
-      const subredditId = req.params.subredditId;
+    const userId = req.user?.id;
+    const subredditId = req.params.subredditId;
 
-      if (!userId) {
-        return res.status(401).json({
-          error: "Unauthorized",
-        });
-      }
-
-      const moderator = await SubredditModerators.findOne({
-        where: {
-          subredditId,
-          userId,
-        },
-        attributes: ["role"],
+    if (!userId) {
+      throw new AppError({
+        status: 401,
+        code: "UNAUTHORIZED",
+        message: "unauthorized",
+        details: {},
       });
-      if (!moderator || !hasSubredditPermission(moderator.role, permission)) {
-        return res.status(403).json({
-          error: "Forbidden",
-        });
-      }
-
-      next();
-    } catch (err) {
-      next(err);
     }
+
+    const moderator = await SubredditModerators.findOne({
+      where: {
+        subredditId,
+        userId,
+      },
+      attributes: ["role"],
+    });
+    if (!moderator || !hasSubredditPermission(moderator.role, permission)) {
+      throw new AppError({
+        status: 403,
+        code: "FORBIDDEN",
+        message: "Forbidden",
+        details: {},
+      });
+    }
+
+    next();
   };
 };
 
@@ -146,11 +160,11 @@ const csrfProtection = (req, res, next) => {
   const allowedOrigin = process.env.CLIENT_URL;
 
   if (origin !== allowedOrigin) {
-    return res.status(403).json({
-      error: {
-        message: "Invalid request origin",
-        name: "CsrfError",
-      },
+    throw new AppError({
+      status: 403,
+      code: "INVALID_REQUEST_ORIGIN",
+      message: "Invalid request origin",
+      details: {},
     });
   }
 

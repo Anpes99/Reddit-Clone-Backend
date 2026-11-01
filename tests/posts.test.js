@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
@@ -65,6 +66,7 @@ const postsRouter = require("../controllers/posts");
 const app = express();
 app.use(express.json());
 app.use("/posts", postsRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 
@@ -190,7 +192,11 @@ describe("POST /posts", () => {
     );
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toBe("subreddit not found");
+    expect(response.body).toEqual({
+      code: "SUBREDDIT_NOT_FOUND",
+      message: "subreddit not found",
+      details: {},
+    });
     expect(generateEmbedding).not.toHaveBeenCalled();
     expect(Post.create).not.toHaveBeenCalled();
   });
@@ -263,6 +269,10 @@ describe("GET /posts/:id", () => {
     const response = await request("GET", "/posts/56");
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toBe("post not found");
+    expect(response.body).toEqual({
+      code: "POST_NOT_FOUND",
+      message: "post not found",
+      details: {},
+    });
   });
 });

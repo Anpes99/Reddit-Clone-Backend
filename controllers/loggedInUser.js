@@ -1,65 +1,72 @@
 const loggedInUserRouter = require("express").Router();
+const { AppError } = require("../errors");
 const { User, Subreddit, Post } = require("../models/index");
 const { validate, requireAuth } = require("../utils/middleware/middleware");
 const {
   updateLoggedInUserSchema,
 } = require("../validators/loggedInUser.validator");
 
-loggedInUserRouter.get("/", requireAuth, async (request, response) => {
-  try {
-    const user = await User.findOne({
-      where: { username: request.user.username },
-      include: [
-        {
-          model: Subreddit,
-          attributes: ["name", "id"],
-          as: "subreddits",
-          required: false,
+loggedInUserRouter.get("/", requireAuth, async (request, response, next) => {
+  const user = await User.findOne({
+    where: { username: request.user.username },
+    include: [
+      {
+        model: Subreddit,
+        attributes: ["name", "id"],
+        as: "subreddits",
+        required: false,
+      },
+      {
+        model: Post,
+        as: "ratedPosts",
+        attributes: ["id"],
+        through: {
+          attributes: ["rating"],
         },
-        {
-          model: Post,
-          as: "ratedPosts",
-          attributes: ["id"],
-          through: {
-            attributes: ["rating"],
-          },
-          required: false,
-        },
-      ],
-    });
+        required: false,
+      },
+    ],
+  });
 
-    if (!user) {
-      return response.status(404).json({ error: "user not found" });
-    }
-
-    response.status(200).send({
-      username: user.username,
-      id: user.id,
-      subreddits: user.subreddits,
-      ratedPosts: user.ratedPosts.map((post) => ({
-        id: post.id,
-        rating: post.UserRatedPosts.rating,
-      })),
-      avatarImageUrl: user.avatarImageUrl,
-      profilePageBackgroundImageUrl: user.profilePageBackgroundImageUrl,
+  if (!user) {
+    throw new AppError({
+      status: 404,
+      code: "USER_NOT_FOUND",
+      message: "user not found",
+      details: {},
     });
-  } catch (error) {
-    response.status(401).json(error);
   }
+
+  response.status(200).send({
+    username: user.username,
+    id: user.id,
+    subreddits: user.subreddits,
+    ratedPosts: user.ratedPosts.map((post) => ({
+      id: post.id,
+      rating: post.UserRatedPosts.rating,
+    })),
+    avatarImageUrl: user.avatarImageUrl,
+    profilePageBackgroundImageUrl: user.profilePageBackgroundImageUrl,
+  });
 });
 
 loggedInUserRouter.patch(
   "/",
   validate(updateLoggedInUserSchema),
   requireAuth,
-  async (request, response) => {
+  async (request, response, next) => {
     const { introduction, userAvatarImageUrl, profilePageBackgroundImageUrl } =
       request.body;
     const userId = request.user.id;
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return response.status(404).json({ error: "user not found" });
+      throw new AppError({
+        status: 404,
+        code: "USER_NOT_FOUND",
+        message: "user not found",
+        details: {},
+      });
     }
 
     await user.update({

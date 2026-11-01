@@ -1,3 +1,4 @@
+require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 const cookieParser = require("cookie-parser");
@@ -45,11 +46,13 @@ const { User, EmailVerificationToken } = require("../models/index");
 const { redisClient } = require("../utils/redis");
 const { sendVerificationEmail } = require("../utils/email");
 const authRouter = require("../controllers/auth");
+const logger = require("../utils/logger");
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(authRouter);
+app.use(require("../utils/middleware/middleware").errorHandler);
 
 let server;
 
@@ -181,8 +184,9 @@ describe("POST /login", () => {
 
     expect(response.statusCode).toBe(403);
     expect(response.body).toEqual({
-      email: "test@example.com",
-      error: { status: "EMAIL_NOT_VERIFIED" },
+      code: "EMAIL_NOT_VERIFIED",
+      message: "email not verified",
+      details: { email: "test@example.com" },
     });
     expect(EmailVerificationToken.destroy).toHaveBeenCalledWith({
       where: { userId: 12 },
@@ -205,7 +209,11 @@ describe("POST /login", () => {
     });
 
     expect(response.statusCode).toBe(401);
-    expect(response.body).toEqual({ error: "invalid username or password" });
+    expect(response.body).toEqual({
+      code: "INVALID_USERNAME_OR_PASSWORD",
+      message: "invalid username or password",
+      details: {},
+    });
     expect(redisClient.incr).toHaveBeenCalledTimes(1);
     expect(redisClient.expire).toHaveBeenCalledWith(expect.any(String), 900);
     expect(response.headers["set-cookie"]).toBeUndefined();
@@ -220,7 +228,11 @@ describe("POST /login", () => {
     });
 
     expect(response.statusCode).toBe(401);
-    expect(response.body).toEqual({ error: "invalid username or password" });
+    expect(response.body).toEqual({
+      code: "INVALID_USERNAME_OR_PASSWORD",
+      message: "invalid username or password",
+      details: {},
+    });
     expect(bcrypt.compare).not.toHaveBeenCalled();
     expect(redisClient.incr).toHaveBeenCalledTimes(1);
     expect(response.headers["set-cookie"]).toBeUndefined();
@@ -327,8 +339,8 @@ describe("POST /logout without a revocable token", () => {
   });
 
   it("still logs out when the token cannot be revoked in Redis", async () => {
-    const consoleError = jest
-      .spyOn(console, "error")
+    const loggerError = jest
+      .spyOn(logger, "error")
       .mockImplementation(() => {});
     const refreshTokenId = "redis-down-refresh-token-id";
     redisClient.del.mockRejectedValueOnce(new Error("Redis unavailable"));
@@ -341,12 +353,9 @@ describe("POST /logout without a revocable token", () => {
 
     expect(response.statusCode).toBe(204);
     expect(redisClient.del).toHaveBeenCalledWith(`refresh:${refreshTokenId}`);
-    expect(consoleError).toHaveBeenCalledWith(
-      "Failed to revoke refresh token:",
-      "Redis unavailable",
-    );
+    expect(loggerError).toHaveBeenCalled();
     expectCookieCleared(response);
 
-    consoleError.mockRestore();
+    loggerError.mockRestore();
   });
 });
