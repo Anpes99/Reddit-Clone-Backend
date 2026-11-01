@@ -42,10 +42,18 @@ A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps o
 **Centralized error handling and structured logging**
 Every failure goes through a single Express error handler, so the API always answers with the same `{ code, message, details }` shape, whether it's a 404, an auth failure, a validation error, a CSRF rejection or a rate limit. Unexpected errors are logged on the server and the client only gets a generic 500, so internal details never leak. Pino logs every request, as readable output in development and JSON in production.
 
-### Auth & real-time
+### Security
 
 **Refresh-token rotation with revocation**
-Access tokens last 15 minutes. Each refresh token has an ID stored in Redis. Refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately.
+Access tokens last 15 minutes. Each refresh token has an ID stored in Redis. Refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately. The refresh token lives in an httpOnly, SameSite cookie scoped to `/api/auth`, so page scripts can't read it.
+
+**CSRF protection and security headers**
+Every state-changing request is rejected unless its `Origin` header matches the frontend's origin. Helmet sets a Content Security Policy, blocks the site from being framed to prevent clickjacking, and enables HSTS in production. Passwords are hashed with bcrypt, and moderator actions are checked against a role-to-permission map for each subreddit. Unexpected errors reach the client only as a generic 500, so stack traces and other internal details are never sent.
+
+**Rate limiting on every entry point**
+Login (30 per minute per IP), sign-up (5 per 15 minutes and 20 per day per IP), posting and commenting (5 per minute per user) are limited in Redis, so the limits hold across server instances. All API traffic also has a general limit of 300 requests per minute, and socket votes are limited as described below.
+
+### Real-time
 
 **Authenticated, rate-limited WebSockets**
 Socket.IO connections are authenticated with the same JWT as the REST API. Voting over the socket requires a signed-in user and is rate-limited in Redis to one vote per user per post or comment every 3 seconds. Vote changes are pushed to every viewer instantly, and the app tracks how many signed-in users are viewing each subreddit, dropping users who haven't been seen for 60 seconds.
@@ -84,13 +92,6 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 **Search**
 - Semantic post search that matches meaning, not just keywords
 - Typo-tolerant subreddit search, with subreddit suggestions in the search bar
-
-**Security**
-- Password hashing, JWT auth with refresh-token rotation and revocation, role-based authorization
-- CSRF protection through origin validation on state-changing requests
-- Helmet security headers, including a Content Security Policy, clickjacking protection and production-only HSTS
-- Redis-backed rate limiting on login, sign-up, posting, commenting, voting and general API traffic
-- Internal error details are never sent to clients
 
 **Responsive UI** for mobile and desktop.
 
