@@ -6,7 +6,7 @@ const {
   updateLoggedInUserSchema,
 } = require("../validators/loggedInUser.validator");
 
-loggedInUserRouter.get("/", requireAuth, async (request, response, next) => {
+loggedInUserRouter.get("/", requireAuth, async (request, response) => {
   const user = await User.findOne({
     where: { username: request.user.username },
     include: [
@@ -54,7 +54,7 @@ loggedInUserRouter.patch(
   "/",
   validate(updateLoggedInUserSchema),
   requireAuth,
-  async (request, response, next) => {
+  async (request, response) => {
     const { introduction, userAvatarImageUrl, profilePageBackgroundImageUrl } =
       request.body;
     const userId = request.user.id;

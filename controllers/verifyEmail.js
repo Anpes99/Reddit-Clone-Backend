@@ -15,7 +15,7 @@ const verifyEmailRouter = require("express").Router();
 verifyEmailRouter.post(
   "/",
   validate(verifyEmailSchema),
-  async (req, res, next) => {
+  async (req, res) => {
     const token = req.body.token;
 
     const hashedToken = hashEmailVerificationToken(token);
@@ -72,7 +72,7 @@ verifyEmailRouter.post(
 verifyEmailRouter.post(
   "/resend",
   validate(resendVerifyEmailEmailSchema),
-  async (req, res, next) => {
+  async (req, res) => {
     const username = req.body.username;
 
     const user = await User.findOne({ where: { username } });

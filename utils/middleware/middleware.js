@@ -7,7 +7,7 @@ const pinoHttp = require("pino-http");
 const logger = require("../logger");
 const { AppError } = require("../../errors");
 
-const unknownEndpoint = (request, response) => {
+const unknownEndpoint = () => {
   throw new AppError({
     status: 404,
     code: "UNKNOWN_ENDPOINT",
@@ -190,11 +190,11 @@ const httpLogger = pinoHttp({
     },
   },
 
-  customSuccessMessage(req, res) {
+  customSuccessMessage(req) {
     return `${req.method} ${req.url} completed`;
   },
 
-  customErrorMessage(req, res, err) {
+  customErrorMessage(req) {
     return `${req.method} ${req.url} failed`;
   },
 });

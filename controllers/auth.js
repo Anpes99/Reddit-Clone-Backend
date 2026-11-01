@@ -23,7 +23,7 @@ authRouter.post(
   "/login",
   validate(loginSchema),
   loginIpLimiter,
-  async (request, response, next) => {
+  async (request, response) => {
     const { body } = request;
 
     const identifier = body.username.trim().toLowerCase();

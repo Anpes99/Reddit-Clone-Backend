@@ -41,7 +41,7 @@ usersRouter.post(
   signUpLimiter,
   signUpPerDayLimiter,
   validate(postNewUserSchema),
-  async (request, response, next) => {
+  async (request, response) => {
     const { body } = request;
 
     const userFound = await User.findOne({
@@ -74,7 +74,7 @@ usersRouter.post(
   },
 );
 
-usersRouter.get("/:username", async (request, response, next) => {
+usersRouter.get("/:username", async (request, response) => {
   const username = request.params.username;
 
   const user = await User.findOne({ where: { username } });
@@ -120,7 +120,7 @@ usersRouter.get("/:username", async (request, response, next) => {
 usersRouter.get(
   "/:username/feed",
   validate(getUserPostsAndCommentsFeedSchema, "query"),
-  async (request, response, next) => {
+  async (request, response) => {
     const { username } = request.params;
     const { offset, contentType, sortByType, getTotalCount } = request.query;
 
@@ -286,7 +286,7 @@ usersRouter.get(
 usersRouter.post(
   "/forgotten-password",
   validate(forgottenPasswordSchema),
-  async (request, response, next) => {
+  async (request, response) => {
     const email = request.body.email;
 
     const user = await User.findOne({ where: { email } });
@@ -310,7 +310,7 @@ usersRouter.post(
 usersRouter.post(
   "/reset-password",
   validate(resetPasswordSchema),
-  async (request, response, next) => {
+  async (request, response) => {
     const { password, passwordResetToken } = request.body;
 
     const hashedPasswordResetToken = hashPasswordResetToken(passwordResetToken);

@@ -15,7 +15,7 @@ const {
 postsRouter.get(
   "/:id",
   validate(getPostSchema, "query"),
-  async (req, res, next) => {
+  async (req, res) => {
     const order = req.query.order;
     const sortBy = req.query.sortBy;
 
@@ -69,7 +69,7 @@ postsRouter.post(
   requireAuth,
   createPostRequestLimiter,
   validate(postNewPostSchema),
-  async (req, res, next) => {
+  async (req, res) => {
     const { title, text, subredditName, imageUrl } = req.body;
 
     const subreddit = await Subreddit.findOne({

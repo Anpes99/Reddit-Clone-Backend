@@ -52,7 +52,7 @@ subredditsRouter.post(
 subredditsRouter.delete(
   "/:subredditId/user",
   requireAuth,
-  async (req, res, next) => {
+  async (req, res) => {
     await UserSubreddits.destroy({
       where: {
         userId: req.user.id,
@@ -67,7 +67,7 @@ subredditsRouter.delete(
 subredditsRouter.get(
   "/",
   validate(getSubredditsSchema, "query"),
-  async (req, res, next) => {
+  async (req, res) => {
     const { limit, sortBy, order } = req.query;
 
     if (sortBy === SUBREDDIT_ORDER_BY_TYPES.MEMBER_COUNT) {
@@ -127,7 +127,7 @@ subredditsRouter.post(
   "/",
   requireAuth,
   validate(postNewSubredditSchema),
-  async (req, res, next) => {
+  async (req, res) => {
     const { communityName, description, subredditIconUrl } = req.body;
     let subredditAlreadyExists = false;
 

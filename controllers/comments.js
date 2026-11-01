@@ -12,7 +12,7 @@ commentRouter.post(
   requireAuth,
   createCommentRequestLimiter,
   validate(postNewPostCommentSchema),
-  async (req, res, next) => {
+  async (req, res) => {
     const { text, directReplyToPost, subredditId, commentId, postId } =
       req.body;
 
@@ -65,7 +65,7 @@ commentRouter.post(
   },
 );
 
-commentRouter.get("/moreComments/:id", async (req, res, next) => {
+commentRouter.get("/moreComments/:id", async (req, res) => {
   const id = req.params.id;
   const comments = await Comment.findAll({
     where: { commentId: id },
