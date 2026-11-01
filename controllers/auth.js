@@ -268,7 +268,7 @@ authRouter.post("/logout", async (req, res) => {
         algorithms: ["HS256"],
       });
     } catch {
-      // eslint-disable-next-line no-empty
+      // ignore eslint rule
     }
   }
 
