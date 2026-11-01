@@ -14,7 +14,7 @@ A Reddit-style community platform built end to end with **React, Redux Toolkit, 
 ## Tech Stack
 
 - **Frontend:** React 18, Redux Toolkit, React Router, Tailwind CSS, Material UI, Formik + Yup, Socket.IO client
-- **Backend:** Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, Socket.IO, Joi
+- **Backend:** Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, Socket.IO, Joi, Pino
 - **Auth & security:** JWT access tokens, rotating refresh tokens revoked in Redis, email verification, Helmet, CSRF origin checks, Redis-backed rate limiting
 - **Integrations:** Voyage AI embeddings, AWS S3, Brevo + Nodemailer
 - **Testing & tooling:** Jest, React Testing Library, PostgreSQL integration tests, GitHub Actions CI, Docker Compose, ESLint, Prettier
@@ -39,6 +39,9 @@ Subreddit search uses `pg_trgm` word similarity, so near-misses still match. Res
 **Leaderboard with history**
 A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which powers the rank-change indicators on the top communities leaderboard.
 
+**Centralized error handling and structured logging**
+Every failure goes through a single Express error handler, so the API always answers with the same `{ code, message, details }` shape, whether it's a 404, an auth failure, a validation error, a CSRF rejection or a rate limit. Unexpected errors are logged on the server and the client only gets a generic 500, so internal details never leak. Pino logs every request, as readable output in development and JSON in production.
+
 ### Auth & real-time
 
 **Refresh-token rotation with revocation**
@@ -58,7 +61,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 ### Quality
 
 **250+ tests in CI**
-173 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 82 frontend tests (React Testing Library) run on every push with GitHub Actions. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
+176 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 84 frontend tests (React Testing Library) run on every push with GitHub Actions, and the backend pipeline also enforces ESLint and Prettier checks. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
 
 ## Features
 
@@ -87,6 +90,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 - CSRF protection through origin validation on state-changing requests
 - Helmet security headers, including a Content Security Policy, clickjacking protection and production-only HSTS
 - Redis-backed rate limiting on login, sign-up, posting, commenting, voting and general API traffic
+- Internal error details are never sent to clients
 
 **Responsive UI** for mobile and desktop.
 
@@ -94,8 +98,8 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 
 | | Tests | What's covered |
 |---|---|---|
-| **Backend** | 173 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
-| **Frontend** | 82 | Sign-in, sign-up and password-reset forms, the Axios token-refresh interceptor, socket reconnection on token change, post and comment voting, nested comment threads, post and comment creation, joining subreddits, Redux state and S3 uploads |
+| **Backend** | 176 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, the central error handler and error response format, logout when the token can't be revoked, socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
+| **Frontend** | 84 | Sign-in, sign-up and password-reset forms, logout failure handling, the Axios token-refresh interceptor, socket reconnection on token change, post and comment voting, nested comment threads, post and comment creation, joining subreddits, Redux state and S3 uploads |
 
 Backend tests use a separate test database and refuse to run if it points at the main database.
 
