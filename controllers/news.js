@@ -6,10 +6,12 @@ const { isUnsafeArticle } = require("../utils/imageContentModerationOpenAI");
 newsRouter.get("", async (req, res, next) => {
   try {
     const result = await axios.get(
-      `https://newsapi.org/v2/top-headlines?pageSize=6&country=us&apiKey=${process.env.NEWS_API_KEY}`,
+      `https://newsapi.org/v2/top-headlines?pageSize=8&country=us&apiKey=${process.env.NEWS_API_KEY}`,
     );
 
-    const articles = result.data.articles;
+    const articles = result.data.articles.filter(
+      (article) => article.urlToImage,
+    );
 
     const moderationResults = await Promise.all(
       articles.map(async (article) => {
@@ -34,7 +36,6 @@ newsRouter.get("", async (req, res, next) => {
       .map((result) => result.article);
 
     return res.json({
-      ...result.data,
       articles: safeArticles,
     });
   } catch (e) {
