@@ -2,7 +2,7 @@
 
 ![Backend tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg) ![Frontend tests](https://github.com/Anpes99/Reddit-Clone-Frontend/actions/workflows/test.yml/badge.svg)
 
-A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
+A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
 
 **[Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)** · [Frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) · [Backend repository](https://github.com/Anpes99/Reddit-Clone-Backend)
 
@@ -16,7 +16,7 @@ A Reddit-style community platform built end to end with **React, Redux Toolkit, 
 - **Frontend:** React 18, Redux Toolkit, React Router, Tailwind CSS, Material UI, Formik + Yup, Socket.IO client
 - **Backend:** Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, Socket.IO, Joi, Pino
 - **Auth & security:** JWT access tokens, rotating refresh tokens revoked in Redis, email verification, Helmet, CSRF origin checks, Redis-backed rate limiting
-- **Integrations:** Voyage AI embeddings, AWS S3, Brevo + Nodemailer
+- **Integrations:** Voyage AI embeddings, OpenAI Moderation API, NewsAPI, AWS S3, Brevo + Nodemailer
 - **Testing & tooling:** Jest, React Testing Library, PostgreSQL integration tests, GitHub Actions CI, Docker Compose, ESLint, Prettier
 - **Deployment:** Heroku
 
@@ -38,6 +38,9 @@ Subreddit search uses `pg_trgm` word similarity, so near-misses still match. Res
 
 **Leaderboard with history**
 A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which powers the rank-change indicators on the top communities leaderboard.
+
+**AI moderation of third-party news content**
+The trending section on the home page shows headlines from NewsAPI, and every article is checked with OpenAI's multimodal `omni-moderation-latest` model before it reaches the client. The headline, description and thumbnail image are checked together in one request, and articles flagged as unsafe are dropped. Articles are moderated in parallel, verdicts are cached in Redis for 24 hours so repeat page loads don't call the API again, and if the check fails, the article is hidden.
 
 **Centralized error handling and structured logging**
 Every failure goes through a single Express error handler, so the API always answers with the same `{ code, message, details }` shape, whether it's a 404, an auth failure, a validation error, a CSRF rejection or a rate limit. Unexpected errors are logged on the server and the client only gets a generic 500, so internal details never leak. Pino logs every request, as readable output in development and JSON in production.
@@ -92,6 +95,9 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 **Search**
 - Semantic post search that matches meaning, not just keywords
 - Typo-tolerant subreddit search, with subreddit suggestions in the search bar
+
+**News**
+- Trending headlines on the home page, automatically filtered for unsafe text and images
 
 **Responsive UI** for mobile and desktop.
 
@@ -151,11 +157,12 @@ API keys go in a `docker.env` file in the backend repository:
 
 - [Voyage AI](https://www.voyageai.com/) (required, free): post embeddings for semantic search. Without this key, creating posts and searching posts sorted by "Top" fail. Searching by "New" still works.
 - [NewsAPI](https://newsapi.org/) (optional, free): only used for the small news section below the header on the home page.
+- [OpenAI](https://platform.openai.com/) (optional, the Moderation API is free): moderates the news section. Without this key, moderation fails closed and no news articles are shown.
 
 ```bash
 cd Reddit-Clone-Backend
 cp docker.env.example docker.env
-# Set VOYAGE_API_KEY (and optionally NEWS_API_KEY) in docker.env
+# Set VOYAGE_API_KEY (and optionally NEWS_API_KEY and OPENAI_API_KEY) in docker.env
 docker compose up --build
 ```
 
