@@ -90,9 +90,9 @@ const searchPosts = (payload) =>
 const insertPost = async ({ title, embedding, userId, subredditId }) => {
   const [post] = await sequelize.query(
     `INSERT INTO public.posts
-      (title, text, user_id, subreddit_id, created_at, updated_at, embedding)
+      (title, text, user_id, subreddit_id, created_at, updated_at, embedding, safe, moderation_status)
      VALUES
-      (:title, :text, :userId, :subredditId, NOW(), NOW(), CAST(:embedding AS vector))
+      (:title, :text, :userId, :subredditId, NOW(), NOW(), CAST(:embedding AS vector), true, 'completed')
      RETURNING id;`,
     {
       replacements: {

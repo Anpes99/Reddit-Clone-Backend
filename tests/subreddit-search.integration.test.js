@@ -33,6 +33,12 @@ jest.mock("../utils/middleware/middleware", () =>
 
 jest.mock("../enums/post.enum.js", () => ({
   postsOrderType: { TOP: "TOP", NEW: "NEW" },
+  postModerationStatus: {
+    PENDING: "pending",
+    COMPLETED: "completed",
+    FAILED: "failed",
+    REVIEW_REQUIRED: "review_required",
+  },
 }));
 
 jest.mock("../enums/sort-order.enum.js", () => ({
