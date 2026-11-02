@@ -2,7 +2,7 @@
 
 ![Backend tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg) ![Frontend tests](https://github.com/Anpes99/Reddit-Clone-Frontend/actions/workflows/test.yml/badge.svg)
 
-A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
+A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, asynchronous image moderation through a background job queue, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
 
 **[Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)** · [Frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) · [Backend repository](https://github.com/Anpes99/Reddit-Clone-Backend)
 
@@ -14,9 +14,9 @@ A Reddit-style community platform built end to end with **React, Redux Toolkit, 
 ## Tech Stack
 
 - **Frontend:** React 18, Redux Toolkit, React Router, Tailwind CSS, Material UI, Formik + Yup, Socket.IO client
-- **Backend:** Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, Socket.IO, Joi, Pino
+- **Backend:** Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, BullMQ, Socket.IO, Joi, Pino
 - **Auth & security:** JWT access tokens, rotating refresh tokens revoked in Redis, email verification, Helmet, CSRF origin checks, Redis-backed rate limiting
-- **Integrations:** Voyage AI embeddings, OpenAI Moderation API, NewsAPI, AWS S3, Brevo + Nodemailer
+- **Integrations:** Voyage AI embeddings, Sightengine image moderation, OpenAI Moderation API, NewsAPI, AWS S3, Brevo + Nodemailer
 - **Testing & tooling:** Jest, React Testing Library, PostgreSQL integration tests, GitHub Actions CI, Docker Compose, ESLint, Prettier
 - **Deployment:** Heroku
 
@@ -38,6 +38,9 @@ Subreddit search uses `pg_trgm` word similarity, so near-misses still match. Res
 
 **Leaderboard with history**
 A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which powers the rank-change indicators on the top communities leaderboard.
+
+**Asynchronous image moderation with a job queue**
+Posts with images are saved as pending and stay hidden until their image has been checked, so the API responds right away instead of waiting on a third-party service. Creating the post adds a job to a Redis-backed BullMQ queue, and a worker processes up to 5 jobs at a time, sending each image to Sightengine to detect unsafe content. Failed checks are retried 3 times with exponential backoff, and a post whose check keeps failing is marked as failed and never shown. Unchecked and flagged posts are filtered out of feeds, search results, post pages, profiles and contribution counts.
 
 **AI moderation of third-party news content**
 The trending section on the home page shows headlines from NewsAPI, and every article is checked with OpenAI's multimodal `omni-moderation-latest` model before it reaches the client. The headline, description and thumbnail image are checked together in one request, and articles flagged as unsafe are dropped. Articles are moderated in parallel, verdicts are cached in Redis for 24 hours so repeat page loads don't call the API again, and if the check fails, the article is hidden.
@@ -89,6 +92,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 
 **Posts & comments**
 - Create posts with images, then upvote and downvote them, with scores updating live for every viewer
+- Uploaded images are moderated in the background, and posts only appear once their image passes
 - Feeds sorted by new or top, with infinite scrolling
 - Nested comment threads with voting, replies and on-demand loading of deeper replies
 
@@ -105,7 +109,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 
 | | Tests | What's covered |
 |---|---|---|
-| **Backend** | 176 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, the central error handler and error response format, logout when the token can't be revoked, socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
+| **Backend** | 176 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, the central error handler and error response format, logout when the token can't be revoked, image moderation jobs queued on post creation and unmoderated posts hidden from post pages and profiles, socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
 | **Frontend** | 84 | Sign-in, sign-up and password-reset forms, logout failure handling, the Axios token-refresh interceptor, socket reconnection on token change, post and comment voting, nested comment threads, post and comment creation, joining subreddits, Redux state and S3 uploads |
 
 Backend tests use a separate test database and refuse to run if it points at the main database.
@@ -158,15 +162,16 @@ API keys go in a `docker.env` file in the backend repository:
 - [Voyage AI](https://www.voyageai.com/) (required, free): post embeddings for semantic search. Without this key, creating posts and searching posts sorted by "Top" fail. Searching by "New" still works.
 - [NewsAPI](https://newsapi.org/) (optional, free): only used for the small news section below the header on the home page.
 - [OpenAI](https://platform.openai.com/) (optional, the Moderation API is free): moderates the news section. Without this key, moderation fails closed and no news articles are shown.
+- [Sightengine](https://sightengine.com/) (optional, free tier): moderates images in new posts. Without these keys, image moderation fails closed and posts with images are never shown. Posts without images aren't affected.
 
 ```bash
 cd Reddit-Clone-Backend
 cp docker.env.example docker.env
-# Set VOYAGE_API_KEY (and optionally NEWS_API_KEY and OPENAI_API_KEY) in docker.env
+# Set VOYAGE_API_KEY (and optionally NEWS_API_KEY, OPENAI_API_KEY, SIGHTENGINE_API_USER and SIGHTENGINE_API_SECRET) in docker.env
 docker compose up --build
 ```
 
-This starts PostgreSQL (with pgvector), Redis and the app, runs the migrations, and serves the production build at `http://localhost:3001`. Sign-up verification and password reset emails are caught by Mailpit at `http://localhost:8025`. Image uploads also need S3 credentials in `docker.env`. Stop with `docker compose down` (add `-v` to also delete the database).
+This starts PostgreSQL (with pgvector), Redis and the app (including the image moderation worker), runs the migrations, and serves the production build at `http://localhost:3001`. Sign-up verification and password reset emails are caught by Mailpit at `http://localhost:8025`. Image uploads also need S3 credentials in `docker.env`. Stop with `docker compose down` (add `-v` to also delete the database).
 
 To fill the app with demo users, communities, posts, comments and votes, run this while it's up:
 
@@ -191,7 +196,7 @@ cd Reddit-Clone-Backend
 cp .env.example .env
 ```
 
-In `Reddit-Clone-Backend/.env`, set `DATABASE_URI` to your local PostgreSQL connection string (for example, `postgres://USER:PASSWORD@localhost:5432/DB_NAME`), `REDIS_URI` to your Redis URL, and provide local values for `SECRET` and `REFRESH_SECRET`. Keep `.env` private; do not commit credentials. `TEST_DATABASE_URI` is only needed for backend tests and must point to a separately created test database. The `.env.example` file lists optional credentials for email, S3 uploads, news, and search integrations; those features require their respective services and credentials.
+In `Reddit-Clone-Backend/.env`, set `DATABASE_URI` to your local PostgreSQL connection string (for example, `postgres://USER:PASSWORD@localhost:5432/DB_NAME`), `REDIS_URI` to your Redis URL, and provide local values for `SECRET` and `REFRESH_SECRET`. Keep `.env` private; do not commit credentials. `TEST_DATABASE_URI` is only needed for backend tests and must point to a separately created test database. The `.env.example` file lists optional credentials for email, S3 uploads, news, image moderation, and search integrations; those features require their respective services and credentials.
 
 Install dependencies, migrate the development database, and start the API:
 
