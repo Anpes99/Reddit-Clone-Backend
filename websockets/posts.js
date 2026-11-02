@@ -7,7 +7,7 @@ module.exports = function (io) {
     socket.on(
       "fetch_more_posts",
       async ({ order, sortBy, offset, limit, subredditId, username }, cb) => {
-        const totalCountOptions = {};
+        const totalCountOptions = { where: { safe: true } };
         if (username) {
           totalCountOptions.include = [
             {
@@ -19,10 +19,14 @@ module.exports = function (io) {
         }
 
         if (subredditId)
-          totalCountOptions.where = { subredditId: Number(subredditId) };
+          totalCountOptions.where = {
+            ...totalCountOptions.where,
+            subredditId: Number(subredditId),
+          };
         const totalCount = await Post.count(totalCountOptions);
 
         const options = {
+          where: { safe: true },
           order: [["createdAt", SortOrder.DESC]],
           offset,
           limit,
@@ -39,7 +43,11 @@ module.exports = function (io) {
             },
           ],
         };
-        if (subredditId) options.where = { subredditId: Number(subredditId) };
+        if (subredditId)
+          options.where = {
+            ...options.where,
+            subredditId: Number(subredditId),
+          };
 
         if (order && sortBy) options.order = [[sortBy, order]];
 
@@ -51,7 +59,7 @@ module.exports = function (io) {
     socket.on(
       "fetch_top_posts",
       async ({ offset, subredditId, username }, cb) => {
-        const totalCountOptions = {};
+        const totalCountOptions = { where: { safe: true } };
         if (username) {
           totalCountOptions.include = [
             {
@@ -62,10 +70,14 @@ module.exports = function (io) {
           ];
         }
         if (subredditId)
-          totalCountOptions.where = { subredditId: Number(subredditId) };
+          totalCountOptions.where = {
+            ...totalCountOptions.where,
+            subredditId: Number(subredditId),
+          };
         const totalCount = await Post.count(totalCountOptions);
 
         const options = {
+          where: { safe: true },
           offset,
           limit: 5,
           include: [
@@ -86,7 +98,11 @@ module.exports = function (io) {
           ],
         };
 
-        if (subredditId) options.where = { subredditId: Number(subredditId) };
+        if (subredditId)
+          options.where = {
+            ...options.where,
+            subredditId: Number(subredditId),
+          };
 
         const posts = await Post.findAll(options);
 

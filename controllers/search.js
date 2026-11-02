@@ -38,6 +38,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
   if (orderType !== postsOrderType.TOP) {
     const options = {
       where: {
+        safe: true,
         [Op.or]: [
           { title: { [Op.iLike]: `%${String(searchQuery)}%` } },
           sequelize.where(
@@ -110,7 +111,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
           COUNT(*) OVER() AS total_count
         FROM posts
         LEFT JOIN subreddits ON posts.subreddit_id = subreddits.id
-        WHERE posts.embedding IS NOT NULL
+        WHERE posts.embedding IS NOT NULL and posts.safe = true
         ORDER BY posts.embedding <=> CAST(:searchWordEmbedding AS vector)
         LIMIT :limit OFFSET :offset;`,
       {

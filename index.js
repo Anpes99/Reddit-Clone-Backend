@@ -34,8 +34,14 @@ const logger = require("./utils/logger");
 
 startUpdateTopCommunitiesTask();
 
-const PORT = runtime.PORT || 3001;
-server.listen(PORT);
-logger.info("server running on port " + PORT);
+const startServer = () => {
+  require("./workers/moderation.worker.js");
+
+  const PORT = runtime.PORT || 3001;
+  server.listen(PORT);
+  logger.info("server running on port " + PORT);
+};
+
+startServer();
 
 module.exports = { io };

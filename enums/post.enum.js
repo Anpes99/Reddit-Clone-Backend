@@ -8,7 +8,15 @@ const postsOrderType = Object.freeze({
   NEW: "NEW",
 });
 
+const postModerationStatus = Object.freeze({
+  PENDING: "pending",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  REVIEW_REQUIRED: "review_required",
+});
+
 module.exports = {
   commentsSortBy,
   postsOrderType,
+  postModerationStatus,
 };

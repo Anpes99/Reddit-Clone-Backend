@@ -94,7 +94,7 @@ usersRouter.get("/:username", async (request, response) => {
   const contributionsCount = await sequelize.query(
     `
           SELECT
-          (SELECT COUNT(*) FROM posts WHERE user_id = :userId) +
+          (SELECT COUNT(*) FROM posts WHERE user_id = :userId and safe = true) +
           (SELECT COUNT(*) FROM comments WHERE user_id = :userId)
           AS totalCount;
                   
@@ -136,8 +136,8 @@ usersRouter.get(
       });
     }
     if (contentType === USER_PAGE_CONTENT_TYPES.POSTS) {
-      const posts = await Post.findAll({
-        where: { userId: user.id },
+      const options = {
+        where: { userId: user.id, safe: true },
         order:
           sortByType === USER_PAGE_CONTENT_SORT_BY_TYPES.TOP
             ? [
@@ -160,10 +160,11 @@ usersRouter.get(
             attributes: ["name", "iconUrl"],
           },
         ],
-      });
+      };
+      const posts = await Post.findAll(options);
 
       const totalCount = getTotalCount
-        ? await Post.count({ where: { userId: user.id } })
+        ? await Post.count({ where: options.where })
         : undefined;
 
       return response.send({
@@ -251,7 +252,7 @@ usersRouter.get(
         ? await sequelize.query(
             `
           SELECT
-          (SELECT COUNT(*) FROM posts WHERE user_id = :userId) +
+          (SELECT COUNT(*) FROM posts WHERE user_id = :userId and safe = true) +
           (SELECT COUNT(*) FROM comments WHERE user_id = :userId)
           AS totalCount;
                   

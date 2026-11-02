@@ -6,7 +6,7 @@ jest.mock("../models/index", () => ({
   User: {},
   Comment: {},
   Post: {
-    findByPk: jest.fn(),
+    findOne: jest.fn(),
     create: jest.fn(),
   },
   Subreddit: {
@@ -56,11 +56,19 @@ jest.mock("../enums/post.enum", () => ({
     CREATED_AT: "createdAt",
     UP_VOTES: "upVotes",
   },
+  postModerationStatus: {
+    PENDING: "pending",
+  },
+}));
+
+jest.mock("../queues/moderation.queue", () => ({
+  moderationQueue: { add: jest.fn() },
 }));
 
 const { User, Comment, Post, Subreddit } = require("../models/index");
 const { sequelize } = require("../utils/db");
 const { generateEmbedding } = require("../utils/embeddings");
+const { moderationQueue } = require("../queues/moderation.queue");
 const postsRouter = require("../controllers/posts");
 
 const app = express();
@@ -160,6 +168,12 @@ describe("POST /posts", () => {
       userId: 12,
       subredditId: 34,
       embedding,
+      moderationStatus: "pending",
+      safe: null,
+    });
+    expect(moderationQueue.add).toHaveBeenCalledWith("moderate-image", {
+      postId: 56,
+      imageUrl: "https://example.test/image.png",
     });
   });
 
@@ -205,15 +219,15 @@ describe("POST /posts", () => {
 describe("GET /posts/:id", () => {
   it("retrieves the post with its direct comments and default comment ordering", async () => {
     const post = { id: 56, title: "A useful title" };
-    Post.findByPk.mockResolvedValue(post);
+    Post.findOne.mockResolvedValue(post);
 
     const response = await request("GET", "/posts/56");
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({ post });
-    expect(Post.findByPk).toHaveBeenCalledWith(
-      "56",
+    expect(Post.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { id: "56", safe: true },
         include: [
           {
             model: Comment,
@@ -246,7 +260,7 @@ describe("GET /posts/:id", () => {
 
   it("uses the requested comment sort field and order", async () => {
     const post = { id: 56, title: "A useful title" };
-    Post.findByPk.mockResolvedValue(post);
+    Post.findOne.mockResolvedValue(post);
 
     const response = await request(
       "GET",
@@ -255,16 +269,16 @@ describe("GET /posts/:id", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({ post });
-    expect(Post.findByPk).toHaveBeenCalledWith(
-      "56",
+    expect(Post.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { id: "56", safe: true },
         order: [[Comment, "createdAt", "ASC"]],
       }),
     );
   });
 
   it("returns 404 when the post does not exist", async () => {
-    Post.findByPk.mockResolvedValue(null);
+    Post.findOne.mockResolvedValue(null);
 
     const response = await request("GET", "/posts/56");
 

@@ -1,4 +1,5 @@
 const Sequelize = require("sequelize");
+const logger = require("./logger");
 require("dotenv").config();
 
 const sequelize = new Sequelize(
@@ -6,6 +7,7 @@ const sequelize = new Sequelize(
     ? process.env.TEST_DATABASE_URI
     : process.env.DATABASE_URI,
   {
+    logging: (sql) => logger.debug(sql),
     dialectOptions: {
       // Set DATABASE_SSL=false for a local production run (e.g. Docker).
       ...(process.env.NODE_ENV === "production" &&
@@ -26,10 +28,10 @@ const sequelize = new Sequelize(
 const connectToDatabase = async () => {
   try {
     await sequelize.authenticate();
-    console.log("database connected");
+    logger.info("database connected");
   } catch (err) {
-    console.log("connecting database failed");
-    console.log(err);
+    logger.error({ err }, "connecting database failed");
+
     return process.exit(1);
   }
 

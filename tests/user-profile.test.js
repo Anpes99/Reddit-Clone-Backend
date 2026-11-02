@@ -205,7 +205,7 @@ describe("GET /users/:username/feed", () => {
     });
     expect(Post.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: 12 },
+        where: { userId: 12, safe: true },
         order: [["createdAt", "DESC"]],
         offset: 5,
         limit: 5,
@@ -219,7 +219,9 @@ describe("GET /users/:username/feed", () => {
         ]),
       }),
     );
-    expect(Post.count).toHaveBeenCalledWith({ where: { userId: 12 } });
+    expect(Post.count).toHaveBeenCalledWith({
+      where: { userId: 12, safe: true },
+    });
   });
 
   it("orders top posts by score then creation date and omits unrequested count", async () => {

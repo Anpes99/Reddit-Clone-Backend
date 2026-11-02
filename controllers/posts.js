@@ -1,6 +1,8 @@
 const postsRouter = require("express").Router();
+const { postModerationStatus } = require("../enums/post.enum");
 const { AppError } = require("../errors");
 const { User, Comment, Post, Subreddit } = require("../models/index");
+const { moderationQueue } = require("../queues/moderation.queue");
 const { sequelize } = require("../utils/db");
 const { generateEmbedding } = require("../utils/embeddings");
 const { validate, requireAuth } = require("../utils/middleware/middleware");
@@ -17,6 +19,7 @@ postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
   const sortBy = req.query.sortBy;
 
   const options = {
+    where: { id: req.params.id, safe: true },
     include: [
       {
         model: Comment,
@@ -48,7 +51,7 @@ postsRouter.get("/:id", validate(getPostSchema, "query"), async (req, res) => {
         : [[Comment, sortBy, order || "DESC"]],
   };
 
-  const post = await Post.findByPk(req.params.id, options);
+  const post = await Post.findOne(options);
   if (!post) {
     throw new AppError({
       status: 404,
@@ -95,14 +98,25 @@ postsRouter.post(
 
     const embedding = await generateEmbedding(textForEmbedding, "document");
 
-    await Post.create({
+    const newPost = await Post.create({
       title: title,
       text: text,
       imageUrl,
       userId: req.user.id,
       subredditId: subreddit.id,
       embedding,
+      safe: imageUrl ? null : true,
+      moderationStatus: imageUrl
+        ? postModerationStatus.PENDING
+        : postModerationStatus.COMPLETED,
     });
+
+    if (imageUrl) {
+      await moderationQueue.add("moderate-image", {
+        postId: newPost.id,
+        imageUrl,
+      });
+    }
 
     return res.status(201).json("New post created");
   },

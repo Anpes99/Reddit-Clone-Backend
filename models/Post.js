@@ -1,6 +1,7 @@
 const { Model, DataTypes } = require("sequelize");
 
 const { sequelize } = require("../utils/db");
+const { postModerationStatus } = require("../enums/post.enum");
 require("pgvector/sequelize");
 class Post extends Model {}
 
@@ -52,6 +53,12 @@ Post.init(
     embedding: {
       type: DataTypes.VECTOR(512),
       allowNull: false,
+    },
+    safe: {
+      type: DataTypes.BOOLEAN,
+    },
+    moderationStatus: {
+      type: DataTypes.ENUM(Object.values(postModerationStatus)),
     },
   },
   {

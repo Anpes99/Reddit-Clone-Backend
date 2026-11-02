@@ -35,7 +35,7 @@ WITH combined AS (
   FROM posts AS p
   LEFT JOIN subreddits AS s ON s.id = p.subreddit_id
   LEFT JOIN users AS author ON author.id = p.user_id
-  WHERE p.user_id = :userId
+  WHERE p.user_id = :userId and p.safe = true
 
   UNION ALL
 
