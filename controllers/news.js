@@ -6,7 +6,7 @@ const { isUnsafeArticle } = require("../utils/imageContentModerationOpenAI");
 newsRouter.get("", async (req, res, next) => {
   try {
     const result = await axios.get(
-      `https://newsapi.org/v2/top-headlines?pageSize=8&country=us&apiKey=${process.env.NEWS_API_KEY}`,
+      `https://newsapi.org/v2/top-headlines?pageSize=12&country=us&apiKey=${process.env.NEWS_API_KEY}`,
     );
 
     const articles = result.data.articles.filter(

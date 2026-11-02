@@ -29,12 +29,24 @@ const isUnsafeArticle = async (article) => {
       },
     });
   }
-
-  const result = await openai.moderations.create({
-    model: "omni-moderation-latest",
-    input,
-  });
-
+  let result;
+  try {
+    result = await openai.moderations.create({
+      model: "omni-moderation-latest",
+      input,
+    });
+  } catch (e) {
+    if (e.status === 400) {
+      await redisClient.set(
+        `moderation:news:imageUrl:${article.urlToImage}`,
+        JSON.stringify({ isUnsafe: true }),
+        {
+          EX: 24 * 60 * 60,
+        },
+      );
+      return true;
+    }
+  }
   const categories = result.results[0].categories;
 
   const isUnsafe =
