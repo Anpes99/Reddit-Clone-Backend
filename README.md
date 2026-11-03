@@ -2,7 +2,7 @@
 
 ![Backend tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg) ![Frontend tests](https://github.com/Anpes99/Reddit-Clone-Frontend/actions/workflows/test.yml/badge.svg)
 
-A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, asynchronous image moderation through a background job queue, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
+A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, asynchronous image moderation through a background job queue with persistent user notifications of the outcome, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
 
 **[Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)** · [Frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) · [Backend repository](https://github.com/Anpes99/Reddit-Clone-Backend)
 
@@ -40,7 +40,7 @@ Subreddit search uses `pg_trgm` word similarity, so near-misses still match. Res
 A scheduled job rebuilds the top-50 subreddit leaderboard every hour and keeps one snapshot per day, which powers the rank-change indicators on the top communities leaderboard.
 
 **Asynchronous image moderation with a job queue**
-Posts with images are saved as pending and stay hidden until their image has been checked, so the API responds right away instead of waiting on a third-party service. Creating the post adds a job to a Redis-backed BullMQ queue, and a worker processes up to 5 jobs at a time, sending each image to Sightengine to detect unsafe content. Failed checks are retried 3 times with exponential backoff, and a post whose check keeps failing is marked as failed and never shown. Unchecked and flagged posts are filtered out of feeds, search results, post pages, profiles and contribution counts.
+Posts with images are saved as pending and stay hidden until their image has been checked, so the API responds right away instead of waiting on a third-party service. Creating the post adds a job to a Redis-backed BullMQ queue, and a worker processes up to 5 jobs at a time, sending each image to Sightengine to detect unsafe content. Failed checks are retried 3 times with exponential backoff, and a post whose check keeps failing is marked as failed and never shown. Unchecked and flagged posts are filtered out of feeds, search results, post pages, profiles and contribution counts. When moderation finishes, the worker saves an approved or rejected notification for the author, which is shown the next time they open the app if they've left.
 
 **AI moderation of third-party news content**
 The trending section on the home page shows headlines from NewsAPI, and every article is checked with OpenAI's multimodal `omni-moderation-latest` model before it reaches the client. The headline, description and thumbnail image are checked together in one request, and articles flagged as unsafe are dropped. Articles are moderated in parallel, verdicts are cached in Redis for 24 hours so repeat page loads don't call the API again, and if the check fails, the article is hidden.
@@ -75,7 +75,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 ### Quality
 
 **250+ tests in CI**
-176 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 84 frontend tests (React Testing Library) run on every push with GitHub Actions, and the backend pipeline also enforces ESLint and Prettier checks. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
+177 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 84 frontend tests (React Testing Library) run on every push with GitHub Actions, and the backend pipeline also enforces ESLint and Prettier checks. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
 
 ## Features
 
@@ -93,6 +93,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 **Posts & comments**
 - Create posts with images, then upvote and downvote them, with scores updating live for every viewer
 - Uploaded images are moderated in the background, and posts only appear once their image passes
+- Notifications when a post is approved or rejected, delivered on the next visit if the user is offline
 - Feeds sorted by new or top, with infinite scrolling
 - Nested comment threads with voting, replies and on-demand loading of deeper replies
 
@@ -109,7 +110,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 
 | | Tests | What's covered |
 |---|---|---|
-| **Backend** | 176 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, the central error handler and error response format, logout when the token can't be revoked, image moderation jobs queued on post creation and unmoderated posts hidden from post pages and profiles, socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
+| **Backend** | 177 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, the central error handler and error response format, logout when the token can't be revoked, image moderation jobs queued on post creation and unmoderated posts hidden from post pages and profiles, community-created notifications (and subreddit creation still succeeding when the notification can't be saved), socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
 | **Frontend** | 84 | Sign-in, sign-up and password-reset forms, logout failure handling, the Axios token-refresh interceptor, socket reconnection on token change, post and comment voting, nested comment threads, post and comment creation, joining subreddits, Redux state and S3 uploads |
 
 Backend tests use a separate test database and refuse to run if it points at the main database.
