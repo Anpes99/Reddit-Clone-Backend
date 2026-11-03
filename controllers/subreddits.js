@@ -4,11 +4,14 @@ const {
   SubredditModeratorRole,
   SubredditPermissions,
 } = require("../enums/subreddit.enum");
+const { USER_NOTIFICATION_TYPES } = require("../enums/user.enum");
 const { AppError } = require("../errors");
+const logger = require("../utils/logger");
 const {
   Subreddit,
   UserSubreddits,
   SubredditModerators,
+  UserNotifications,
 } = require("../models/index");
 
 const { sequelize } = require("../utils/db");
@@ -125,17 +128,21 @@ subredditsRouter.post(
   validate(postNewSubredditSchema),
   async (req, res) => {
     const { communityName, description, subredditIconUrl } = req.body;
-    let subredditAlreadyExists = false;
+
+    const existingSubreddit = await Subreddit.findOne({
+      where: { name: communityName },
+    });
+
+    if (existingSubreddit) {
+      throw new AppError({
+        status: 409,
+        code: "SUBREDDIT_ALREADY_EXISTS",
+        message: "A subreddit with this name already exists.",
+        details: {},
+      });
+    }
 
     await sequelize.transaction(async (t) => {
-      const existingSubreddit = await Subreddit.findOne({
-        where: { name: communityName },
-      });
-      if (existingSubreddit) {
-        subredditAlreadyExists = true;
-        return;
-      }
-
       const createdSubreddit = await Subreddit.create(
         {
           name: communityName,
@@ -155,16 +162,19 @@ subredditsRouter.post(
       );
     });
 
-    if (subredditAlreadyExists) {
-      throw new AppError({
-        status: 409,
-        code: "SUBREDDIT_ALREADY_EXISTS",
-        message: "A subreddit with this name already exists.",
-        details: {},
+    try {
+      await UserNotifications.create({
+        userId: req.user.id,
+        type: USER_NOTIFICATION_TYPES.COMMUNITY_CREATED,
+        title: "Community created successfully",
+        message:
+          "Your community is ready. You can now customize it, invite members, and start sharing posts.",
       });
+    } catch (err) {
+      logger.error({ err }, "Failed to create community_created notification");
     }
 
-    return res.json("Successfully created new subreddit");
+    return res.status(201).json("Successfully created new subreddit");
   },
 );
 

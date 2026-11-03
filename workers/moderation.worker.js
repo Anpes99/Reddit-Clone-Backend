@@ -1,9 +1,10 @@
 const { Worker } = require("bullmq");
 const { bullConnection } = require("../utils/bullmq");
-const { Post } = require("../models");
+const { Post, UserNotifications } = require("../models");
 const logger = require("../utils/logger");
 const { postModerationStatus } = require("../enums/post.enum");
 const axios = require("axios");
+const { USER_NOTIFICATION_TYPES } = require("../enums/user.enum");
 
 const worker = new Worker(
   "image-moderation",
@@ -66,6 +67,23 @@ const worker = new Worker(
       safe: !flagged,
       moderationStatus: postModerationStatus.COMPLETED,
     });
+
+    if (flagged) {
+      await UserNotifications.create({
+        userId: dbPost.userId,
+        type: USER_NOTIFICATION_TYPES.POST_REJECTED,
+        title: "Your post was rejected",
+        message:
+          "We've detected potentially unsafe or rule-breaking content in your post. It wasn't published. Please review our community guidelines.",
+      });
+    } else {
+      await UserNotifications.create({
+        userId: dbPost.userId,
+        type: USER_NOTIFICATION_TYPES.POST_APPROVED,
+        title: "Your post has been approved",
+        message: "Your post passed our moderation checks and is now published.",
+      });
+    }
 
     return {
       postId,

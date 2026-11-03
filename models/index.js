@@ -10,6 +10,7 @@ const SubredditLeaderboard = require("./SubredditLeaderboard");
 const SubredditLeaderboardSubreddit = require("./SubredditLeaderboardSubreddit");
 const EmailVerificationToken = require("./EmailVerificationToken");
 const PasswordResetToken = require("./PasswordResetToken");
+const UserNotifications = require("./UserNotifications");
 
 User.hasMany(Post);
 User.hasMany(Comment);
@@ -75,6 +76,9 @@ User.hasMany(EmailVerificationToken);
 PasswordResetToken.belongsTo(User);
 User.hasMany(PasswordResetToken);
 
+UserNotifications.belongsTo(User);
+User.hasMany(UserNotifications, { as: "notifications" });
+
 module.exports = {
   User,
   Comment,
@@ -88,4 +92,5 @@ module.exports = {
   UserRatedComments,
   EmailVerificationToken,
   PasswordResetToken,
+  UserNotifications,
 };

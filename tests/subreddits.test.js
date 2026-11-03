@@ -33,6 +33,9 @@ jest.mock("../models/index", () => ({
     findOne: jest.fn(),
     create: jest.fn(),
   },
+  UserNotifications: {
+    create: jest.fn(),
+  },
 }));
 
 jest.mock("../utils/db", () => ({
@@ -56,7 +59,12 @@ jest.mock("../utils/middleware/middleware", () => {
   };
 });
 
-const { Subreddit, UserSubreddits, SubredditModerators } = require("../models");
+const {
+  Subreddit,
+  UserSubreddits,
+  SubredditModerators,
+  UserNotifications,
+} = require("../models");
 const { sequelize } = require("../utils/db");
 const subredditsRouter = require("../controllers/subreddits");
 
@@ -203,7 +211,7 @@ describe("subreddit creation and ownership", () => {
       { Authorization: "Bearer test-token" },
     );
 
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBe(201);
     expect(response.body).toBe("Successfully created new subreddit");
     expect(sequelize.transaction).toHaveBeenCalledTimes(1);
     expect(Subreddit.create).toHaveBeenCalledWith(
@@ -223,6 +231,32 @@ describe("subreddit creation and ownership", () => {
       },
       { transaction: { id: "test-transaction" } },
     );
+    expect(UserNotifications.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 12,
+        type: "community_created",
+      }),
+    );
+  });
+
+  it("still creates the subreddit when the notification fails", async () => {
+    Subreddit.findOne.mockResolvedValue(null);
+    Subreddit.create.mockResolvedValue({ id: 34 });
+    UserNotifications.create.mockRejectedValue(new Error("db down"));
+
+    const response = await request(
+      "POST",
+      "/subreddits",
+      {
+        communityName: "testing",
+        description: "A place for testing",
+      },
+      { Authorization: "Bearer test-token" },
+    );
+
+    expect(response.statusCode).toBe(201);
+    expect(Subreddit.create).toHaveBeenCalled();
+    expect(SubredditModerators.create).toHaveBeenCalled();
   });
 
   it("rejects creation when the community name is already taken", async () => {
@@ -246,6 +280,7 @@ describe("subreddit creation and ownership", () => {
     });
     expect(Subreddit.create).not.toHaveBeenCalled();
     expect(SubredditModerators.create).not.toHaveBeenCalled();
+    expect(UserNotifications.create).not.toHaveBeenCalled();
   });
 });
 

@@ -1,6 +1,6 @@
 const loggedInUserRouter = require("express").Router();
 const { AppError } = require("../errors");
-const { User, Subreddit, Post } = require("../models/index");
+const { User, Subreddit, Post, UserNotifications } = require("../models/index");
 const { validate, requireAuth } = require("../utils/middleware/middleware");
 const {
   updateLoggedInUserSchema,
@@ -25,6 +25,15 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
         },
         required: false,
       },
+      {
+        model: UserNotifications,
+        attributes: ["id", "title", "message", "type"],
+        where: { delivered_at: null },
+        as: "notifications",
+        required: false,
+        limit: 5,
+        order: [["createdAt", "asc"]],
+      },
     ],
   });
 
@@ -47,6 +56,7 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
     })),
     avatarImageUrl: user.avatarImageUrl,
     profilePageBackgroundImageUrl: user.profilePageBackgroundImageUrl,
+    notifications: user.notifications,
   });
 });
 

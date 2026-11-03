@@ -68,6 +68,7 @@ const path = require("path");
 const searchRouter = require("./controllers/search");
 const loggedInUserRouter = require("./controllers/loggedInUser");
 const verifyEmailRouter = require("./controllers/verifyEmail");
+const notificationsRouter = require("./controllers/notifications");
 
 connectToDatabase();
 
@@ -88,6 +89,7 @@ app.use("/api/subreddits", subredditsRouter);
 app.use("/api/utils", utilsRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/verify-email", verifyEmailRouter);
+app.use("/api/notifications", notificationsRouter);
 
 if (runtime.NODE_ENV === "production") {
   app.get("*", (req, res) => {
