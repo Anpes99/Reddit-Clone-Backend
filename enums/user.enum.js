@@ -26,8 +26,6 @@ const USER_NOTIFICATION_TYPES = Object.freeze({
   MODERATION_WARNING: "moderation_warning",
   MODERATION_UPDATE: "moderation_update",
 
-  COMMUNITY_CREATED: "community_created",
-
   SYSTEM: "system",
 });
 
