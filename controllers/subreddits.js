@@ -210,7 +210,7 @@ subredditsRouter.get("/leaderboards/top-subreddits", async (req, res) => {
   previous AS (
     SELECT id, date
     FROM subreddit_leaderboards
-    WHERE date < (SELECT date FROM latest)
+    WHERE date <= (SELECT date FROM latest) - INTERVAL '7 days'
     ORDER BY date DESC
     LIMIT 1
   )

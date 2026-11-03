@@ -324,7 +324,7 @@ const seed = async () => {
       );
     }
 
-    // Today's ranking by member count, and yesterday's with the top two
+    // Today's ranking by member count, and last week's with the top two
     // swapped so the sidebar shows rank changes.
     const ranked = await Subreddit.findAll({
       order: [
@@ -333,10 +333,10 @@ const seed = async () => {
       ],
       transaction,
     });
-    const yesterday = [ranked[1], ranked[0], ...ranked.slice(2)];
+    const lastWeek = [ranked[1], ranked[0], ...ranked.slice(2)];
     await createLeaderboard(
-      moment().subtract(1, "day").format("YYYY-MM-DD"),
-      yesterday,
+      moment().subtract(7, "days").format("YYYY-MM-DD"),
+      lastWeek,
       transaction,
     );
     await createLeaderboard(moment().format("YYYY-MM-DD"), ranked, transaction);

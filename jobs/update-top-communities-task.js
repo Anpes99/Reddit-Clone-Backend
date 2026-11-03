@@ -2,10 +2,11 @@ import cron from "node-cron";
 import { SubredditLeaderboard } from "../models/index.js";
 import moment from "moment";
 import { sequelize } from "../utils/db.js";
+import logger from "../utils/logger.js";
 
 export function startUpdateTopCommunitiesTask() {
   cron.schedule(
-    "0 * * * *", //  "0 9 * * *", once per day
+    "* * * * *", //  "0 9 * * *", once per day
     async () => {
       try {
         const leaderboardDate = moment()
@@ -57,9 +58,9 @@ export function startUpdateTopCommunitiesTask() {
           );
         });
 
-        console.log("startUpdateTopCommunitiesTask completed");
-      } catch (error) {
-        console.error("startUpdateTopCommunitiesTask failed:", error);
+        logger.info("startUpdateTopCommunitiesTask completed");
+      } catch (err) {
+        logger.error({ err }, "startUpdateTopCommunitiesTask failed:");
       }
     },
     {

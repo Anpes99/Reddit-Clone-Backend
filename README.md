@@ -88,7 +88,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 - Create, join, leave and search subreddits
 - Owners and moderators can edit the icon, background image and description
 - Live count of signed-in users viewing each subreddit
-- Top communities leaderboard with daily rank-change indicators
+- Top communities leaderboard with week-over-week rank-change indicators
 
 **Posts & comments**
 - Create posts with images, then upvote and downvote them, with scores updating live for every viewer
