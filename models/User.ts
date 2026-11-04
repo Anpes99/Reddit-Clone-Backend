@@ -4,9 +4,14 @@ import {
   type CreationOptional,
   type InferAttributes,
   type InferCreationAttributes,
+  type NonAttribute,
 } from "sequelize";
 
 import { sequelize } from "../utils/db";
+import type Post from "./Post";
+import type Subreddit from "./Subreddit";
+import type UserNotifications from "./UserNotifications";
+import type UserRatedPosts from "./UserRatedPosts";
 
 class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<number>;
@@ -20,6 +25,14 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare karma: CreationOptional<number>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+
+  // Associations from models/index, only set when included in a query
+  declare subreddits?: NonAttribute<Subreddit[]>;
+  // belongsToMany includes the join row under the through model's name
+  declare ratedPosts?: NonAttribute<
+    (Post & { UserRatedPosts: UserRatedPosts })[]
+  >;
+  declare notifications?: NonAttribute<UserNotifications[]>;
 }
 
 User.init(

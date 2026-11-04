@@ -1,14 +1,17 @@
-const loggedInUserRouter = require("express").Router();
-const { AppError } = require("../errors");
-const { User, Subreddit, Post, UserNotifications } = require("../models/index");
-const { validate, requireAuth } = require("../utils/middleware/middleware");
-const {
+import { Router, type Request } from "express";
+import { AppError } from "../errors";
+import { User, Subreddit, Post, UserNotifications } from "../models/index";
+import { validate, requireAuth } from "../utils/middleware/middleware";
+import {
   updateLoggedInUserSchema,
-} = require("../validators/loggedInUser.validator");
+  type UpdateLoggedInUserBody,
+} from "../validators/loggedInUser.validator";
+
+const loggedInUserRouter = Router();
 
 loggedInUserRouter.get("/", requireAuth, async (request, response) => {
   const user = await User.findOne({
-    where: { username: request.user.username },
+    where: { username: request.user!.username },
     include: [
       {
         model: Subreddit,
@@ -50,7 +53,7 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
     username: user.username,
     id: user.id,
     subreddits: user.subreddits,
-    ratedPosts: user.ratedPosts.map((post) => ({
+    ratedPosts: user.ratedPosts!.map((post) => ({
       id: post.id,
       rating: post.UserRatedPosts.rating,
     })),
@@ -64,10 +67,13 @@ loggedInUserRouter.patch(
   "/",
   validate(updateLoggedInUserSchema),
   requireAuth,
-  async (request, response) => {
+  async (
+    request: Request<Record<string, string>, unknown, UpdateLoggedInUserBody>,
+    response,
+  ) => {
     const { introduction, userAvatarImageUrl, profilePageBackgroundImageUrl } =
       request.body;
-    const userId = request.user.id;
+    const userId = request.user!.id;
 
     const user = await User.findByPk(userId);
     if (!user) {
@@ -89,4 +95,4 @@ loggedInUserRouter.patch(
   },
 );
 
-module.exports = loggedInUserRouter;
+export = loggedInUserRouter;
