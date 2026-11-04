@@ -1,14 +1,16 @@
-const notificationsRouter = require("express").Router();
-const { AppError } = require("../errors");
-const { UserNotifications } = require("../models/index");
-const { requireAuth } = require("../utils/middleware/middleware");
+import { Router } from "express";
+import { AppError } from "../errors";
+import { UserNotifications } from "../models/index";
+import { requireAuth } from "../utils/middleware/middleware";
+
+const notificationsRouter = Router();
 
 notificationsRouter.patch(
   "/:notificationId/confirm-delivery",
   requireAuth,
   async (request, response) => {
     const { notificationId } = request.params;
-    const userId = request.user.id;
+    const userId = request.user!.id;
     const dbNotification = await UserNotifications.findOne({
       where: { id: notificationId },
     });
@@ -37,4 +39,4 @@ notificationsRouter.patch(
   },
 );
 
-module.exports = notificationsRouter;
+export = notificationsRouter;
