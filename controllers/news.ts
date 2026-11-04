@@ -1,11 +1,14 @@
-const newsRouter = require("express").Router();
-const axios = require("axios");
-const { AppError } = require("../errors");
-const { isUnsafeArticle } = require("../utils/imageContentModerationOpenAI");
+import { Router } from "express";
+import axios from "axios";
+import { AppError } from "../errors";
+import { isUnsafeArticle } from "../utils/imageContentModerationOpenAI";
+import type { NewsApiTopHeadlinesResponse } from "../types/news";
+
+const newsRouter = Router();
 
 newsRouter.get("", async (req, res, next) => {
   try {
-    const result = await axios.get(
+    const result = await axios.get<NewsApiTopHeadlinesResponse>(
       `https://newsapi.org/v2/top-headlines?pageSize=12&country=us&apiKey=${process.env.NEWS_API_KEY}`,
     );
 
@@ -49,4 +52,4 @@ newsRouter.get("", async (req, res, next) => {
     );
   }
 });
-module.exports = newsRouter;
+export = newsRouter;

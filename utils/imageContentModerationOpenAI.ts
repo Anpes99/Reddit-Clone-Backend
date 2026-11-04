@@ -1,20 +1,15 @@
 import OpenAI from "openai";
 import type { ModerationMultiModalInput } from "openai/resources/moderations";
 import { redisClient } from "./redis";
+import type { NewsApiArticle } from "../types/news";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-type NewsArticle = {
-  title?: string | null;
-  description?: string | null;
-  content?: string | null;
-  urlToImage?: string | null;
-};
 
 export const isUnsafeArticle = async (
-  article: NewsArticle,
+  article: NewsApiArticle,
 ): Promise<boolean> => {
   const cached = await redisClient.get(
     `moderation:news:imageUrl:${article.urlToImage}`,
