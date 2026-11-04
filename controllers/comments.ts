@@ -1,18 +1,24 @@
-const commentRouter = require("express").Router();
-const { AppError } = require("../errors");
-const { Comment, User } = require("../models/index");
-const { validate, requireAuth } = require("../utils/middleware/middleware");
-const {
-  createCommentRequestLimiter,
-} = require("../utils/middleware/requestRateLimiters");
-const { postNewPostCommentSchema } = require("../validators/comment.validator");
+import { Router, type Request } from "express";
+import { AppError } from "../errors";
+import { Comment, User } from "../models/index";
+import { validate, requireAuth } from "../utils/middleware/middleware";
+import { createCommentRequestLimiter } from "../utils/middleware/requestRateLimiters";
+import {
+  postNewPostCommentSchema,
+  type PostNewPostCommentBody,
+} from "../validators/comment.validator";
+
+const commentRouter = Router();
 
 commentRouter.post(
   "/",
   requireAuth,
   createCommentRequestLimiter,
   validate(postNewPostCommentSchema),
-  async (req, res) => {
+  async (
+    req: Request<Record<string, string>, unknown, PostNewPostCommentBody>,
+    res,
+  ) => {
     const { text, directReplyToPost, subredditId, commentId, postId } =
       req.body;
 
@@ -56,8 +62,7 @@ commentRouter.post(
       text,
       directReplyToPost,
       commentId,
-      subredditId,
-      userId: req.user.id,
+      userId: req.user!.id,
       postId,
     });
 
@@ -80,4 +85,4 @@ commentRouter.get("/moreComments/:id", async (req, res) => {
   return res.json(comments);
 });
 
-module.exports = commentRouter;
+export = commentRouter;

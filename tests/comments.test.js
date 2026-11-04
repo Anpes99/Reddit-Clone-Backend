@@ -135,7 +135,6 @@ test("creates a top-level comment using the authenticated user's ID", async () =
     text: "A new top-level comment",
     directReplyToPost: true,
     commentId: undefined,
-    subredditId: 3,
     userId: 12,
     postId: 17,
   });
@@ -174,7 +173,6 @@ test("creates a reply when its parent comment exists", async () => {
     text: "A reply",
     directReplyToPost: false,
     commentId: 44,
-    subredditId: 3,
     userId: 12,
     postId: 17,
   });

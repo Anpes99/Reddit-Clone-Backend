@@ -7,7 +7,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-
 export const isUnsafeArticle = async (
   article: NewsApiArticle,
 ): Promise<boolean> => {
