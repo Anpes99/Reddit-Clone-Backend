@@ -1,10 +1,21 @@
-class AppError extends Error {
+type AppErrorOptions = {
+  status?: number;
+  code?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+};
+
+export class AppError extends Error {
+  declare status: number;
+  declare code: string;
+  declare details: Record<string, unknown>;
+
   constructor({
     status = 500,
     code = "INTERNAL_SERVER_ERROR",
     message = "Internal server error",
     details = {},
-  } = {}) {
+  }: AppErrorOptions = {}) {
     super(message);
 
     this.name = "AppError";
@@ -15,5 +26,3 @@ class AppError extends Error {
     Error.captureStackTrace?.(this, this.constructor);
   }
 }
-
-module.exports = { AppError };

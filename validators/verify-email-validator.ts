@@ -1,10 +1,18 @@
-const Joi = require("joi");
+import Joi from "joi";
 
-const verifyEmailSchema = Joi.object({
+export type VerifyEmailBody = {
+  token: string;
+};
+
+export const verifyEmailSchema = Joi.object<VerifyEmailBody>({
   token: Joi.string().length(64).hex().required(),
 }).unknown(false);
 
-const resendVerifyEmailEmailSchema = Joi.object({
+export type ResendVerifyEmailBody = {
+  username: string;
+};
+
+export const resendVerifyEmailEmailSchema = Joi.object<ResendVerifyEmailBody>({
   username: Joi.string()
     .trim()
     .min(1)
@@ -15,8 +23,3 @@ const resendVerifyEmailEmailSchema = Joi.object({
     )
     .required(),
 }).unknown(false);
-
-module.exports = {
-  verifyEmailSchema,
-  resendVerifyEmailEmailSchema,
-};
