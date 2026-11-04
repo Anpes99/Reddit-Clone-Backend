@@ -1,4 +1,13 @@
-export const generateEmbedding = async (text, inputType = "document") => {
+type EmbeddingInputType = "document" | "query";
+
+type VoyageEmbeddingResponse = {
+  data: { embedding: number[] }[];
+};
+
+export const generateEmbedding = async (
+  text: string,
+  inputType: EmbeddingInputType = "document",
+): Promise<number[]> => {
   const response = await fetch("https://api.voyageai.com/v1/embeddings", {
     method: "POST",
     headers: {
@@ -13,7 +22,7 @@ export const generateEmbedding = async (text, inputType = "document") => {
     }),
   });
 
-  const data = await response.json();
+  const data = (await response.json()) as VoyageEmbeddingResponse;
 
   return Array.from(data.data[0].embedding);
 };

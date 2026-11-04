@@ -1,8 +1,20 @@
-require("dotenv").config();
+import "dotenv/config";
 
-const nodemailer = require("nodemailer");
-const { EmailVerificationToken, PasswordResetToken } = require("../models");
-const crypto = require("node:crypto");
+import nodemailer from "nodemailer";
+import { EmailVerificationToken, PasswordResetToken } from "../models";
+import crypto from "node:crypto";
+
+type EmailMessage = {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+};
+
+type TokenEmailRecipient = {
+  email: string;
+  userId: number;
+};
 
 const transporter = nodemailer.createTransport({
   host: process.env.BREVO_SMTP_HOST,
@@ -14,7 +26,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendEmail = async ({ to, subject, text, html }) => {
+export const sendEmail = async ({ to, subject, text, html }: EmailMessage) => {
   return transporter.sendMail({
     from: `"Reddit clone app" <${process.env.MAIL_FROM}>`,
     to,
@@ -24,7 +36,11 @@ const sendEmail = async ({ to, subject, text, html }) => {
   });
 };
 
-const getSendVerificationEmailHTML = ({ verificationUrl }) => `
+const getSendVerificationEmailHTML = ({
+  verificationUrl,
+}: {
+  verificationUrl: string;
+}) => `
   <div style="
     margin: 0;
     padding: 40px 20px;
@@ -118,10 +134,13 @@ const getSendVerificationEmailHTML = ({ verificationUrl }) => `
 
 const EMAIL_VERIFY_TOKEN_EXPIRES_AFTER_MS = 30 * 60 * 1000; // 30 minutes
 
-const hashEmailVerificationToken = (token) =>
+export const hashEmailVerificationToken = (token: string) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-const sendVerificationEmail = async ({ email, userId }) => {
+export const sendVerificationEmail = async ({
+  email,
+  userId,
+}: TokenEmailRecipient) => {
   if (!email || !userId) {
     throw new Error("email or userId missing");
   }
@@ -151,7 +170,7 @@ const sendVerificationEmail = async ({ email, userId }) => {
   });
 };
 
-const getSendPasswordResetEmailHTML = ({ resetUrl }) => `
+const getSendPasswordResetEmailHTML = ({ resetUrl }: { resetUrl: string }) => `
   <div style="
     margin: 0;
     padding: 40px 20px;
@@ -242,10 +261,13 @@ const getSendPasswordResetEmailHTML = ({ resetUrl }) => `
 
 const PASSWORD_RESET_TOKEN_EXPIRES_AFTER_MS = 30 * 60 * 1000; // 30 minutes
 
-const hashPasswordResetToken = (token) =>
+export const hashPasswordResetToken = (token: string) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-const sendPasswordResetEmail = async ({ email, userId }) => {
+export const sendPasswordResetEmail = async ({
+  email,
+  userId,
+}: TokenEmailRecipient) => {
   if (!email || !userId) {
     throw new Error("email or userId missing");
   }
@@ -280,12 +302,4 @@ const sendPasswordResetEmail = async ({ email, userId }) => {
     text: `Reset your password by visiting: ${resetUrl}`,
     html: getSendPasswordResetEmailHTML({ resetUrl }),
   });
-};
-
-module.exports = {
-  sendEmail,
-  sendVerificationEmail,
-  hashEmailVerificationToken,
-  hashPasswordResetToken,
-  sendPasswordResetEmail,
 };

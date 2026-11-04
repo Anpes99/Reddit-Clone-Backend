@@ -1,13 +1,19 @@
-const jwt = require("jsonwebtoken");
-const {
-  hasSubredditPermission,
-} = require("../../config/subreddit-moderator-permissions");
-const { SubredditModerators } = require("../../models/index");
-const pinoHttp = require("pino-http");
-const logger = require("../logger");
-const { AppError } = require("../../errors");
+import type { ErrorRequestHandler, RequestHandler } from "express";
+import type { Schema } from "joi";
+import jwt from "jsonwebtoken";
+import { hasSubredditPermission } from "../../config/subreddit-moderator-permissions";
+import { SubredditModerators } from "../../models/index";
+import pinoHttp from "pino-http";
+import logger from "../logger";
+import { AppError } from "../../errors";
+import type { SubredditPermission } from "../../constants/subreddit.constant";
 
-const unknownEndpoint = () => {
+type AuthTokenPayload = {
+  id: number;
+  username: string;
+};
+
+export const unknownEndpoint: RequestHandler = () => {
   throw new AppError({
     status: 404,
     code: "UNKNOWN_ENDPOINT",
@@ -16,7 +22,7 @@ const unknownEndpoint = () => {
   });
 };
 
-const tokenExtractor = (request, response, next) => {
+export const tokenExtractor: RequestHandler = (request, response, next) => {
   const authorization = request.get("authorization");
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     request.token = authorization.substring(7);
@@ -24,20 +30,23 @@ const tokenExtractor = (request, response, next) => {
   next();
 };
 
-const userExtractor = (req, res, next) => {
+export const userExtractor: RequestHandler = (req, res, next) => {
   const authorization = req.get("authorization");
 
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     const token = authorization.substring(7);
 
-    const decodedToken = jwt.verify(token, process.env.SECRET);
+    const decodedToken = jwt.verify(
+      token,
+      process.env.SECRET as string,
+    ) as AuthTokenPayload;
     req.user = { username: decodedToken.username, id: decodedToken.id };
   }
 
   next();
 };
 
-const requireAuth = (req, res, next) => {
+export const requireAuth: RequestHandler = (req, res, next) => {
   if (!req.user) {
     throw new AppError({
       status: 401,
@@ -50,7 +59,12 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-const errorHandler = (error, request, response, next) => {
+export const errorHandler: ErrorRequestHandler = (
+  error,
+  request,
+  response,
+  next,
+) => {
   if (response.headersSent) {
     return next(error);
   }
@@ -93,7 +107,10 @@ const errorHandler = (error, request, response, next) => {
   });
 };
 
-const validate = (schema, property = "body") => {
+export const validate = (
+  schema: Schema,
+  property: "body" | "query" | "params" = "body",
+): RequestHandler => {
   return (req, res, next) => {
     const { error, value } = schema.validate(req[property], {
       abortEarly: true,
@@ -114,7 +131,9 @@ const validate = (schema, property = "body") => {
   };
 };
 
-const requireSubredditPermission = (permission) => {
+export const requireSubredditPermission = (
+  permission: SubredditPermission,
+): RequestHandler<{ subredditId: string }> => {
   return async (req, res, next) => {
     const userId = req.user?.id;
     const subredditId = req.params.subredditId;
@@ -150,7 +169,7 @@ const requireSubredditPermission = (permission) => {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-const csrfProtection = (req, res, next) => {
+export const csrfProtection: RequestHandler = (req, res, next) => {
   if (SAFE_METHODS.has(req.method)) {
     return next();
   }
@@ -171,7 +190,7 @@ const csrfProtection = (req, res, next) => {
   next();
 };
 
-const httpLogger = pinoHttp({
+export const httpLogger = pinoHttp({
   logger,
 
   serializers: {
@@ -198,15 +217,3 @@ const httpLogger = pinoHttp({
     return `${req.method} ${req.url} failed`;
   },
 });
-
-module.exports = {
-  errorHandler,
-  tokenExtractor,
-  userExtractor,
-  unknownEndpoint,
-  validate,
-  requireAuth,
-  requireSubredditPermission,
-  csrfProtection,
-  httpLogger,
-};

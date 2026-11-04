@@ -1,8 +1,6 @@
-const aws = require("aws-sdk");
-const dotenv = require("dotenv");
-const crypto = require("crypto");
-
-dotenv.config();
+import aws from "aws-sdk";
+import crypto from "crypto";
+import "dotenv/config";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MiB
 
@@ -13,13 +11,12 @@ const s3 = new aws.S3({
   signatureVersion: "v4",
 });
 
-const generateUploadURL = async () => {
+export const generateUploadURL = async () => {
   const imageName = crypto.randomBytes(16).toString("hex");
   const key = imageName;
 
   const presigned = await s3.createPresignedPost({
     Bucket: process.env.S3_BUCKET_NAME,
-    Key: key,
     Expires: 60,
     Conditions: [
       ["content-length-range", 1, MAX_FILE_SIZE],
@@ -33,5 +30,3 @@ const generateUploadURL = async () => {
 
   return { ...presigned, key };
 };
-
-module.exports = { generateUploadURL };

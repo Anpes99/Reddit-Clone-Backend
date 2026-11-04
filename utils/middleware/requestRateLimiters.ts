@@ -3,7 +3,7 @@ import { RedisStore } from "rate-limit-redis";
 import { redisClient } from "../redis.js";
 import { AppError } from "../../errors/index.js";
 
-const tooManyRequestsError = (message) =>
+const tooManyRequestsError = (message: string) =>
   new AppError({
     status: 429,
     code: "TOO_MANY_REQUESTS",
@@ -28,7 +28,7 @@ export const loginIpLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: "rl:login:ip:",
   }),
 
@@ -46,7 +46,7 @@ export const signUpLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: "rl:signup:ip:",
   }),
 
@@ -64,7 +64,7 @@ export const signUpPerDayLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: "rl:signup-day:ip:",
   }),
 
@@ -82,9 +82,9 @@ export const createPostRequestLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
   }),
-  keyGenerator: (req) => `create-post:user:${req.user.id}`,
+  keyGenerator: (req) => `create-post:user:${req.user!.id}`,
 
   handler: (req, res, next) => {
     next(
@@ -102,9 +102,9 @@ export const createCommentRequestLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
   }),
-  keyGenerator: (req) => `create-comment:user:${req.user.id}`,
+  keyGenerator: (req) => `create-comment:user:${req.user!.id}`,
 
   handler: (req, res, next) => {
     next(

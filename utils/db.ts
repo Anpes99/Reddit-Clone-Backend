@@ -1,11 +1,11 @@
-const Sequelize = require("sequelize");
-const logger = require("./logger");
-require("dotenv").config();
+import { Sequelize } from "sequelize";
+import logger from "./logger";
+import "dotenv/config";
 
-const sequelize = new Sequelize(
-  process.env.NODE_ENV === "test"
+export const sequelize = new Sequelize(
+  (process.env.NODE_ENV === "test"
     ? process.env.TEST_DATABASE_URI
-    : process.env.DATABASE_URI,
+    : process.env.DATABASE_URI) as string,
   {
     logging: (sql) => logger.debug(sql),
     dialectOptions: {
@@ -25,7 +25,7 @@ const sequelize = new Sequelize(
   },
 );
 
-const connectToDatabase = async () => {
+export const connectToDatabase = async () => {
   try {
     await sequelize.authenticate();
     logger.info("database connected");
@@ -37,5 +37,3 @@ const connectToDatabase = async () => {
 
   return null;
 };
-
-module.exports = { connectToDatabase, sequelize };

@@ -1,18 +1,30 @@
-const OpenAI = require("openai");
-const { redisClient } = require("./redis");
+import OpenAI from "openai";
+import type { ModerationMultiModalInput } from "openai/resources/moderations";
+import { redisClient } from "./redis";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const isUnsafeArticle = async (article) => {
-  const cachedIsUnsafe = JSON.parse(
-    await redisClient.get(`moderation:news:imageUrl:${article.urlToImage}`),
+type NewsArticle = {
+  title?: string | null;
+  description?: string | null;
+  content?: string | null;
+  urlToImage?: string | null;
+};
+
+export const isUnsafeArticle = async (
+  article: NewsArticle,
+): Promise<boolean> => {
+  const cached = await redisClient.get(
+    `moderation:news:imageUrl:${article.urlToImage}`,
   );
+  const cachedIsUnsafe: { isUnsafe: boolean } | null =
+    cached === null ? null : JSON.parse(cached);
   if (cachedIsUnsafe) {
     return cachedIsUnsafe.isUnsafe;
   }
-  const input = [
+  const input: ModerationMultiModalInput[] = [
     {
       type: "text",
       text: [article.title, article.description, article.content]
@@ -36,7 +48,7 @@ const isUnsafeArticle = async (article) => {
       input,
     });
   } catch (e) {
-    if (e.status === 400) {
+    if ((e as { status?: number }).status === 400) {
       await redisClient.set(
         `moderation:news:imageUrl:${article.urlToImage}`,
         JSON.stringify({ isUnsafe: true }),
@@ -46,6 +58,7 @@ const isUnsafeArticle = async (article) => {
       );
       return true;
     }
+    throw e;
   }
   const categories = result.results[0].categories;
 
@@ -66,5 +79,3 @@ const isUnsafeArticle = async (article) => {
 
   return isUnsafe;
 };
-
-module.exports = { isUnsafeArticle };
