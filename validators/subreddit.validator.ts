@@ -8,7 +8,6 @@ import {
   type SubredditOrderByType,
 } from "../constants/subreddit.constant.js";
 
-
 export type GetSubredditsQuery = {
   limit?: number;
   order?: SortOrder;
@@ -60,4 +59,6 @@ export const updateSubredditSchema = Joi.object<UpdateSubredditBody>({
     .uri({ scheme: ["https", "http"] })
     .max(2048)
     .allow(null, ""),
-}).min(1).unknown(false);
+})
+  .min(1)
+  .unknown(false);

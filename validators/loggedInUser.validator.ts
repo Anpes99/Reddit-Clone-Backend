@@ -16,4 +16,6 @@ export const updateLoggedInUserSchema = Joi.object<UpdateLoggedInUserBody>({
     .uri({ scheme: ["https", "http"] })
     .max(2048)
     .allow(null, ""),
-}).min(1).unknown(false);
+})
+  .min(1)
+  .unknown(false);
