@@ -1,7 +1,9 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
-const { QueryTypes } = require("sequelize");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import type { NextFunction, Request, Response } from "express";
+import { QueryTypes } from "sequelize";
 
 jest.mock("../models/index", () => ({
   User: {
@@ -38,8 +40,9 @@ jest.mock("../utils/middleware/middleware", () =>
 );
 
 jest.mock("../utils/middleware/requestRateLimiters", () => ({
-  signUpLimiter: (req, res, next) => next(),
-  signUpPerDayLimiter: (req, res, next) => next(),
+  signUpLimiter: (req: Request, res: Response, next: NextFunction) => next(),
+  signUpPerDayLimiter: (req: Request, res: Response, next: NextFunction) =>
+    next(),
 }));
 
 jest.mock("../constants/user.constant", () => ({
@@ -71,23 +74,32 @@ jest.mock("../utils/email", () => ({
   hashPasswordResetToken: jest.fn(),
 }));
 
-const { User, Post, Comment, UserSubreddits } = require("../models/index");
-const { sequelize } = require("../utils/db");
-const usersRouter = require("../controllers/users");
+import { User, Post, Comment, UserSubreddits } from "../models/index";
+import { sequelize } from "../utils/db";
+import usersRouter from "../controllers/users";
+import { errorHandler } from "../utils/middleware/middleware";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const app = express();
 app.use(express.json());
 app.use("/users", usersRouter);
-app.use(require("../utils/middleware/middleware").errorHandler);
+app.use(errorHandler);
 
-let server;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const getJson = (path) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+
+const getJson = (path: string) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const request = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method: "GET",
         headers: { Connection: "close" },
@@ -95,7 +107,7 @@ const getJson = (path) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -112,13 +124,13 @@ const getJson = (path) =>
   });
 
 beforeAll(async () => {
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
@@ -130,7 +142,7 @@ beforeEach(() => {
 describe("GET /users/:username profile", () => {
   it("returns profile details and contribution counts", async () => {
     const createdAt = "2024-01-02T03:04:05.000Z";
-    User.findOne.mockResolvedValue({
+    asMock(User.findOne).mockResolvedValue({
       id: 12,
       username: "test-user",
       introduction: "Hello",
@@ -139,8 +151,8 @@ describe("GET /users/:username profile", () => {
       createdAt,
       karma: 42,
     });
-    UserSubreddits.count.mockResolvedValue(3);
-    sequelize.query.mockResolvedValue([{ totalcount: "9" }]);
+    asMock(UserSubreddits.count).mockResolvedValue(3);
+    asMock(sequelize.query).mockResolvedValue([{ totalcount: "9" }]);
 
     const response = await getJson("/users/test-user");
 
@@ -168,7 +180,7 @@ describe("GET /users/:username profile", () => {
   });
 
   it("returns 404 for an unknown profile", async () => {
-    User.findOne.mockResolvedValue(null);
+    asMock(User.findOne).mockResolvedValue(null);
 
     const response = await getJson("/users/missing-user");
 
@@ -185,13 +197,13 @@ describe("GET /users/:username profile", () => {
 
 describe("GET /users/:username/feed", () => {
   beforeEach(() => {
-    User.findOne.mockResolvedValue({ id: 12, username: "test-user" });
+    asMock(User.findOne).mockResolvedValue({ id: 12, username: "test-user" });
   });
 
   it("returns the user's newest posts with pagination and optional total count", async () => {
     const posts = [{ id: 21, title: "A post" }];
-    Post.findAll.mockResolvedValue(posts);
-    Post.count.mockResolvedValue(7);
+    asMock(Post.findAll).mockResolvedValue(posts);
+    asMock(Post.count).mockResolvedValue(7);
 
     const response = await getJson(
       "/users/test-user/feed?contentType=posts&offset=5&sortByType=new&getTotalCount=true",
@@ -225,7 +237,7 @@ describe("GET /users/:username/feed", () => {
   });
 
   it("orders top posts by score then creation date and omits unrequested count", async () => {
-    Post.findAll.mockResolvedValue([]);
+    asMock(Post.findAll).mockResolvedValue([]);
 
     const response = await getJson(
       "/users/test-user/feed?contentType=posts&sortByType=top",
@@ -267,7 +279,7 @@ describe("GET /users/:username/feed", () => {
       },
       comment: null,
     };
-    Comment.findAll.mockResolvedValue([comment]);
+    asMock(Comment.findAll).mockResolvedValue([comment]);
 
     const response = await getJson(
       "/users/test-user/feed?contentType=comments&offset=10&sortByType=top",
@@ -317,7 +329,7 @@ describe("GET /users/:username/feed", () => {
         createdAt: "2026-01-01T00:00:00.000Z",
       },
     ];
-    sequelize.query
+    asMock(sequelize.query)
       .mockResolvedValueOnce(overviewRows)
       .mockResolvedValueOnce([{ totalcount: "11" }]);
 
@@ -356,7 +368,7 @@ describe("GET /users/:username/feed", () => {
   });
 
   it("returns 404 when the feed user does not exist", async () => {
-    User.findOne.mockResolvedValue(null);
+    asMock(User.findOne).mockResolvedValue(null);
 
     const response = await getJson(
       "/users/missing-user/feed?contentType=posts",

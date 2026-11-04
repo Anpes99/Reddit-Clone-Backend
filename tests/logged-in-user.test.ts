@@ -1,7 +1,8 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
-const jwt = require("jsonwebtoken");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import jwt from "jsonwebtoken";
 
 jest.mock("../models/index", () => ({
   User: {
@@ -13,13 +14,15 @@ jest.mock("../models/index", () => ({
   SubredditModerators: {},
 }));
 
-const { User } = require("../models/index");
-const {
+import { User } from "../models/index";
+import {
   errorHandler,
   tokenExtractor,
   userExtractor,
-} = require("../utils/middleware/middleware");
-const loggedInUserRouter = require("../controllers/loggedInUser");
+} from "../utils/middleware/middleware";
+import loggedInUserRouter from "../controllers/loggedInUser";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const TEST_SECRET = "logged-in-user-test-secret";
 
@@ -30,16 +33,27 @@ app.use(userExtractor);
 app.use(loggedInUserRouter);
 app.use(errorHandler);
 
-let server;
-let originalSecret;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const request = (method, path, payload, headers = {}) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+let originalSecret: string | undefined;
+
+const request = (
+  method: string,
+  path: string,
+  payload?: unknown,
+  headers: Record<string, string> = {},
+) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = payload === undefined ? "" : JSON.stringify(payload);
     const httpRequest = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method,
         headers: {
@@ -56,7 +70,7 @@ const request = (method, path, payload, headers = {}) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -79,14 +93,14 @@ const authHeader = (user = { username: "test-user", id: 12 }) => ({
 beforeAll(async () => {
   originalSecret = process.env.SECRET;
   process.env.SECRET = TEST_SECRET;
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
   process.env.SECRET = originalSecret;
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
@@ -97,7 +111,7 @@ beforeEach(() => {
 
 describe("GET /api/loggedInUser", () => {
   it("returns the authenticated user's own data and ignores a username query", async () => {
-    User.findOne.mockResolvedValue({
+    asMock(User.findOne).mockResolvedValue({
       username: "test-user",
       id: 12,
       subreddits: [{ id: 3, name: "cats" }],
@@ -128,7 +142,7 @@ describe("GET /api/loggedInUser", () => {
   });
 
   it("returns 404 when the authenticated user no longer exists", async () => {
-    User.findOne.mockResolvedValue(null);
+    asMock(User.findOne).mockResolvedValue(null);
 
     const response = await request("GET", "/", undefined, authHeader());
 
@@ -165,8 +179,8 @@ describe("GET /api/loggedInUser", () => {
 
 describe("PATCH /api/loggedInUser", () => {
   it("updates only the authenticated user's own account", async () => {
-    const user = { update: jest.fn().mockResolvedValue() };
-    User.findByPk.mockResolvedValue(user);
+    const user = { update: jest.fn().mockResolvedValue(undefined) };
+    asMock(User.findByPk).mockResolvedValue(user);
 
     const response = await request(
       "PATCH",
@@ -204,7 +218,7 @@ describe("PATCH /api/loggedInUser", () => {
   });
 
   it("returns 404 when the authenticated user no longer exists", async () => {
-    User.findByPk.mockResolvedValue(null);
+    asMock(User.findByPk).mockResolvedValue(null);
 
     const response = await request(
       "PATCH",

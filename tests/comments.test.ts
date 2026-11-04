@@ -1,6 +1,8 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import type { NextFunction, Request, Response } from "express";
 
 jest.mock("../models/index", () => ({
   Comment: {
@@ -19,35 +21,48 @@ jest.mock("../utils/middleware/middleware", () => {
   const actual = jest.requireActual("../utils/middleware/middleware");
   return {
     ...actual,
-    requireAuth: (req, res, next) => {
-      req.user = { id: 12 };
+    requireAuth: (req: Request, res: Response, next: NextFunction) => {
+      req.user = { id: 12, username: "test-user" };
       next();
     },
   };
 });
 
 jest.mock("../utils/middleware/requestRateLimiters", () => ({
-  createCommentRequestLimiter: (req, res, next) => next(),
+  createCommentRequestLimiter: (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => next(),
 }));
 
-const { Comment } = require("../models/index");
-const { User } = require("../models/index");
-const commentRouter = require("../controllers/comments");
+import { Comment } from "../models/index";
+import { User } from "../models/index";
+import commentRouter from "../controllers/comments";
+import { errorHandler } from "../utils/middleware/middleware";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const app = express();
 app.use(express.json());
 app.use(commentRouter);
-app.use(require("../utils/middleware/middleware").errorHandler);
+app.use(errorHandler);
 
-let server;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const request = (method, path, payload) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+
+const request = (method: string, path: string, payload?: unknown) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = payload === undefined ? "" : JSON.stringify(payload);
     const httpRequest = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method,
         headers: {
@@ -63,7 +78,7 @@ const request = (method, path, payload) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -79,16 +94,16 @@ const request = (method, path, payload) =>
     httpRequest.end(body);
   });
 
-const postComment = (payload) => request("POST", "/", payload);
+const postComment = (payload: unknown) => request("POST", "/", payload);
 
 beforeAll(async () => {
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
@@ -98,7 +113,7 @@ beforeEach(() => {
 });
 
 test("returns 404 and does not create a reply when the parent comment ID is invalid", async () => {
-  Comment.findByPk.mockResolvedValue(null);
+  asMock(Comment.findByPk).mockResolvedValue(null);
 
   const response = await postComment({
     text: "A reply to a missing parent",
@@ -119,7 +134,7 @@ test("returns 404 and does not create a reply when the parent comment ID is inva
 });
 
 test("creates a top-level comment using the authenticated user's ID", async () => {
-  Comment.create.mockResolvedValue({ id: 21 });
+  asMock(Comment.create).mockResolvedValue({ id: 21 });
 
   const response = await postComment({
     text: "A new top-level comment",
@@ -155,8 +170,8 @@ test("rejects a client-supplied user ID", async () => {
 });
 
 test("creates a reply when its parent comment exists", async () => {
-  Comment.findByPk.mockResolvedValue({ id: 44, postId: 17 });
-  Comment.create.mockResolvedValue({ id: 45 });
+  asMock(Comment.findByPk).mockResolvedValue({ id: 44, postId: 17 });
+  asMock(Comment.create).mockResolvedValue({ id: 45 });
 
   const response = await postComment({
     text: "A reply",
@@ -179,7 +194,7 @@ test("creates a reply when its parent comment exists", async () => {
 });
 
 test("rejects a reply whose parent comment belongs to a different post", async () => {
-  Comment.findByPk.mockResolvedValue({ id: 44, postId: 18 });
+  asMock(Comment.findByPk).mockResolvedValue({ id: 44, postId: 18 });
 
   const response = await postComment({
     text: "A reply on the wrong post",
@@ -199,7 +214,7 @@ test("rejects a reply whose parent comment belongs to a different post", async (
 });
 
 test("returns a single 500 response when comment creation fails", async () => {
-  Comment.create.mockRejectedValue(new Error("database unavailable"));
+  asMock(Comment.create).mockRejectedValue(new Error("database unavailable"));
 
   const response = await postComment({
     text: "A comment that fails to save",
@@ -221,7 +236,7 @@ test("retrieves replies for a parent comment with author details", async () => {
     { id: 51, text: "First reply" },
     { id: 52, text: "Second reply" },
   ];
-  Comment.findAll.mockResolvedValue(replies);
+  asMock(Comment.findAll).mockResolvedValue(replies);
 
   const response = await request("GET", "/moreComments/44");
 

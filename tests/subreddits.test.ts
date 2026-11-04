@@ -1,6 +1,8 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import type { NextFunction, Request, Response } from "express";
 
 jest.mock("../constants/subreddit.constant.js", () => ({
   SUBREDDIT_ORDER_BY_TYPES: {
@@ -48,40 +50,54 @@ jest.mock("../utils/middleware/middleware", () => {
   const actual = jest.requireActual("../utils/middleware/middleware");
   return {
     ...actual,
-    requireAuth: (req, res, next) => {
+    requireAuth: (req: Request, res: Response, next: NextFunction) => {
       if (!req.get("authorization")) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      req.user = { id: 12 };
+      req.user = { id: 12, username: "test-user" };
       next();
     },
   };
 });
 
-const {
+import {
   Subreddit,
   UserSubreddits,
   SubredditModerators,
   UserNotifications,
-} = require("../models");
-const { sequelize } = require("../utils/db");
-const subredditsRouter = require("../controllers/subreddits");
+} from "../models";
+import { sequelize } from "../utils/db";
+import subredditsRouter from "../controllers/subreddits";
+import { errorHandler } from "../utils/middleware/middleware";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const app = express();
 app.use(express.json());
 app.use("/subreddits", subredditsRouter);
-app.use(require("../utils/middleware/middleware").errorHandler);
+app.use(errorHandler);
 
-let server;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const request = (method, path, payload, headers = {}) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+
+const request = (
+  method: string,
+  path: string,
+  payload?: unknown,
+  headers: Record<string, string> = {},
+) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = payload === undefined ? "" : JSON.stringify(payload);
     const httpRequest = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method,
         headers: {
@@ -98,7 +114,7 @@ const request = (method, path, payload, headers = {}) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -115,13 +131,13 @@ const request = (method, path, payload, headers = {}) =>
   });
 
 beforeAll(async () => {
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
@@ -158,7 +174,7 @@ describe("subreddit membership", () => {
   it("returns 409 when the user has already joined the subreddit", async () => {
     const duplicateMembership = new Error("Validation error");
     duplicateMembership.name = "SequelizeUniqueConstraintError";
-    UserSubreddits.create.mockRejectedValue(duplicateMembership);
+    asMock(UserSubreddits.create).mockRejectedValue(duplicateMembership);
 
     const response = await request("POST", "/subreddits/34/user", undefined, {
       Authorization: "Bearer test-token",
@@ -173,7 +189,7 @@ describe("subreddit membership", () => {
   });
 
   it("returns 204 when leaving a subreddit the user never joined", async () => {
-    UserSubreddits.destroy.mockResolvedValue(0);
+    asMock(UserSubreddits.destroy).mockResolvedValue(0);
 
     const response = await request("DELETE", "/subreddits/34/user", undefined, {
       Authorization: "Bearer test-token",
@@ -197,8 +213,8 @@ describe("subreddit membership", () => {
 describe("subreddit creation and ownership", () => {
   it("creates a subreddit and assigns its creator as owner transactionally", async () => {
     const createdSubreddit = { id: 34 };
-    Subreddit.findOne.mockResolvedValue(null);
-    Subreddit.create.mockResolvedValue(createdSubreddit);
+    asMock(Subreddit.findOne).mockResolvedValue(null);
+    asMock(Subreddit.create).mockResolvedValue(createdSubreddit);
 
     const response = await request(
       "POST",
@@ -240,9 +256,9 @@ describe("subreddit creation and ownership", () => {
   });
 
   it("still creates the subreddit when the notification fails", async () => {
-    Subreddit.findOne.mockResolvedValue(null);
-    Subreddit.create.mockResolvedValue({ id: 34 });
-    UserNotifications.create.mockRejectedValue(new Error("db down"));
+    asMock(Subreddit.findOne).mockResolvedValue(null);
+    asMock(Subreddit.create).mockResolvedValue({ id: 34 });
+    asMock(UserNotifications.create).mockRejectedValue(new Error("db down"));
 
     const response = await request(
       "POST",
@@ -260,7 +276,7 @@ describe("subreddit creation and ownership", () => {
   });
 
   it("rejects creation when the community name is already taken", async () => {
-    Subreddit.findOne.mockResolvedValue({ id: 99 });
+    asMock(Subreddit.findOne).mockResolvedValue({ id: 99 });
 
     const response = await request(
       "POST",
@@ -291,8 +307,10 @@ describe("moderated subreddit settings", () => {
         Object.assign(subreddit, values);
       }),
     };
-    SubredditModerators.findOne.mockResolvedValue({ role: "moderator" });
-    Subreddit.findByPk.mockResolvedValue(subreddit);
+    asMock(SubredditModerators.findOne).mockResolvedValue({
+      role: "moderator",
+    });
+    asMock(Subreddit.findByPk).mockResolvedValue(subreddit);
 
     const response = await request(
       "PATCH",
@@ -322,7 +340,9 @@ describe("moderated subreddit settings", () => {
     ["limited moderator", "moderator_limited"],
     ["non-moderator", null],
   ])("denies settings changes to a %s", async (_label, role) => {
-    SubredditModerators.findOne.mockResolvedValue(role ? { role } : null);
+    asMock(SubredditModerators.findOne).mockResolvedValue(
+      role ? { role } : null,
+    );
 
     const response = await request(
       "PATCH",

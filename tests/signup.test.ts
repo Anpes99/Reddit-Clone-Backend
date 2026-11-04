@@ -1,6 +1,8 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import type { NextFunction, Request, Response } from "express";
 
 jest.mock("bcrypt", () => ({
   hash: jest.fn(),
@@ -32,8 +34,9 @@ jest.mock("../utils/middleware/middleware", () =>
 );
 
 jest.mock("../utils/middleware/requestRateLimiters", () => ({
-  signUpLimiter: (req, res, next) => next(),
-  signUpPerDayLimiter: (req, res, next) => next(),
+  signUpLimiter: (req: Request, res: Response, next: NextFunction) => next(),
+  signUpPerDayLimiter: (req: Request, res: Response, next: NextFunction) =>
+    next(),
 }));
 
 jest.mock("../constants/user.constant", () => ({
@@ -54,25 +57,34 @@ jest.mock("../utils/email", () => ({
   sendPasswordResetEmail: jest.fn(),
 }));
 
-const bcrypt = require("bcrypt");
-const { User } = require("../models/index");
-const { sendVerificationEmail } = require("../utils/email");
-const userRouter = require("../controllers/users");
+import bcrypt from "bcrypt";
+import { User } from "../models/index";
+import { sendVerificationEmail } from "../utils/email";
+import userRouter from "../controllers/users";
+import { errorHandler } from "../utils/middleware/middleware";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const app = express();
 app.use(express.json());
 app.use("/users", userRouter);
-app.use(require("../utils/middleware/middleware").errorHandler);
+app.use(errorHandler);
 
-let server;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const postJson = (path, payload) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+
+const postJson = (path: string, payload: unknown) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = JSON.stringify(payload);
     const request = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method: "POST",
         headers: {
@@ -84,7 +96,7 @@ const postJson = (path, payload) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -101,27 +113,27 @@ const postJson = (path, payload) =>
   });
 
 beforeAll(async () => {
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
-  bcrypt.hash.mockResolvedValue("hashed-password");
-  sendVerificationEmail.mockResolvedValue(undefined);
+  asMock(bcrypt.hash).mockResolvedValue("hashed-password");
+  asMock(sendVerificationEmail).mockResolvedValue(undefined);
 });
 
 describe("POST /users signup", () => {
   it("creates a user with a hashed password and sends verification email", async () => {
-    User.findOne.mockResolvedValue(null);
-    User.create.mockResolvedValue({ id: 12 });
+    asMock(User.findOne).mockResolvedValue(null);
+    asMock(User.create).mockResolvedValue({ id: 12 });
 
     const response = await postJson("/users", {
       username: "test-user",
@@ -146,7 +158,7 @@ describe("POST /users signup", () => {
   });
 
   it("rejects an already registered username", async () => {
-    User.findOne.mockResolvedValue({ id: 12 });
+    asMock(User.findOne).mockResolvedValue({ id: 12 });
 
     const response = await postJson("/users", {
       username: "test-user",

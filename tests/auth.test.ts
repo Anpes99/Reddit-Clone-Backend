@@ -1,8 +1,10 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const jwt = require("jsonwebtoken");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import type { NextFunction, Request, Response } from "express";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
 
 jest.mock("bcrypt", () => ({
   compare: jest.fn(),
@@ -24,7 +26,7 @@ jest.mock("../utils/middleware/middleware", () =>
 );
 
 jest.mock("../utils/middleware/requestRateLimiters", () => ({
-  loginIpLimiter: (req, res, next) => next(),
+  loginIpLimiter: (req: Request, res: Response, next: NextFunction) => next(),
 }));
 
 jest.mock("../utils/redis", () => ({
@@ -41,25 +43,35 @@ jest.mock("../utils/email", () => ({
   sendVerificationEmail: jest.fn(),
 }));
 
-const bcrypt = require("bcrypt");
-const { User, EmailVerificationToken } = require("../models/index");
-const { redisClient } = require("../utils/redis");
-const { sendVerificationEmail } = require("../utils/email");
-const authRouter = require("../controllers/auth");
-const logger = require("../utils/logger");
+import bcrypt from "bcrypt";
+import { User, EmailVerificationToken } from "../models/index";
+import { redisClient } from "../utils/redis";
+import { sendVerificationEmail } from "../utils/email";
+import authRouter from "../controllers/auth";
+import logger from "../utils/logger";
+import { errorHandler } from "../utils/middleware/middleware";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(authRouter);
-app.use(require("../utils/middleware/middleware").errorHandler);
+app.use(errorHandler);
 
-let server;
+type TestResponse = {
+  statusCode?: number;
+  headers: http.IncomingHttpHeaders;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const postRequest = (path, payload = {}, cookie) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+
+const postRequest = (path: string, payload: unknown = {}, cookie?: string) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = JSON.stringify(payload);
-    const headers = {
+    const headers: http.OutgoingHttpHeaders = {
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(body),
       Connection: "close",
@@ -70,7 +82,7 @@ const postRequest = (path, payload = {}, cookie) =>
     const request = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method: "POST",
         headers,
@@ -78,7 +90,7 @@ const postRequest = (path, payload = {}, cookie) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -95,7 +107,7 @@ const postRequest = (path, payload = {}, cookie) =>
     request.end(body);
   });
 
-const postLogin = (payload) => postRequest("/login", payload);
+const postLogin = (payload: unknown) => postRequest("/login", payload);
 
 const createUser = () => ({
   id: 12,
@@ -108,7 +120,7 @@ const createUser = () => ({
   avatarImageUrl: "https://example.com/avatar.png",
 });
 
-const createRefreshToken = (refreshTokenId, userId = 12) => {
+const createRefreshToken = (refreshTokenId: string, userId = 12) => {
   const absoluteExpiresAt = Date.now() + 5 * 24 * 60 * 60 * 1000;
   return jwt.sign(
     {
@@ -118,7 +130,7 @@ const createRefreshToken = (refreshTokenId, userId = 12) => {
       refreshTokenId,
       absoluteExpiresAt,
     },
-    process.env.REFRESH_SECRET,
+    process.env.REFRESH_SECRET!,
     { expiresIn: 60 * 60 },
   );
 };
@@ -126,30 +138,30 @@ const createRefreshToken = (refreshTokenId, userId = 12) => {
 beforeAll(async () => {
   process.env.SECRET = "test-access-secret";
   process.env.REFRESH_SECRET = "test-refresh-secret";
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
-  redisClient.get.mockResolvedValue(null);
-  redisClient.del.mockResolvedValue(1);
-  redisClient.incr.mockResolvedValue(1);
-  redisClient.expire.mockResolvedValue(1);
-  redisClient.set.mockResolvedValue("OK");
+  asMock(redisClient.get).mockResolvedValue(null);
+  asMock(redisClient.del).mockResolvedValue(1);
+  asMock(redisClient.incr).mockResolvedValue(1);
+  asMock(redisClient.expire).mockResolvedValue(1);
+  asMock(redisClient.set).mockResolvedValue("OK");
 });
 
 describe("POST /login", () => {
   it("returns tokens and user data for valid credentials", async () => {
-    User.findOne.mockResolvedValue(createUser());
-    bcrypt.compare.mockResolvedValue(true);
+    asMock(User.findOne).mockResolvedValue(createUser());
+    asMock(bcrypt.compare).mockResolvedValue(true);
 
     const response = await postLogin({
       username: "test-user",
@@ -174,8 +186,11 @@ describe("POST /login", () => {
   });
 
   it("resends verification email and denies login for an unverified user", async () => {
-    User.findOne.mockResolvedValue({ ...createUser(), emailVerified: false });
-    bcrypt.compare.mockResolvedValue(true);
+    asMock(User.findOne).mockResolvedValue({
+      ...createUser(),
+      emailVerified: false,
+    });
+    asMock(bcrypt.compare).mockResolvedValue(true);
 
     const response = await postLogin({
       username: "test-user",
@@ -200,8 +215,8 @@ describe("POST /login", () => {
   });
 
   it("rejects an incorrect password", async () => {
-    User.findOne.mockResolvedValue(createUser());
-    bcrypt.compare.mockResolvedValue(false);
+    asMock(User.findOne).mockResolvedValue(createUser());
+    asMock(bcrypt.compare).mockResolvedValue(false);
 
     const response = await postLogin({
       username: "test-user",
@@ -220,7 +235,7 @@ describe("POST /login", () => {
   });
 
   it("rejects an unknown username without comparing a password", async () => {
-    User.findOne.mockResolvedValue(null);
+    asMock(User.findOne).mockResolvedValue(null);
 
     const response = await postLogin({
       username: "unknown-user",
@@ -243,8 +258,10 @@ describe("POST /refresh and POST /logout", () => {
   it("rotates a valid refresh token and rejects the old token afterward", async () => {
     const oldRefreshTokenId = "old-refresh-token-id";
     const oldRefreshToken = createRefreshToken(oldRefreshTokenId);
-    User.findByPk.mockResolvedValue(createUser());
-    redisClient.get.mockResolvedValueOnce("12").mockResolvedValueOnce(null);
+    asMock(User.findByPk).mockResolvedValue(createUser());
+    asMock(redisClient.get)
+      .mockResolvedValueOnce("12")
+      .mockResolvedValueOnce(null);
 
     const response = await postRequest(
       "/refresh",
@@ -258,23 +275,23 @@ describe("POST /refresh and POST /logout", () => {
       `refresh:${oldRefreshTokenId}`,
     );
 
-    const [newRedisKey, storedUserId, redisOptions] =
-      redisClient.set.mock.calls[0];
+    const [newRedisKey, storedUserId, redisOptions] = asMock(redisClient.set)
+      .mock.calls[0];
     expect(newRedisKey).toMatch(/^refresh:/);
     expect(newRedisKey).not.toBe(`refresh:${oldRefreshTokenId}`);
     expect(storedUserId).toBe(12);
     expect(redisOptions).toEqual({ EX: 24 * 60 * 60 });
 
-    const refreshCookie = response.headers["set-cookie"].find((cookie) =>
+    const refreshCookie = response.headers["set-cookie"]!.find((cookie) =>
       cookie.startsWith("refreshToken="),
     );
     const newRefreshToken = decodeURIComponent(
-      refreshCookie.split(";")[0].slice("refreshToken=".length),
+      refreshCookie!.split(";")[0].slice("refreshToken=".length),
     );
     const newDecodedToken = jwt.verify(
       newRefreshToken,
-      process.env.REFRESH_SECRET,
-    );
+      process.env.REFRESH_SECRET!,
+    ) as jwt.JwtPayload;
     expect(newDecodedToken.refreshTokenId).not.toBe(oldRefreshTokenId);
 
     const replayResponse = await postRequest(
@@ -301,7 +318,7 @@ describe("POST /refresh and POST /logout", () => {
       expect.arrayContaining([expect.stringContaining("refreshToken=;")]),
     );
 
-    redisClient.get.mockResolvedValue(null);
+    asMock(redisClient.get).mockResolvedValue(null);
     const replayResponse = await postRequest(
       "/refresh",
       {},
@@ -312,7 +329,7 @@ describe("POST /refresh and POST /logout", () => {
 });
 
 describe("POST /logout without a revocable token", () => {
-  const expectCookieCleared = (response) => {
+  const expectCookieCleared = (response: TestResponse) => {
     expect(response.headers["set-cookie"]).toEqual(
       expect.arrayContaining([expect.stringContaining("refreshToken=;")]),
     );
@@ -343,7 +360,9 @@ describe("POST /logout without a revocable token", () => {
       .spyOn(logger, "error")
       .mockImplementation(() => {});
     const refreshTokenId = "redis-down-refresh-token-id";
-    redisClient.del.mockRejectedValueOnce(new Error("Redis unavailable"));
+    asMock(redisClient.del).mockRejectedValueOnce(
+      new Error("Redis unavailable"),
+    );
 
     const response = await postRequest(
       "/logout",

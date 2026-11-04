@@ -1,6 +1,8 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import type { NextFunction, Request, Response } from "express";
 
 jest.mock("bcrypt", () => ({
   hash: jest.fn(),
@@ -33,8 +35,9 @@ jest.mock("../utils/middleware/middleware", () =>
 );
 
 jest.mock("../utils/middleware/requestRateLimiters", () => ({
-  signUpLimiter: (req, res, next) => next(),
-  signUpPerDayLimiter: (req, res, next) => next(),
+  signUpLimiter: (req: Request, res: Response, next: NextFunction) => next(),
+  signUpPerDayLimiter: (req: Request, res: Response, next: NextFunction) =>
+    next(),
 }));
 
 jest.mock("../constants/user.constant", () => ({
@@ -57,28 +60,34 @@ jest.mock("../utils/email", () => ({
   hashPasswordResetToken: jest.fn((token) => `hashed-password-${token}`),
 }));
 
-const bcrypt = require("bcrypt");
-const { User, PasswordResetToken } = require("../models/index");
-const {
-  sendPasswordResetEmail,
-  hashPasswordResetToken,
-} = require("../utils/email");
-const userRouter = require("../controllers/users");
+import bcrypt from "bcrypt";
+import { User, PasswordResetToken } from "../models/index";
+import { sendPasswordResetEmail, hashPasswordResetToken } from "../utils/email";
+import userRouter from "../controllers/users";
+import { errorHandler } from "../utils/middleware/middleware";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const app = express();
 app.use(express.json());
 app.use("/", userRouter);
-app.use(require("../utils/middleware/middleware").errorHandler);
+app.use(errorHandler);
 
-let server;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const postJson = (path, payload) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+
+const postJson = (path: string, payload: unknown) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = JSON.stringify(payload);
     const request = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method: "POST",
         headers: {
@@ -90,7 +99,7 @@ const postJson = (path, payload) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -107,26 +116,26 @@ const postJson = (path, payload) =>
   });
 
 beforeAll(async () => {
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
-  bcrypt.hash.mockResolvedValue("hashed-password");
-  sendPasswordResetEmail.mockResolvedValue(undefined);
+  asMock(bcrypt.hash).mockResolvedValue("hashed-password");
+  asMock(sendPasswordResetEmail).mockResolvedValue(undefined);
 });
 
 describe("POST /forgotten-password", () => {
   it("sends a reset email to the matching account", async () => {
-    User.findOne.mockResolvedValue({
+    asMock(User.findOne).mockResolvedValue({
       id: 12,
       email: "test@example.com",
     });
@@ -146,7 +155,7 @@ describe("POST /forgotten-password", () => {
   });
 
   it("returns not found when no account has the email", async () => {
-    User.findOne.mockResolvedValue(null);
+    asMock(User.findOne).mockResolvedValue(null);
 
     const response = await postJson("/forgotten-password", {
       email: "missing@example.com",
@@ -170,8 +179,8 @@ describe("POST /reset-password", () => {
       destroy: jest.fn().mockResolvedValue(undefined),
     };
     const user = { update: jest.fn().mockResolvedValue(undefined) };
-    PasswordResetToken.findOne.mockResolvedValue(resetToken);
-    User.findOne.mockResolvedValue(user);
+    asMock(PasswordResetToken.findOne).mockResolvedValue(resetToken);
+    asMock(User.findOne).mockResolvedValue(user);
 
     const response = await postJson("/reset-password", {
       password: "new-secure-password",
@@ -192,7 +201,7 @@ describe("POST /reset-password", () => {
   });
 
   it("rejects an unknown reset token", async () => {
-    PasswordResetToken.findOne.mockResolvedValue(null);
+    asMock(PasswordResetToken.findOne).mockResolvedValue(null);
 
     const response = await postJson("/reset-password", {
       password: "new-secure-password",
@@ -214,7 +223,7 @@ describe("POST /reset-password", () => {
       expiresAt: new Date(Date.now() - 60_000),
       destroy: jest.fn().mockResolvedValue(undefined),
     };
-    PasswordResetToken.findOne.mockResolvedValue(resetToken);
+    asMock(PasswordResetToken.findOne).mockResolvedValue(resetToken);
 
     const response = await postJson("/reset-password", {
       password: "new-secure-password",

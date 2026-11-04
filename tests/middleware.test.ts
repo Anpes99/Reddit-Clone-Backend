@@ -1,4 +1,4 @@
-const Joi = require("joi");
+import Joi from "joi";
 
 jest.mock("../constants/subreddit.constant.js", () => ({
   SUBREDDIT_MODERATOR_ROLE: {
@@ -18,8 +18,9 @@ jest.mock("../models/index", () => ({
   SubredditModerators: { findOne: jest.fn() },
 }));
 
-const jwt = require("jsonwebtoken");
-const {
+import type { Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import {
   csrfProtection,
   errorHandler,
   requireAuth,
@@ -27,34 +28,40 @@ const {
   tokenExtractor,
   userExtractor,
   validate,
-} = require("../utils/middleware/middleware");
-const { AppError } = require("../errors");
-const { SubredditModerators } = require("../models/index");
-const {
-  hasSubredditPermission,
-} = require("../config/subreddit-moderator-permissions");
+} from "../utils/middleware/middleware";
+import { AppError } from "../errors";
+import { SubredditModerators } from "../models/index";
+import { hasSubredditPermission } from "../config/subreddit-moderator-permissions";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
+
+const fakeRequest = <T extends Request = Request>(fields: object) =>
+  fields as unknown as T;
+
+type FakeResponse = Response & { body?: unknown };
 
 const createResponse = () => {
-  const response = {};
-  response.status = jest.fn((statusCode) => {
+  const response: Record<string, unknown> = {};
+  response.status = jest.fn((statusCode: number) => {
     response.statusCode = statusCode;
     return response;
   });
-  response.json = jest.fn((body) => {
+  response.json = jest.fn((body: unknown) => {
     response.body = body;
     return response;
   });
   response.send = response.json;
-  return response;
+  return response as unknown as FakeResponse;
 };
 
 const TEST_SECRET = "middleware-test-secret";
 
-const createAuthRequest = (authorization) => ({
-  get: jest.fn((header) =>
-    header.toLowerCase() === "authorization" ? authorization : undefined,
-  ),
-});
+const createAuthRequest = (authorization: string | undefined) =>
+  fakeRequest({
+    get: jest.fn((header: string) =>
+      header.toLowerCase() === "authorization" ? authorization : undefined,
+    ),
+  });
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -65,7 +72,7 @@ describe("validate", () => {
   const schema = Joi.object({ username: Joi.string().trim().required() });
 
   it("replaces the request body with validated values", () => {
-    const request = { body: { username: "  test-user  " } };
+    const request = fakeRequest({ body: { username: "  test-user  " } });
     const response = createResponse();
     const next = jest.fn();
 
@@ -77,7 +84,7 @@ describe("validate", () => {
   });
 
   it("throws a 400 AppError and stops the chain for invalid input", () => {
-    const request = { body: { username: "" } };
+    const request = fakeRequest({ body: { username: "" } });
     const next = jest.fn();
 
     expect(() => validate(schema)(request, createResponse(), next)).toThrow(
@@ -91,7 +98,7 @@ describe("requireAuth", () => {
   it("throws a 401 AppError when the request has no authenticated user", () => {
     const next = jest.fn();
 
-    expect(() => requireAuth({}, createResponse(), next)).toThrow(
+    expect(() => requireAuth(fakeRequest({}), createResponse(), next)).toThrow(
       expect.objectContaining({ status: 401, code: "AUTHENTICATION_REQUIRED" }),
     );
     expect(next).not.toHaveBeenCalled();
@@ -100,7 +107,7 @@ describe("requireAuth", () => {
   it("continues when the request has an authenticated user", () => {
     const next = jest.fn();
 
-    requireAuth({ user: { id: 12 } }, createResponse(), next);
+    requireAuth(fakeRequest({ user: { id: 12 } }), createResponse(), next);
 
     expect(next).toHaveBeenCalledTimes(1);
   });
@@ -222,7 +229,7 @@ describe("userExtractor", () => {
 });
 
 describe("errorHandler", () => {
-  const createError = (name, message = `${name} message`) => {
+  const createError = (name: string, message = `${name} message`) => {
     const error = new Error(message);
     error.name = name;
     return error;
@@ -238,7 +245,7 @@ describe("errorHandler", () => {
       details: { email: "test@example.com" },
     });
 
-    errorHandler(error, {}, response, next);
+    errorHandler(error, fakeRequest({}), response, next);
 
     expect(response.status).toHaveBeenCalledWith(403);
     expect(response.body).toEqual({
@@ -257,7 +264,7 @@ describe("errorHandler", () => {
     const response = createResponse();
     const next = jest.fn();
 
-    errorHandler(createError(name), {}, response, next);
+    errorHandler(createError(name), fakeRequest({}), response, next);
 
     expect(response.status).toHaveBeenCalledWith(statusCode);
     expect(response.body).toEqual({
@@ -274,7 +281,7 @@ describe("errorHandler", () => {
 
     errorHandler(
       createError("TypeError", "secret internals"),
-      {},
+      fakeRequest({}),
       response,
       next,
     );
@@ -290,10 +297,13 @@ describe("errorHandler", () => {
 
   it("passes the error on when the response has already been sent", () => {
     const error = createError("SomethingElse");
-    const response = { ...createResponse(), headersSent: true };
+    const response = {
+      ...createResponse(),
+      headersSent: true,
+    } as FakeResponse;
     const next = jest.fn();
 
-    errorHandler(error, {}, response, next);
+    errorHandler(error, fakeRequest({}), response, next);
 
     expect(response.status).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledWith(error);
@@ -307,16 +317,23 @@ describe("requireSubredditPermission", () => {
     const next = jest.fn();
 
     await expect(
-      checkPermission({ params: { subredditId: "5" } }, createResponse(), next),
+      checkPermission(
+        fakeRequest({ params: { subredditId: "5" } }),
+        createResponse(),
+        next,
+      ),
     ).rejects.toMatchObject({ status: 401, code: "UNAUTHORIZED" });
     expect(SubredditModerators.findOne).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
   it("continues when the user's moderator role has the permission", async () => {
-    const request = { user: { id: 12 }, params: { subredditId: "5" } };
+    const request = fakeRequest<Request<{ subredditId: string }>>({
+      user: { id: 12 },
+      params: { subredditId: "5" },
+    });
     const next = jest.fn();
-    SubredditModerators.findOne.mockResolvedValue({ role: "owner" });
+    asMock(SubredditModerators.findOne).mockResolvedValue({ role: "owner" });
 
     await checkPermission(request, createResponse(), next);
 
@@ -329,13 +346,13 @@ describe("requireSubredditPermission", () => {
 
   it("rejects with a 403 when the user has no moderator permission", async () => {
     const next = jest.fn();
-    SubredditModerators.findOne.mockResolvedValue({
+    asMock(SubredditModerators.findOne).mockResolvedValue({
       role: "moderator_limited",
     });
 
     await expect(
       checkPermission(
-        { user: { id: 12 }, params: { subredditId: "5" } },
+        fakeRequest({ user: { id: 12 }, params: { subredditId: "5" } }),
         createResponse(),
         next,
       ),
@@ -348,11 +365,13 @@ describe("requireSubredditPermission", () => {
     const next = jest.fn();
     const checkOwnerPermission =
       requireSubredditPermission("moderators.manage");
-    SubredditModerators.findOne.mockResolvedValue({ role: "moderator" });
+    asMock(SubredditModerators.findOne).mockResolvedValue({
+      role: "moderator",
+    });
 
     await expect(
       checkOwnerPermission(
-        { user: { id: 12 }, params: { subredditId: "5" } },
+        fakeRequest({ user: { id: 12 }, params: { subredditId: "5" } }),
         createResponse(),
         next,
       ),
@@ -367,13 +386,13 @@ describe("requireSubredditPermission", () => {
   it("denies a limited moderator the moderator-level users.manage action", async () => {
     const next = jest.fn();
     const checkModeratorPermission = requireSubredditPermission("users.manage");
-    SubredditModerators.findOne.mockResolvedValue({
+    asMock(SubredditModerators.findOne).mockResolvedValue({
       role: "moderator_limited",
     });
 
     await expect(
       checkModeratorPermission(
-        { user: { id: 12 }, params: { subredditId: "5" } },
+        fakeRequest({ user: { id: 12 }, params: { subredditId: "5" } }),
         createResponse(),
         next,
       ),
@@ -390,7 +409,7 @@ describe("csrfProtection", () => {
   it.each(["GET", "HEAD", "OPTIONS"])(
     "allows safe %s requests without checking Origin",
     (method) => {
-      const request = { method, get: jest.fn() };
+      const request = fakeRequest({ method, get: jest.fn() });
       const next = jest.fn();
 
       csrfProtection(request, createResponse(), next);
@@ -401,10 +420,10 @@ describe("csrfProtection", () => {
   );
 
   it("allows an unsafe request from the configured origin", () => {
-    const request = {
+    const request = fakeRequest({
       method: "POST",
       get: jest.fn().mockReturnValue("https://client.example.test"),
-    };
+    });
     const response = createResponse();
     const next = jest.fn();
 
@@ -417,10 +436,10 @@ describe("csrfProtection", () => {
   it.each(["https://attacker.example.test", undefined])(
     "rejects an unsafe request with disallowed Origin %s",
     (origin) => {
-      const request = {
+      const request = fakeRequest({
         method: "POST",
         get: jest.fn().mockReturnValue(origin),
-      };
+      });
       const next = jest.fn();
 
       expect(() => csrfProtection(request, createResponse(), next)).toThrow(

@@ -1,45 +1,45 @@
-const { postNewPostCommentSchema } = require("../validators/comment.validator");
-const {
-  updateLoggedInUserSchema,
-} = require("../validators/loggedInUser.validator");
-const { loginSchema } = require("../validators/login.validator");
-const {
-  getPostSchema,
-  postNewPostSchema,
-} = require("../validators/post.validator");
-const {
+import type Joi from "joi";
+import { postNewPostCommentSchema } from "../validators/comment.validator";
+import { updateLoggedInUserSchema } from "../validators/loggedInUser.validator";
+import { loginSchema } from "../validators/login.validator";
+import { getPostSchema, postNewPostSchema } from "../validators/post.validator";
+import {
   searchPostsSchema,
   searchSubredditsSchema,
   searchSuggestionsSchema,
-} = require("../validators/search.validator");
-const {
+} from "../validators/search.validator";
+import {
   getSubredditsSchema,
   postNewSubredditSchema,
   updateSubredditSchema,
-} = require("../validators/subreddit.validator");
-const {
+} from "../validators/subreddit.validator";
+import {
   forgottenPasswordSchema,
   getUserPostsAndCommentsFeedSchema,
   postNewUserSchema,
   resetPasswordSchema,
-} = require("../validators/user.validator");
-const {
+} from "../validators/user.validator";
+import {
   resendVerifyEmailEmailSchema,
   verifyEmailSchema,
-} = require("../validators/verify-email-validator");
+} from "../validators/verify-email-validator";
 
 const validationOptions = { abortEarly: true, allowUnknown: false };
 
-const expectValid = (schema, input) => {
+const expectValid = (schema: Joi.Schema, input: unknown) => {
   const { error, value } = schema.validate(input, validationOptions);
   expect(error).toBeUndefined();
   return value;
 };
 
-const expectInvalid = (schema, input, path) => {
+const expectInvalid = (
+  schema: Joi.Schema,
+  input: unknown,
+  path: (string | number)[],
+) => {
   const { error } = schema.validate(input, validationOptions);
   expect(error).toBeDefined();
-  expect(error.details[0].path).toEqual(path);
+  expect(error?.details[0].path).toEqual(path);
 };
 
 const HEX_TOKEN = "a".repeat(64);

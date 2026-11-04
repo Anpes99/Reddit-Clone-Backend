@@ -1,4 +1,4 @@
-const crypto = require("node:crypto");
+import crypto from "node:crypto";
 
 jest.mock("nodemailer", () => ({
   createTransport: jest.fn(() => ({
@@ -18,11 +18,13 @@ jest.mock("../models", () => ({
   },
 }));
 
-const nodemailer = require("nodemailer");
-const { EmailVerificationToken } = require("../models");
-const { sendVerificationEmail } = require("../utils/email");
+import nodemailer from "nodemailer";
+import { EmailVerificationToken } from "../models";
+import { sendVerificationEmail } from "../utils/email";
 
-const transporter = nodemailer.createTransport.mock.results[0].value;
+const asMock = (fn: unknown) => fn as jest.Mock;
+
+const transporter = asMock(nodemailer.createTransport).mock.results[0].value;
 
 describe("sendVerificationEmail", () => {
   const originalClientUrl = process.env.CLIENT_URL;
@@ -32,8 +34,8 @@ describe("sendVerificationEmail", () => {
 
     process.env.CLIENT_URL = "https://example.test";
 
-    EmailVerificationToken.create.mockResolvedValue({ id: 1 });
-    transporter.sendMail.mockResolvedValue({
+    asMock(EmailVerificationToken.create).mockResolvedValue({ id: 1 });
+    asMock(transporter.sendMail).mockResolvedValue({
       messageId: "test-message-id",
     });
   });
@@ -56,8 +58,9 @@ describe("sendVerificationEmail", () => {
 
     expect(EmailVerificationToken.create).toHaveBeenCalledTimes(1);
 
-    const [{ userId, tokenHash, expiresAt }] =
-      EmailVerificationToken.create.mock.calls[0];
+    const [{ userId, tokenHash, expiresAt }] = asMock(
+      EmailVerificationToken.create,
+    ).mock.calls[0];
 
     expect(userId).toBe(12);
     expect(tokenHash).toMatch(/^[a-f0-9]{64}$/);
@@ -70,7 +73,7 @@ describe("sendVerificationEmail", () => {
 
     expect(transporter.sendMail).toHaveBeenCalledTimes(1);
 
-    const [message] = transporter.sendMail.mock.calls[0];
+    const [message] = asMock(transporter.sendMail).mock.calls[0];
 
     expect(message.to).toBe("person@example.test");
     expect(message.subject).toBe("Verify your email address");
@@ -87,7 +90,7 @@ describe("sendVerificationEmail", () => {
     expect(rawToken).toMatch(/^[a-f0-9]{64}$/);
 
     expect(tokenHash).toBe(
-      crypto.createHash("sha256").update(rawToken).digest("hex"),
+      crypto.createHash("sha256").update(rawToken!).digest("hex"),
     );
 
     expect(message.html).toContain(verificationUrl);
@@ -96,9 +99,11 @@ describe("sendVerificationEmail", () => {
   it.each([[{ userId: 12 }], [{ email: "person@example.test" }]])(
     "rejects missing recipient data: %o",
     async (input) => {
-      await expect(sendVerificationEmail(input)).rejects.toThrow(
-        "email or userId missing",
-      );
+      await expect(
+        sendVerificationEmail(
+          input as Parameters<typeof sendVerificationEmail>[0],
+        ),
+      ).rejects.toThrow("email or userId missing");
 
       expect(EmailVerificationToken.create).not.toHaveBeenCalled();
       expect(transporter.sendMail).not.toHaveBeenCalled();
@@ -106,7 +111,7 @@ describe("sendVerificationEmail", () => {
   );
 
   it("does not send email when token persistence fails", async () => {
-    EmailVerificationToken.create.mockRejectedValue(
+    asMock(EmailVerificationToken.create).mockRejectedValue(
       new Error("database unavailable"),
     );
 
@@ -122,7 +127,7 @@ describe("sendVerificationEmail", () => {
   });
 
   it("propagates email delivery failures", async () => {
-    transporter.sendMail.mockRejectedValue(
+    asMock(transporter.sendMail).mockRejectedValue(
       new Error("email service unavailable"),
     );
 
