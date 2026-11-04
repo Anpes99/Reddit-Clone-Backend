@@ -1,36 +1,47 @@
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
-const authRouter = require("express").Router();
-const {
-  User,
-  Subreddit,
-  Post,
-  EmailVerificationToken,
-} = require("../models/index");
-const { validate } = require("../utils/middleware/middleware");
-const { loginSchema } = require("../validators/login.validator");
-const { loginIpLimiter } = require("../utils/middleware/requestRateLimiters");
-const { redisClient } = require("../utils/redis");
-const { sendVerificationEmail } = require("../utils/email");
-const { randomUUID } = require("node:crypto");
-const { AppError } = require("../errors");
-const logger = require("../utils/logger");
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import { Router, type Request } from "express";
+import { User, Subreddit, Post, EmailVerificationToken } from "../models/index";
+import { validate } from "../utils/middleware/middleware";
+import { loginSchema, type LoginBody } from "../validators/login.validator";
+import { loginIpLimiter } from "../utils/middleware/requestRateLimiters";
+import { redisClient } from "../utils/redis";
+import { sendVerificationEmail } from "../utils/email";
+import { randomUUID } from "node:crypto";
+import { AppError } from "../errors";
+import logger from "../utils/logger";
+
+const authRouter = Router();
 
 const WINDOW_SECONDS = 15 * 60;
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24;
+
+type UserForToken = {
+  username: string;
+  id: number;
+};
+
+type RefreshTokenPayload = UserForToken & {
+  type: "refresh";
+  refreshTokenId: string;
+  absoluteExpiresAt: number;
+};
 
 authRouter.post(
   "/login",
   validate(loginSchema),
   loginIpLimiter,
-  async (request, response) => {
+  async (
+    request: Request<Record<string, string>, unknown, LoginBody>,
+    response,
+  ) => {
     const { body } = request;
 
     const identifier = body.username.trim().toLowerCase();
     const failureKeyIpForUsername = `login:failed:ip:${request.ip}:${identifier}`;
 
     const ipLoginFailures = await redisClient.get(failureKeyIpForUsername);
-    if (ipLoginFailures > 10) {
+    if (Number(ipLoginFailures) > 10) {
       throw new AppError({
         status: 429,
         code: "TOO_MANY_REQUESTS",
@@ -95,12 +106,12 @@ authRouter.post(
         details: { email: user.email },
       });
     }
-    const userForToken = {
+    const userForToken: UserForToken = {
       username: user.username,
       id: user.id,
     };
 
-    const token = jwt.sign(userForToken, process.env.SECRET, {
+    const token = jwt.sign(userForToken, process.env.SECRET as string, {
       expiresIn: 15 * 60,
     });
     const refreshTokenId = randomUUID();
@@ -108,14 +119,15 @@ authRouter.post(
     await redisClient.set(`refresh:${refreshTokenId}`, user.id, {
       EX: REFRESH_TOKEN_EXPIRES_IN,
     });
+    const refreshTokenPayload: RefreshTokenPayload = {
+      ...userForToken,
+      type: "refresh",
+      refreshTokenId,
+      absoluteExpiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+    };
     const refreshToken = jwt.sign(
-      {
-        ...userForToken,
-        type: "refresh",
-        refreshTokenId,
-        absoluteExpiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-      },
-      process.env.REFRESH_SECRET,
+      refreshTokenPayload,
+      process.env.REFRESH_SECRET as string,
       {
         expiresIn: REFRESH_TOKEN_EXPIRES_IN,
       },
@@ -133,7 +145,7 @@ authRouter.post(
       username: user.username,
       id: user.id,
       subreddits: user.subreddits,
-      ratedPosts: user.ratedPosts.map((post) => ({
+      ratedPosts: user.ratedPosts!.map((post) => ({
         id: post.id,
         rating: post.UserRatedPosts.rating,
       })),
@@ -155,9 +167,13 @@ authRouter.post("/refresh", async (req, res, next) => {
   }
 
   try {
-    const decodedToken = jwt.verify(token, process.env.REFRESH_SECRET, {
-      algorithms: ["HS256"],
-    });
+    const decodedToken = jwt.verify(
+      token,
+      process.env.REFRESH_SECRET as string,
+      {
+        algorithms: ["HS256"],
+      },
+    ) as RefreshTokenPayload;
     if (!decodedToken || decodedToken.absoluteExpiresAt <= Date.now()) {
       throw new Error("Invalid or expired refresh token");
     }
@@ -201,12 +217,12 @@ authRouter.post("/refresh", async (req, res, next) => {
       });
     }
 
-    const userForToken = {
+    const userForToken: UserForToken = {
       username: user.username,
       id: user.id,
     };
 
-    const accessToken = jwt.sign(userForToken, process.env.SECRET, {
+    const accessToken = jwt.sign(userForToken, process.env.SECRET as string, {
       expiresIn: 15 * 60,
     });
 
@@ -215,14 +231,15 @@ authRouter.post("/refresh", async (req, res, next) => {
     await redisClient.set(`refresh:${refreshTokenId}`, user.id, {
       EX: REFRESH_TOKEN_EXPIRES_IN,
     });
+    const refreshTokenPayload: RefreshTokenPayload = {
+      ...userForToken,
+      type: "refresh",
+      refreshTokenId,
+      absoluteExpiresAt: decodedToken.absoluteExpiresAt,
+    };
     const refreshToken = jwt.sign(
-      {
-        ...userForToken,
-        type: "refresh",
-        refreshTokenId,
-        absoluteExpiresAt: decodedToken.absoluteExpiresAt,
-      },
-      process.env.REFRESH_SECRET,
+      refreshTokenPayload,
+      process.env.REFRESH_SECRET as string,
       {
         expiresIn: Math.min(
           REFRESH_TOKEN_EXPIRES_IN,
@@ -261,12 +278,12 @@ authRouter.post("/refresh", async (req, res, next) => {
 authRouter.post("/logout", async (req, res) => {
   const token = req.cookies?.refreshToken;
 
-  let decodedToken;
+  let decodedToken: RefreshTokenPayload | undefined;
   if (token) {
     try {
-      decodedToken = jwt.verify(token, process.env.REFRESH_SECRET, {
+      decodedToken = jwt.verify(token, process.env.REFRESH_SECRET as string, {
         algorithms: ["HS256"],
-      });
+      }) as RefreshTokenPayload;
     } catch {
       // ignore eslint rule
     }
@@ -290,4 +307,4 @@ authRouter.post("/logout", async (req, res) => {
   return res.sendStatus(204);
 });
 
-module.exports = authRouter;
+export = authRouter;
