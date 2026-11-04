@@ -12,7 +12,7 @@ type EmailMessage = {
 };
 
 type TokenEmailRecipient = {
-  email: string;
+  email: string | null;
   userId: number;
 };
 

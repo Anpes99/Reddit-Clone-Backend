@@ -2,18 +2,10 @@ require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
-jest.mock("../models/User.js", () => ({
-  findOne: jest.fn(),
-  findByPk: jest.fn(),
-}));
-
-jest.mock("../models/EmailVerificationToken.js", () => ({
-  findOne: jest.fn(),
-  destroy: jest.fn(),
-}));
-
 jest.mock("../models/index", () => ({
   SubredditModerators: { findOne: jest.fn() },
+  User: { findOne: jest.fn(), findByPk: jest.fn() },
+  EmailVerificationToken: { findOne: jest.fn(), destroy: jest.fn() },
 }));
 
 jest.mock("../config/subreddit-moderator-permissions", () => ({
@@ -29,8 +21,7 @@ jest.mock("../utils/email.js", () => ({
   hashEmailVerificationToken: jest.fn((token) => `hashed-email-${token}`),
 }));
 
-const User = require("../models/User.js");
-const EmailVerificationToken = require("../models/EmailVerificationToken.js");
+const { User, EmailVerificationToken } = require("../models/index");
 const {
   sendVerificationEmail,
   hashEmailVerificationToken,
