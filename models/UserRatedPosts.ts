@@ -1,8 +1,22 @@
-const { Model, DataTypes } = require("sequelize");
+import {
+  DataTypes,
+  Model,
+  type CreationOptional,
+  type InferAttributes,
+  type InferCreationAttributes,
+} from "sequelize";
 
-const { sequelize } = require("../utils/db");
+import { sequelize } from "../utils/db";
 
-class UserRatedPosts extends Model {}
+class UserRatedPosts extends Model<
+  InferAttributes<UserRatedPosts>,
+  InferCreationAttributes<UserRatedPosts>
+> {
+  declare id: CreationOptional<number>;
+  declare userId: number;
+  declare postId: number;
+  declare rating: number;
+}
 
 UserRatedPosts.init(
   {
@@ -40,4 +54,5 @@ UserRatedPosts.init(
   },
 );
 
-module.exports = UserRatedPosts;
+// `export =` keeps `require("./UserRatedPosts")` returning the class for JS callers
+export = UserRatedPosts;

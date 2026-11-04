@@ -56,6 +56,18 @@ usersRouter.post(
       });
     }
 
+    const userWithEmailFound = await User.findOne({
+      where: { email: body.email },
+    });
+    if (userWithEmailFound) {
+      throw new AppError({
+        status: 400,
+        code: "USER_WITH_EMAIL_ALREADY_EXISTS",
+        message: "user with that email already exists",
+        details: {},
+      });
+    }
+
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(body.password, saltRounds);
 

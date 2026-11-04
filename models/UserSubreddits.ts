@@ -1,8 +1,21 @@
-const { Model, DataTypes } = require("sequelize");
+import {
+  DataTypes,
+  Model,
+  type CreationOptional,
+  type InferAttributes,
+  type InferCreationAttributes,
+} from "sequelize";
 
-const { sequelize } = require("../utils/db");
+import { sequelize } from "../utils/db";
 
-class UserSubreddits extends Model {}
+class UserSubreddits extends Model<
+  InferAttributes<UserSubreddits>,
+  InferCreationAttributes<UserSubreddits>
+> {
+  declare id: CreationOptional<number>;
+  declare userId: number;
+  declare subredditId: number;
+}
 
 UserSubreddits.init(
   {
@@ -36,4 +49,5 @@ UserSubreddits.init(
   },
 );
 
-module.exports = UserSubreddits;
+// `export =` keeps `require("./UserSubreddits")` returning the class for JS callers
+export = UserSubreddits;

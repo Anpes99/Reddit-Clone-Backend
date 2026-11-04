@@ -9,6 +9,7 @@ jest.mock("../models/User.js", () => ({
 
 jest.mock("../models/EmailVerificationToken.js", () => ({
   findOne: jest.fn(),
+  destroy: jest.fn(),
 }));
 
 jest.mock("../models/index", () => ({
@@ -179,10 +180,7 @@ describe("POST /resend verification", () => {
       email: "test@example.com",
       emailVerified: false,
     });
-    const verificationToken = {
-      destroy: jest.fn().mockResolvedValue(undefined),
-    };
-    EmailVerificationToken.findOne.mockResolvedValue(verificationToken);
+    EmailVerificationToken.destroy.mockResolvedValue(1);
 
     const response = await postJson("/resend", {
       username: "test-user",
@@ -190,7 +188,9 @@ describe("POST /resend verification", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({ message: "new verification email sent" });
-    expect(verificationToken.destroy).toHaveBeenCalledTimes(1);
+    expect(EmailVerificationToken.destroy).toHaveBeenCalledWith({
+      where: { userId: 12 },
+    });
     expect(sendVerificationEmail).toHaveBeenCalledWith({
       email: "test@example.com",
       userId: 12,

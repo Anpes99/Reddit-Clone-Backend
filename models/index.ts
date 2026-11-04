@@ -1,16 +1,16 @@
-const Comment = require("./Comment");
-const User = require("./User");
-const Post = require("./Post");
-const Subreddit = require("./Subreddit");
-const UserSubreddits = require("./UserSubreddits");
-const UserRatedPosts = require("./UserRatedPosts");
-const UserRatedComments = require("./UserRatedComments");
-const SubredditModerators = require("./SubredditModerators");
-const SubredditLeaderboard = require("./SubredditLeaderboard");
-const SubredditLeaderboardSubreddit = require("./SubredditLeaderboardSubreddit");
-const EmailVerificationToken = require("./EmailVerificationToken");
-const PasswordResetToken = require("./PasswordResetToken");
-const UserNotifications = require("./UserNotifications");
+import Comment from "./Comment";
+import User from "./User";
+import Post from "./Post";
+import Subreddit from "./Subreddit";
+import UserSubreddits from "./UserSubreddits";
+import UserRatedPosts from "./UserRatedPosts";
+import UserRatedComments from "./UserRatedComments";
+import SubredditModerators from "./SubredditModerators";
+import SubredditLeaderboard from "./SubredditLeaderboard";
+import SubredditLeaderboardSubreddit from "./SubredditLeaderboardSubreddit";
+import EmailVerificationToken from "./EmailVerificationToken";
+import PasswordResetToken from "./PasswordResetToken";
+import UserNotifications from "./UserNotifications";
 
 User.hasMany(Post);
 User.hasMany(Comment);
@@ -25,9 +25,11 @@ Subreddit.hasMany(Post, {
 });
 Subreddit.belongsToMany(User, {
   through: UserSubreddits,
+  as: "members",
 });
 Subreddit.belongsToMany(User, {
   through: SubredditModerators,
+  as: "moderators",
 });
 User.belongsToMany(Subreddit, {
   through: UserSubreddits,
@@ -71,15 +73,15 @@ SubredditLeaderboardSubreddit.belongsTo(Subreddit, {
   foreignKey: "subredditId",
 });
 EmailVerificationToken.belongsTo(User);
-User.hasMany(EmailVerificationToken);
+User.hasOne(EmailVerificationToken);
 
 PasswordResetToken.belongsTo(User);
-User.hasMany(PasswordResetToken);
+User.hasOne(PasswordResetToken);
 
 UserNotifications.belongsTo(User);
 User.hasMany(UserNotifications, { as: "notifications" });
 
-module.exports = {
+export {
   User,
   Comment,
   Post,

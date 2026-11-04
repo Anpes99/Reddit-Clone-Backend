@@ -87,12 +87,7 @@ verifyEmailRouter.post(
       });
     }
 
-    const dbEmailVerificationToken = await EmailVerificationToken.findOne({
-      where: {
-        userId: user.id,
-      },
-    });
-    await dbEmailVerificationToken.destroy();
+    await EmailVerificationToken.destroy({ where: { userId: user.id } });
 
     await sendVerificationEmail({ email: user.email, userId: user.id });
 

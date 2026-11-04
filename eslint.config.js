@@ -1,5 +1,6 @@
 const js = require("@eslint/js");
 const globals = require("globals");
+const tseslint = require("typescript-eslint");
 
 module.exports = [
   {
@@ -44,8 +45,29 @@ module.exports = [
       sourceType: "module",
     },
   },
+  ...tseslint.configs.recommended.map((config) => ({
+    ...config,
+    files: ["**/*.ts"],
+  })),
   {
-    files: ["tests/**/*.js"],
+    files: ["**/*.ts"],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          caughtErrors: "none",
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
+  {
+    files: ["tests/**/*.js", "tests/**/*.ts"],
     languageOptions: {
       globals: globals.jest,
     },

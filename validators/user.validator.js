@@ -14,7 +14,7 @@ const postNewUserSchema = Joi.object({
       "Username may contain letters, numbers, underscores and hyphens only",
     )
     .required(),
-  email: Joi.string().email().required(),
+  email: Joi.string().trim().lowercase().email().required(),
   password: Joi.string().min(4).max(128).required(),
 }).unknown(false);
 
@@ -30,7 +30,7 @@ const getUserPostsAndCommentsFeedSchema = Joi.object({
 }).unknown(false);
 
 const forgottenPasswordSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().trim().lowercase().email().required(),
 }).unknown(false);
 
 const resetPasswordSchema = Joi.object({

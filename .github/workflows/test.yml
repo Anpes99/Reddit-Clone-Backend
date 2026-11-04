@@ -39,6 +39,8 @@ jobs:
 
       - run: npm run lint
 
+      - run: npm run typecheck
+
       - run: npm run format:check
 
       # pretest applies all migrations to the empty database before Jest runs
