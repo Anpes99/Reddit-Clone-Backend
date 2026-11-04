@@ -140,7 +140,7 @@ describe("subreddit membership", () => {
     expect(response.body).toBe("User successfully joined subreddit");
     expect(UserSubreddits.create).toHaveBeenCalledWith({
       userId: 12,
-      subredditId: "34",
+      subredditId: 34,
     });
   });
 

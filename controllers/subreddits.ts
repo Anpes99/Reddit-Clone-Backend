@@ -1,31 +1,36 @@
-const subredditsRouter = require("express").Router();
-const {
+import { Router, type Request } from "express";
+import {
   SUBREDDIT_ORDER_BY_TYPES,
   SUBREDDIT_MODERATOR_ROLE,
   SUBREDDIT_PERMISSIONS,
-} = require("../constants/subreddit.constant");
-const { USER_NOTIFICATION_TYPES } = require("../constants/user.constant");
-const { AppError } = require("../errors");
-const logger = require("../utils/logger");
-const {
+} from "../constants/subreddit.constant";
+import { USER_NOTIFICATION_TYPES } from "../constants/user.constant";
+import { AppError } from "../errors";
+import logger from "../utils/logger";
+import {
   Subreddit,
   UserSubreddits,
   SubredditModerators,
   UserNotifications,
-} = require("../models/index");
+} from "../models/index";
 
-const { sequelize } = require("../utils/db");
-const {
+import { sequelize } from "../utils/db";
+import {
   validate,
   requireAuth,
   requireSubredditPermission,
-} = require("../utils/middleware/middleware");
-const {
+} from "../utils/middleware/middleware";
+import {
   getSubredditsSchema,
   getSubredditSchema,
   postNewSubredditSchema,
   updateSubredditSchema,
-} = require("../validators/subreddit.validator");
+  type GetSubredditsQuery,
+  type PostNewSubredditBody,
+  type UpdateSubredditBody,
+} from "../validators/subreddit.validator";
+
+const subredditsRouter = Router();
 
 subredditsRouter.post(
   "/:subredditId/user",
@@ -33,12 +38,12 @@ subredditsRouter.post(
   async (req, res, next) => {
     try {
       await UserSubreddits.create({
-        userId: req.user.id,
-        subredditId: req.params.subredditId,
+        userId: req.user!.id,
+        subredditId: Number(req.params.subredditId),
       });
       return res.json("User successfully joined subreddit");
     } catch (e) {
-      if (e.name === "SequelizeUniqueConstraintError") {
+      if ((e as Error).name === "SequelizeUniqueConstraintError") {
         return next(
           new AppError({
             status: 409,
@@ -55,7 +60,7 @@ subredditsRouter.post(
 subredditsRouter.delete("/:subredditId/user", requireAuth, async (req, res) => {
   await UserSubreddits.destroy({
     where: {
-      userId: req.user.id,
+      userId: req.user!.id,
       subredditId: Number(req.params.subredditId),
     },
   });
@@ -66,7 +71,10 @@ subredditsRouter.delete("/:subredditId/user", requireAuth, async (req, res) => {
 subredditsRouter.get(
   "/",
   validate(getSubredditsSchema, "query"),
-  async (req, res) => {
+  async (
+    req: Request<Record<string, string>, unknown, unknown, GetSubredditsQuery>,
+    res,
+  ) => {
     const { limit, sortBy, order } = req.query;
 
     if (sortBy === SUBREDDIT_ORDER_BY_TYPES.MEMBER_COUNT) {
@@ -99,11 +107,6 @@ subredditsRouter.get(
     const result = await Subreddit.findOne({
       where: { name },
     });
-    const userSubredditModerator = req.user
-      ? await SubredditModerators.findOne({
-          where: { userId: req.user.id, subredditId: result.dataValues.id },
-        })
-      : undefined;
     if (!result) {
       throw new AppError({
         status: 404,
@@ -112,6 +115,11 @@ subredditsRouter.get(
         details: {},
       });
     }
+    const userSubredditModerator = req.user
+      ? await SubredditModerators.findOne({
+          where: { userId: req.user.id, subredditId: result.dataValues.id },
+        })
+      : undefined;
 
     const subreddit = {
       ...result.dataValues,
@@ -126,8 +134,12 @@ subredditsRouter.post(
   "/",
   requireAuth,
   validate(postNewSubredditSchema),
-  async (req, res) => {
+  async (
+    req: Request<Record<string, string>, unknown, PostNewSubredditBody>,
+    res,
+  ) => {
     const { communityName, description, subredditIconUrl } = req.body;
+    const userId = req.user!.id;
 
     const existingSubreddit = await Subreddit.findOne({
       where: { name: communityName },
@@ -147,14 +159,14 @@ subredditsRouter.post(
         {
           name: communityName,
           description,
-          creatorId: req.user.id,
+          creatorId: userId,
           iconUrl: subredditIconUrl,
         },
         { transaction: t },
       );
       await SubredditModerators.create(
         {
-          userId: req.user.id,
+          userId,
           subredditId: createdSubreddit.id,
           role: SUBREDDIT_MODERATOR_ROLE.OWNER,
         },
@@ -164,7 +176,7 @@ subredditsRouter.post(
 
     try {
       await UserNotifications.create({
-        userId: req.user.id,
+        userId,
         type: USER_NOTIFICATION_TYPES.COMMUNITY_CREATED,
         title: "Community created successfully",
         message:
@@ -183,12 +195,23 @@ subredditsRouter.patch(
   requireAuth,
   requireSubredditPermission(SUBREDDIT_PERMISSIONS.SETTINGS_MANAGE),
   validate(updateSubredditSchema),
-  async (req, res) => {
+  async (
+    req: Request<{ subredditId: string }, unknown, UpdateSubredditBody>,
+    res,
+  ) => {
     const { subredditIconUrl, description, subredditPageBackgroundImageUrl } =
       req.body;
     const subredditId = req.params.subredditId;
 
     const subredditToUpdate = await Subreddit.findByPk(subredditId);
+    if (!subredditToUpdate) {
+      throw new AppError({
+        status: 404,
+        code: "SUBREDDIT_NOT_FOUND",
+        message: "Subreddit not found",
+        details: {},
+      });
+    }
 
     await subredditToUpdate.update({
       iconUrl: subredditIconUrl,
@@ -241,4 +264,4 @@ subredditsRouter.get("/leaderboards/top-subreddits", async (req, res) => {
   return res.send(subredditLeaderboardSubreddits);
 });
 
-module.exports = subredditsRouter;
+export = subredditsRouter;
