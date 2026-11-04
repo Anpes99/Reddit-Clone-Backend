@@ -7,10 +7,10 @@ import {
 } from "sequelize";
 
 import { sequelize } from "../utils/db";
-import { SubredditModeratorRole } from "../enums/subreddit.enum";
-
-type SubredditModeratorRoleValue =
-  (typeof SubredditModeratorRole)[keyof typeof SubredditModeratorRole];
+import {
+  SUBREDDIT_MODERATOR_ROLE,
+  type SubredditModeratorRole,
+} from "../constants/subreddit.constant";
 
 class SubredditModerators extends Model<
   InferAttributes<SubredditModerators>,
@@ -19,7 +19,7 @@ class SubredditModerators extends Model<
   declare id: CreationOptional<number>;
   declare userId: number;
   declare subredditId: number;
-  declare role: SubredditModeratorRoleValue;
+  declare role: SubredditModeratorRole;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -42,7 +42,7 @@ SubredditModerators.init(
       references: { model: "subreddits", key: "id" },
     },
     role: {
-      type: DataTypes.ENUM(...Object.values(SubredditModeratorRole)),
+      type: DataTypes.ENUM(...Object.values(SUBREDDIT_MODERATOR_ROLE)),
       allowNull: false,
     },
     createdAt: DataTypes.DATE,

@@ -1,10 +1,10 @@
 const subredditsRouter = require("express").Router();
 const {
   SUBREDDIT_ORDER_BY_TYPES,
-  SubredditModeratorRole,
-  SubredditPermissions,
-} = require("../enums/subreddit.enum");
-const { USER_NOTIFICATION_TYPES } = require("../enums/user.enum");
+  SUBREDDIT_MODERATOR_ROLE,
+  SUBREDDIT_PERMISSIONS,
+} = require("../constants/subreddit.constant");
+const { USER_NOTIFICATION_TYPES } = require("../constants/user.constant");
 const { AppError } = require("../errors");
 const logger = require("../utils/logger");
 const {
@@ -156,7 +156,7 @@ subredditsRouter.post(
         {
           userId: req.user.id,
           subredditId: createdSubreddit.id,
-          role: SubredditModeratorRole.OWNER,
+          role: SUBREDDIT_MODERATOR_ROLE.OWNER,
         },
         { transaction: t },
       );
@@ -181,7 +181,7 @@ subredditsRouter.post(
 subredditsRouter.patch(
   "/:subredditId/settings",
   requireAuth,
-  requireSubredditPermission(SubredditPermissions.SETTINGS_MANAGE),
+  requireSubredditPermission(SUBREDDIT_PERMISSIONS.SETTINGS_MANAGE),
   validate(updateSubredditSchema),
   async (req, res) => {
     const { subredditIconUrl, description, subredditPageBackgroundImageUrl } =

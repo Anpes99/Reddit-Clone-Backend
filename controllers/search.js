@@ -8,7 +8,7 @@ const {
   searchPostsSchema,
   searchSubredditsSchema,
 } = require("../validators/search.validator");
-const { postsOrderType } = require("../enums/post.enum");
+const { POSTS_ORDER_TYPE } = require("../constants/post.constant");
 const { QueryTypes } = require("sequelize");
 const { generateEmbedding } = require("../utils/embeddings");
 const { getOnlineSubredditUserCount } = require("../websockets/onlineCount");
@@ -35,7 +35,7 @@ searchRouter.post("/posts", validate(searchPostsSchema), async (req, res) => {
   const { searchQuery, offset, limit, orderType, prevSearchWordEmbedding } =
     req.body;
 
-  if (orderType !== postsOrderType.TOP) {
+  if (orderType !== POSTS_ORDER_TYPE.TOP) {
     const options = {
       where: {
         safe: true,

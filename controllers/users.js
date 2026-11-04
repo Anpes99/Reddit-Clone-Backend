@@ -18,8 +18,8 @@ const {
 const {
   USER_PAGE_CONTENT_TYPES,
   USER_PAGE_CONTENT_SORT_BY_TYPES,
-} = require("../enums/user.enum");
-const { SortOrder } = require("../enums/sort-order.enum");
+} = require("../constants/user.constant");
+const { SORT_ORDER } = require("../constants/sort-order.constant");
 const { sequelize } = require("../utils/db");
 const { QueryTypes } = require("sequelize");
 const {
@@ -156,7 +156,7 @@ usersRouter.get(
                 [sequelize.literal('"up_votes"-"down_votes"'), "desc"],
                 ["createdAt", "DESC"],
               ]
-            : [["createdAt", SortOrder.DESC]],
+            : [["createdAt", SORT_ORDER.DESC]],
         offset,
         limit: 5,
         include: [
@@ -198,7 +198,7 @@ usersRouter.get(
                 ],
                 ["createdAt", "DESC"],
               ]
-            : [["createdAt", SortOrder.DESC]],
+            : [["createdAt", SORT_ORDER.DESC]],
         offset,
         limit: 5,
         include: [

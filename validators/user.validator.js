@@ -2,7 +2,7 @@ const Joi = require("joi");
 const {
   USER_PAGE_CONTENT_SORT_BY_TYPES,
   USER_PAGE_CONTENT_TYPES,
-} = require("../enums/user.enum.js");
+} = require("../constants/user.constant.js");
 
 const postNewUserSchema = Joi.object({
   username: Joi.string()

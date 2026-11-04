@@ -7,11 +7,12 @@ import {
 } from "sequelize";
 
 import { sequelize } from "../utils/db";
-import { postModerationStatus } from "../enums/post.enum";
+import {
+  POST_MODERATION_STATUS,
+  type PostModerationStatus,
+} from "../constants/post.constant";
 import "pgvector/sequelize";
 
-type PostModerationStatus =
-  (typeof postModerationStatus)[keyof typeof postModerationStatus];
 class Post extends Model<InferAttributes<Post>, InferCreationAttributes<Post>> {
   declare id: CreationOptional<number>;
   declare userId: number;
@@ -82,7 +83,7 @@ Post.init(
       type: DataTypes.BOOLEAN,
     },
     moderationStatus: {
-      type: DataTypes.ENUM(...Object.values(postModerationStatus)),
+      type: DataTypes.ENUM(...Object.values(POST_MODERATION_STATUS)),
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,

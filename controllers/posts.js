@@ -1,5 +1,5 @@
 const postsRouter = require("express").Router();
-const { postModerationStatus } = require("../enums/post.enum");
+const { POST_MODERATION_STATUS } = require("../constants/post.constant");
 const { AppError } = require("../errors");
 const { User, Comment, Post, Subreddit } = require("../models/index");
 const { moderationQueue } = require("../queues/moderation.queue");
@@ -107,8 +107,8 @@ postsRouter.post(
       embedding,
       safe: imageUrl ? null : true,
       moderationStatus: imageUrl
-        ? postModerationStatus.PENDING
-        : postModerationStatus.COMPLETED,
+        ? POST_MODERATION_STATUS.PENDING
+        : POST_MODERATION_STATUS.COMPLETED,
     });
 
     if (imageUrl) {

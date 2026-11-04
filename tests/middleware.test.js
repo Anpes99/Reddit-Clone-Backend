@@ -1,12 +1,12 @@
 const Joi = require("joi");
 
-jest.mock("../enums/subreddit.enum.js", () => ({
-  SubredditModeratorRole: {
+jest.mock("../constants/subreddit.constant.js", () => ({
+  SUBREDDIT_MODERATOR_ROLE: {
     OWNER: "owner",
     MODERATOR: "moderator",
     MODERATOR_LIMITED: "moderator_limited",
   },
-  SubredditPermissions: {
+  SUBREDDIT_PERMISSIONS: {
     POSTS_MANAGE: "posts.manage",
     USERS_MANAGE: "users.manage",
     SETTINGS_MANAGE: "settings.manage",

@@ -18,7 +18,7 @@ const {
   SubredditLeaderboard,
   SubredditLeaderboardSubreddit,
 } = require("../models");
-const { SubredditModeratorRole } = require("../enums/subreddit.enum");
+const { SUBREDDIT_MODERATOR_ROLE } = require("../constants/subreddit.constant");
 
 const LOCAL_DATABASE_HOSTS = ["localhost", "127.0.0.1", "db"];
 const PASSWORD = "password";
@@ -265,7 +265,7 @@ const seed = async () => {
         {
           userId: usersByName[creator].id,
           subredditId: subreddit.id,
-          role: SubredditModeratorRole.OWNER,
+          role: SUBREDDIT_MODERATOR_ROLE.OWNER,
         },
         { transaction },
       );
@@ -274,7 +274,7 @@ const seed = async () => {
           {
             userId: usersByName[moderator].id,
             subredditId: subreddit.id,
-            role: SubredditModeratorRole.MODERATOR,
+            role: SUBREDDIT_MODERATOR_ROLE.MODERATOR,
           },
           { transaction },
         );

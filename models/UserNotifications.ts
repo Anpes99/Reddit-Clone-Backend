@@ -7,10 +7,10 @@ import {
 } from "sequelize";
 
 import { sequelize } from "../utils/db";
-import { USER_NOTIFICATION_TYPES } from "../enums/user.enum";
-
-type UserNotificationType =
-  (typeof USER_NOTIFICATION_TYPES)[keyof typeof USER_NOTIFICATION_TYPES];
+import {
+  USER_NOTIFICATION_TYPES,
+  type UserNotificationType,
+} from "../constants/user.constant";
 
 class UserNotifications extends Model<
   InferAttributes<UserNotifications>,

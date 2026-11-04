@@ -2,9 +2,9 @@ const { Worker } = require("bullmq");
 const { bullConnection } = require("../utils/bullmq");
 const { Post, UserNotifications } = require("../models");
 const logger = require("../utils/logger");
-const { postModerationStatus } = require("../enums/post.enum");
+const { POST_MODERATION_STATUS } = require("../constants/post.constant");
 const axios = require("axios");
-const { USER_NOTIFICATION_TYPES } = require("../enums/user.enum");
+const { USER_NOTIFICATION_TYPES } = require("../constants/user.constant");
 
 const worker = new Worker(
   "image-moderation",
@@ -65,7 +65,7 @@ const worker = new Worker(
 
     await dbPost.update({
       safe: !flagged,
-      moderationStatus: postModerationStatus.COMPLETED,
+      moderationStatus: POST_MODERATION_STATUS.COMPLETED,
     });
 
     if (flagged) {
@@ -101,7 +101,7 @@ worker.on("failed", async (job, err) => {
   logger.error({ err }, `Moderation failed: ${job?.id}`);
   if (job?.attemptsMade >= job?.opts?.attempts) {
     await Post.update(
-      { moderationStatus: postModerationStatus.FAILED },
+      { moderationStatus: POST_MODERATION_STATUS.FAILED },
       { where: { id: job.data.postId } },
     );
   }

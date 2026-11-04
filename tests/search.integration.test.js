@@ -16,15 +16,15 @@ jest.mock("../utils/middleware/middleware", () =>
   jest.requireActual("../utils/middleware/middleware"),
 );
 
-jest.mock("../enums/post.enum.js", () => ({
-  postsOrderType: { TOP: "TOP", NEW: "NEW" },
+jest.mock("../constants/post.constant.js", () => ({
+  POSTS_ORDER_TYPE: { TOP: "TOP", NEW: "NEW" },
 }));
 
-jest.mock("../enums/sort-order.enum.js", () => ({
-  SortOrder: { ASC: "ASC", DESC: "DESC" },
+jest.mock("../constants/sort-order.constant.js", () => ({
+  SORT_ORDER: { ASC: "ASC", DESC: "DESC" },
 }));
 
-jest.mock("../enums/subreddit.enum.js", () => ({
+jest.mock("../constants/subreddit.constant.js", () => ({
   SUBREDDIT_ORDER_BY_TYPES: { MEMBER_COUNT: "MEMBER_COUNT" },
 }));
 

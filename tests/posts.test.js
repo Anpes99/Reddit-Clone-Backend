@@ -20,8 +20,8 @@ jest.mock("../utils/db", () => ({
   },
 }));
 
-jest.mock("../enums/sort-order.enum", () => ({
-  SortOrder: { ASC: "ASC", DESC: "DESC" },
+jest.mock("../constants/sort-order.constant", () => ({
+  SORT_ORDER: { ASC: "ASC", DESC: "DESC" },
 }));
 
 jest.mock("../utils/embeddings", () => ({
@@ -51,12 +51,12 @@ jest.mock("../utils/middleware/requestRateLimiters", () => ({
   createPostRequestLimiter: (req, res, next) => next(),
 }));
 
-jest.mock("../enums/post.enum", () => ({
-  commentsSortBy: {
+jest.mock("../constants/post.constant", () => ({
+  COMMENTS_SORT_BY: {
     CREATED_AT: "createdAt",
     UP_VOTES: "upVotes",
   },
-  postModerationStatus: {
+  POST_MODERATION_STATUS: {
     PENDING: "pending",
   },
 }));

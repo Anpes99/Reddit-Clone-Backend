@@ -2,16 +2,16 @@ require("express-async-errors");
 const http = require("node:http");
 const express = require("express");
 
-jest.mock("../enums/subreddit.enum.js", () => ({
+jest.mock("../constants/subreddit.constant.js", () => ({
   SUBREDDIT_ORDER_BY_TYPES: {
     MEMBER_COUNT: "MEMBER_COUNT",
   },
-  SubredditModeratorRole: {
+  SUBREDDIT_MODERATOR_ROLE: {
     OWNER: "owner",
     MODERATOR: "moderator",
     MODERATOR_LIMITED: "moderator_limited",
   },
-  SubredditPermissions: {
+  SUBREDDIT_PERMISSIONS: {
     POSTS_MANAGE: "posts.manage",
     USERS_MANAGE: "users.manage",
     SETTINGS_MANAGE: "settings.manage",

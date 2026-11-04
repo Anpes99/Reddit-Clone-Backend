@@ -8,14 +8,14 @@ jest.mock("pgvector/sequelize", () => {
   return {};
 });
 
-jest.mock("../enums/subreddit.enum", () => ({
+jest.mock("../constants/subreddit.constant", () => ({
   SUBREDDIT_ORDER_BY_TYPES: { MEMBER_COUNT: "MEMBER_COUNT" },
-  SubredditModeratorRole: {
+  SUBREDDIT_MODERATOR_ROLE: {
     OWNER: "owner",
     MODERATOR: "moderator",
     MODERATOR_LIMITED: "moderator_limited",
   },
-  SubredditPermissions: {
+  SUBREDDIT_PERMISSIONS: {
     POSTS_MANAGE: "posts.manage",
     USERS_MANAGE: "users.manage",
     SETTINGS_MANAGE: "settings.manage",
@@ -31,9 +31,9 @@ jest.mock("../utils/middleware/middleware", () =>
   jest.requireActual("../utils/middleware/middleware"),
 );
 
-jest.mock("../enums/post.enum.js", () => ({
-  postsOrderType: { TOP: "TOP", NEW: "NEW" },
-  postModerationStatus: {
+jest.mock("../constants/post.constant.js", () => ({
+  POSTS_ORDER_TYPE: { TOP: "TOP", NEW: "NEW" },
+  POST_MODERATION_STATUS: {
     PENDING: "pending",
     COMPLETED: "completed",
     FAILED: "failed",
@@ -41,8 +41,8 @@ jest.mock("../enums/post.enum.js", () => ({
   },
 }));
 
-jest.mock("../enums/sort-order.enum.js", () => ({
-  SortOrder: { ASC: "ASC", DESC: "DESC" },
+jest.mock("../constants/sort-order.constant.js", () => ({
+  SORT_ORDER: { ASC: "ASC", DESC: "DESC" },
 }));
 
 jest.mock("../utils/embeddings", () => ({

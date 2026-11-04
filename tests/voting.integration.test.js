@@ -6,8 +6,8 @@ jest.mock("pgvector/sequelize", () => {
   return {};
 });
 
-jest.mock("../enums/subreddit.enum", () => ({
-  SubredditModeratorRole: {
+jest.mock("../constants/subreddit.constant", () => ({
+  SUBREDDIT_MODERATOR_ROLE: {
     OWNER: "owner",
     MODERATOR: "moderator",
     MODERATOR_LIMITED: "moderator_limited",

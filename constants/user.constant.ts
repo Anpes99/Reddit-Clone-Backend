@@ -1,14 +1,18 @@
-const USER_PAGE_CONTENT_TYPES = Object.freeze({
+export const USER_PAGE_CONTENT_TYPES = Object.freeze({
   POSTS: "posts",
   COMMENTS: "comments",
   OVERVIEW: "overview",
 });
-const USER_PAGE_CONTENT_SORT_BY_TYPES = Object.freeze({
+export type UserPageContentType =
+  (typeof USER_PAGE_CONTENT_TYPES)[keyof typeof USER_PAGE_CONTENT_TYPES];
+export const USER_PAGE_CONTENT_SORT_BY_TYPES = Object.freeze({
   NEW: "new",
   TOP: "top",
 });
+export type UserPageContentSortByType =
+  (typeof USER_PAGE_CONTENT_SORT_BY_TYPES)[keyof typeof USER_PAGE_CONTENT_SORT_BY_TYPES];
 
-const USER_NOTIFICATION_TYPES = Object.freeze({
+export const USER_NOTIFICATION_TYPES = Object.freeze({
   POST_REMOVED: "post_removed",
   IMAGE_REMOVED: "image_removed",
   POST_APPROVED: "post_approved",
@@ -28,9 +32,5 @@ const USER_NOTIFICATION_TYPES = Object.freeze({
 
   SYSTEM: "system",
 });
-
-module.exports = {
-  USER_PAGE_CONTENT_TYPES,
-  USER_PAGE_CONTENT_SORT_BY_TYPES,
-  USER_NOTIFICATION_TYPES,
-};
+export type UserNotificationType =
+  (typeof USER_NOTIFICATION_TYPES)[keyof typeof USER_NOTIFICATION_TYPES];

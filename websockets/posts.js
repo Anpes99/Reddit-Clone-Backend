@@ -1,4 +1,4 @@
-const { SortOrder } = require("../enums/sort-order.enum");
+const { SORT_ORDER } = require("../constants/sort-order.constant");
 const { sequelize } = require("../models/Comment");
 const { User, Post, Subreddit } = require("../models/index");
 
@@ -27,7 +27,7 @@ module.exports = function (io) {
 
         const options = {
           where: { safe: true },
-          order: [["createdAt", SortOrder.DESC]],
+          order: [["createdAt", SORT_ORDER.DESC]],
           offset,
           limit,
           include: [

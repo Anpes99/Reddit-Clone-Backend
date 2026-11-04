@@ -36,13 +36,13 @@ jest.mock("../utils/middleware/requestRateLimiters", () => ({
   signUpPerDayLimiter: (req, res, next) => next(),
 }));
 
-jest.mock("../enums/user.enum", () => ({
+jest.mock("../constants/user.constant", () => ({
   USER_PAGE_CONTENT_TYPES: {},
   USER_PAGE_CONTENT_SORT_BY_TYPES: {},
 }));
 
-jest.mock("../enums/sort-order.enum", () => ({
-  SortOrder: {},
+jest.mock("../constants/sort-order.constant", () => ({
+  SORT_ORDER: {},
 }));
 
 jest.mock("../queries/user/getUserPageOverviewPageFeedQuery", () => ({
