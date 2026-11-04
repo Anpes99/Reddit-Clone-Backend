@@ -166,7 +166,10 @@ searchRouter.post(
         imageUrl: post.image_url,
         commentCount: post.comment_count,
         createdAt: post.created_at,
-        subreddit: { name: post.subreddit_name, iconUrl: post.subreddit_icon_url },
+        subreddit: {
+          name: post.subreddit_name,
+          iconUrl: post.subreddit_icon_url,
+        },
       }));
       return res.send({
         posts: resultPosts,

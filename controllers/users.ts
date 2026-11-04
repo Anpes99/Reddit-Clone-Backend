@@ -1,47 +1,60 @@
-const bcrypt = require("bcrypt");
-const usersRouter = require("express").Router();
-const {
+import bcrypt from "bcrypt";
+import { Router, type Request } from "express";
+import { QueryTypes, type FindOptions, type InferAttributes } from "sequelize";
+import {
   User,
   Post,
   Subreddit,
   Comment,
   UserSubreddits,
   PasswordResetToken,
-} = require("../models/index");
-const { validate } = require("../utils/middleware/middleware");
-const {
+} from "../models/index";
+import { validate } from "../utils/middleware/middleware";
+import {
   postNewUserSchema,
   getUserPostsAndCommentsFeedSchema,
   forgottenPasswordSchema,
   resetPasswordSchema,
-} = require("../validators/user.validator");
-const {
+  type ForgottenPasswordBody,
+  type GetUserPostsAndCommentsFeedQuery,
+  type PostNewUserBody,
+  type ResetPasswordBody,
+} from "../validators/user.validator";
+import {
   USER_PAGE_CONTENT_TYPES,
   USER_PAGE_CONTENT_SORT_BY_TYPES,
-} = require("../constants/user.constant");
-const { SORT_ORDER } = require("../constants/sort-order.constant");
-const { sequelize } = require("../utils/db");
-const { QueryTypes } = require("sequelize");
-const {
+} from "../constants/user.constant";
+import { SORT_ORDER } from "../constants/sort-order.constant";
+import { sequelize } from "../utils/db";
+import {
   getUserPageOverviewPageFeedQuery,
-} = require("../queries/user/getUserPageOverviewPageFeedQuery");
-const {
+  type OverviewFeedRow,
+} from "../queries/user/getUserPageOverviewPageFeedQuery";
+import {
   signUpLimiter,
   signUpPerDayLimiter,
-} = require("../utils/middleware/requestRateLimiters");
-const {
+} from "../utils/middleware/requestRateLimiters";
+import {
   sendVerificationEmail,
   sendPasswordResetEmail,
   hashPasswordResetToken,
-} = require("../utils/email");
-const { AppError } = require("../errors");
+} from "../utils/email";
+import { AppError } from "../errors";
+
+// totalcount is bigint, which pg returns as a string
+type ContributionsCountRow = { totalcount: string };
+
+const usersRouter = Router();
 
 usersRouter.post(
   "/",
   signUpLimiter,
   signUpPerDayLimiter,
   validate(postNewUserSchema),
-  async (request, response) => {
+  async (
+    request: Request<Record<string, string>, unknown, PostNewUserBody>,
+    response,
+  ) => {
     const { body } = request;
 
     const userFound = await User.findOne({
@@ -103,7 +116,7 @@ usersRouter.get("/:username", async (request, response) => {
     where: { userId: user.id },
   });
 
-  const contributionsCount = await sequelize.query(
+  const contributionsCount = await sequelize.query<ContributionsCountRow>(
     `
           SELECT
           (SELECT COUNT(*) FROM posts WHERE user_id = :userId and safe = true) +
@@ -132,9 +145,11 @@ usersRouter.get("/:username", async (request, response) => {
 usersRouter.get(
   "/:username/feed",
   validate(getUserPostsAndCommentsFeedSchema, "query"),
-  async (request, response) => {
+  async (request: Request<{ username: string }>, response) => {
     const { username } = request.params;
-    const { offset, contentType, sortByType, getTotalCount } = request.query;
+
+    const { offset, contentType, sortByType, getTotalCount } =
+      request.query as unknown as GetUserPostsAndCommentsFeedQuery;
 
     const user = await User.findOne({
       where: { username },
@@ -148,7 +163,7 @@ usersRouter.get(
       });
     }
     if (contentType === USER_PAGE_CONTENT_TYPES.POSTS) {
-      const options = {
+      const options: FindOptions<InferAttributes<Post>> = {
         where: { userId: user.id, safe: true },
         order:
           sortByType === USER_PAGE_CONTENT_SORT_BY_TYPES.TOP
@@ -243,9 +258,8 @@ usersRouter.get(
           return {
             data: {
               ...comment.get({ plain: true }),
-              subreddit: comment.post.subreddit,
+              subreddit: comment.post!.subreddit,
               post: comment.post,
-              comment: comment.comment,
             },
             type: "comment",
           };
@@ -255,13 +269,16 @@ usersRouter.get(
     }
 
     if (contentType === USER_PAGE_CONTENT_TYPES.OVERVIEW) {
-      const result = await sequelize.query(getUserPageOverviewPageFeedQuery, {
-        replacements: { userId: user.id, offset },
-        type: QueryTypes.SELECT,
-      });
+      const result = await sequelize.query<OverviewFeedRow>(
+        getUserPageOverviewPageFeedQuery,
+        {
+          replacements: { userId: user.id, offset },
+          type: QueryTypes.SELECT,
+        },
+      );
 
       const totalCount = getTotalCount
-        ? await sequelize.query(
+        ? await sequelize.query<ContributionsCountRow>(
             `
           SELECT
           (SELECT COUNT(*) FROM posts WHERE user_id = :userId and safe = true) +
@@ -277,7 +294,7 @@ usersRouter.get(
         : undefined;
 
       return response.send({
-        feedItems: result.map(({ total_count, ...item }) => ({
+        feedItems: result.map((item) => ({
           data: {
             ...item.data,
             subreddit: item.subreddit,
@@ -299,7 +316,10 @@ usersRouter.get(
 usersRouter.post(
   "/forgotten-password",
   validate(forgottenPasswordSchema),
-  async (request, response) => {
+  async (
+    request: Request<Record<string, string>, unknown, ForgottenPasswordBody>,
+    response,
+  ) => {
     const email = request.body.email;
 
     const user = await User.findOne({ where: { email } });
@@ -323,7 +343,10 @@ usersRouter.post(
 usersRouter.post(
   "/reset-password",
   validate(resetPasswordSchema),
-  async (request, response) => {
+  async (
+    request: Request<Record<string, string>, unknown, ResetPasswordBody>,
+    response,
+  ) => {
     const { password, passwordResetToken } = request.body;
 
     const hashedPasswordResetToken = hashPasswordResetToken(passwordResetToken);
@@ -372,4 +395,4 @@ usersRouter.post(
   },
 );
 
-module.exports = usersRouter;
+export = usersRouter;

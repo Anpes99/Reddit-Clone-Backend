@@ -4,9 +4,11 @@ import {
   type CreationOptional,
   type InferAttributes,
   type InferCreationAttributes,
+  type NonAttribute,
 } from "sequelize";
 
 import { sequelize } from "../utils/db";
+import type Subreddit from "./Subreddit";
 import {
   POST_MODERATION_STATUS,
   type PostModerationStatus,
@@ -28,6 +30,9 @@ class Post extends Model<InferAttributes<Post>, InferCreationAttributes<Post>> {
   declare moderationStatus: CreationOptional<PostModerationStatus | null>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+
+  // Associations from models/index, only set when included in a query
+  declare subreddit?: NonAttribute<Subreddit | null>;
 }
 
 Post.init(

@@ -185,16 +185,16 @@ test("top post search returns results in vector relevance order", async () => {
     "Closest semantic match",
     "Next closest semantic match",
   ]);
-  expect(response.body.posts[0]).toMatchObject({
+  expect(response.body.posts[0]).toEqual({
     id: 101,
-    similarity: 0.94,
-    userId: 7,
-    subredditId: 3,
+    title: "Closest semantic match",
     upVotes: 18,
+    downVotes: 1,
+    imageUrl: null,
+    commentCount: 4,
+    createdAt: "2026-10-28T12:00:00.000Z",
     subreddit: { name: "cats", iconUrl: null },
-    totalCount: 2,
   });
-  expect(response.body.posts[0]).not.toHaveProperty("embedding");
   expect(response.body.totalCount).toBe(2);
   expect(response.body.searchWordEmbedding).toBe("[0.11,0.22,0.33]");
 });

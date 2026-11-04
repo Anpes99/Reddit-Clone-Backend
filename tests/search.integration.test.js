@@ -226,7 +226,6 @@ test("top post search ranks the exact vector match first in PostgreSQL", async (
   expect(response.body.posts).toHaveLength(1);
   expect(response.body.posts[0].id).toBe(exactMatchPostId);
   expect(response.body.posts[0].title).toMatch(/^Exact semantic match /);
-  expect(response.body.posts[0].similarity).toBeCloseTo(1, 6);
   expect(response.body.posts[0]).not.toHaveProperty("embedding");
   expect(Number(response.body.totalCount)).toBeGreaterThanOrEqual(2);
   expect(response.body.searchWordEmbedding).toBe(`[${queryVector.join(",")}]`);

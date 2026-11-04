@@ -4,9 +4,11 @@ import {
   type CreationOptional,
   type InferAttributes,
   type InferCreationAttributes,
+  type NonAttribute,
 } from "sequelize";
 
 import { sequelize } from "../utils/db";
+import type Post from "./Post";
 
 class Comment extends Model<
   InferAttributes<Comment>,
@@ -23,6 +25,10 @@ class Comment extends Model<
   declare descendantCount: CreationOptional<number>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+
+  // Associations from models/index, only set when included in a query
+  declare post?: NonAttribute<Post>;
+  declare parentComment?: NonAttribute<Comment | null>;
 }
 
 Comment.init(
