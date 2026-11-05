@@ -1,7 +1,15 @@
 import { rateLimit } from "express-rate-limit";
-import { RedisStore } from "rate-limit-redis";
-import { redisClient } from "../redis.js";
+import { RedisStore, type SendCommandFn } from "rate-limit-redis";
+import { connectRedis, redisClient } from "../redis.js";
 import { AppError } from "../../errors/index.js";
+
+// RedisStore loads its Lua scripts as soon as it is constructed, which happens
+// at import time before app.ts connects Redis. Without waiting here the script
+// load fails with ClientClosedError and the store caches that rejection.
+const sendRedisCommand: SendCommandFn = async (...args) => {
+  await connectRedis();
+  return redisClient.sendCommand(args);
+};
 
 const tooManyRequestsError = (message: string) =>
   new AppError({
@@ -28,7 +36,7 @@ export const loginIpLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+    sendCommand: sendRedisCommand,
     prefix: "rl:login:ip:",
   }),
 
@@ -46,7 +54,7 @@ export const signUpLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+    sendCommand: sendRedisCommand,
     prefix: "rl:signup:ip:",
   }),
 
@@ -64,7 +72,7 @@ export const signUpPerDayLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+    sendCommand: sendRedisCommand,
     prefix: "rl:signup-day:ip:",
   }),
 
@@ -82,7 +90,7 @@ export const createPostRequestLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+    sendCommand: sendRedisCommand,
   }),
   keyGenerator: (req) => `create-post:user:${req.user!.id}`,
 
@@ -102,7 +110,7 @@ export const createCommentRequestLimiter = rateLimit({
   legacyHeaders: false,
 
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+    sendCommand: sendRedisCommand,
   }),
   keyGenerator: (req) => `create-comment:user:${req.user!.id}`,
 

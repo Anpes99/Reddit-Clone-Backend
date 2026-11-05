@@ -3,11 +3,17 @@ import type Subreddit from "../models/Subreddit";
 
 type LastSeenAtInMs = number;
 
-const subreddits = new Map<Subreddit["name"], Map<SocketUser["id"], LastSeenAtInMs>>();
+const subreddits = new Map<
+  Subreddit["name"],
+  Map<SocketUser["id"], LastSeenAtInMs>
+>();
 
 const ONLINE_TIMEOUT_MS = 60_000;
 
-const refreshPresence = (userId: SocketUser["id"], subredditName: Subreddit["name"]) => {
+const refreshPresence = (
+  userId: SocketUser["id"],
+  subredditName: Subreddit["name"],
+) => {
   if (!subreddits.has(subredditName)) {
     subreddits.set(subredditName, new Map());
   }
@@ -15,7 +21,10 @@ const refreshPresence = (userId: SocketUser["id"], subredditName: Subreddit["nam
   subreddits.get(subredditName)!.set(userId, Date.now());
 };
 
-const leaveSubreddit = (userId: SocketUser["id"] | undefined, subredditName: Subreddit["name"]) => {
+const leaveSubreddit = (
+  userId: SocketUser["id"] | undefined,
+  subredditName: Subreddit["name"],
+) => {
   const users = subreddits.get(subredditName);
   if (!users) return;
 
@@ -26,7 +35,9 @@ const leaveSubreddit = (userId: SocketUser["id"] | undefined, subredditName: Sub
   }
 };
 
-export const getOnlineSubredditUserCount = (subredditName: Subreddit["name"]) => {
+export const getOnlineSubredditUserCount = (
+  subredditName: Subreddit["name"],
+) => {
   const users = subreddits.get(subredditName);
   if (!users) return 0;
 
