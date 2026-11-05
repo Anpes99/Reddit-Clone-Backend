@@ -1,12 +1,38 @@
-const { Worker } = require("bullmq");
-const { bullConnection } = require("../utils/bullmq");
-const { Post, UserNotifications } = require("../models");
-const logger = require("../utils/logger");
-const { POST_MODERATION_STATUS } = require("../constants/post.constant");
-const axios = require("axios");
-const { USER_NOTIFICATION_TYPES } = require("../constants/user.constant");
+import { Worker } from "bullmq";
+import axios from "axios";
+import { bullConnection } from "../utils/bullmq";
+import { Post, UserNotifications } from "../models/index";
+import logger from "../utils/logger";
+import { POST_MODERATION_STATUS } from "../constants/post.constant";
+import { USER_NOTIFICATION_TYPES } from "../constants/user.constant";
+import type { ModerationJobData } from "../queues/moderation.queue";
 
-const worker = new Worker(
+type ModerationJobResult = {
+  postId: number;
+  safe: boolean;
+};
+
+type SightengineResponse = {
+  status: string;
+  error?: { message?: string };
+  nudity?: {
+    sexual_activity?: number;
+    sexual_display?: number;
+    raw?: number;
+    erotica?: number;
+    suggestive_classes?: { visibly_undressed?: number };
+  };
+  offensive?: {
+    nazi?: number;
+    supremacist?: number;
+    terrorist?: number;
+    confederate?: number;
+  };
+  gore?: { prob?: number };
+  "self-harm"?: { prob?: number };
+};
+
+const worker = new Worker<ModerationJobData, ModerationJobResult>(
   "image-moderation",
 
   async (job) => {
@@ -17,7 +43,7 @@ const worker = new Worker(
       throw new Error("post not found");
     }
 
-    const result = await axios.get(
+    const result = await axios.get<SightengineResponse>(
       "https://api.sightengine.com/1.0/check.json",
       {
         params: {
@@ -99,7 +125,8 @@ const worker = new Worker(
 
 worker.on("failed", async (job, err) => {
   logger.error({ err }, `Moderation failed: ${job?.id}`);
-  if (job?.attemptsMade >= job?.opts?.attempts) {
+  const attempts = job?.opts.attempts;
+  if (job && attempts !== undefined && job.attemptsMade >= attempts) {
     await Post.update(
       { moderationStatus: POST_MODERATION_STATUS.FAILED },
       { where: { id: job.data.postId } },
