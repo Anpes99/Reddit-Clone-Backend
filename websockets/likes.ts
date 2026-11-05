@@ -1,11 +1,12 @@
-const {
+import type { Event } from "socket.io";
+import {
   Comment,
   Post,
   UserRatedPosts,
   UserRatedComments,
-} = require("../models/index");
-const { redisClient } = require("../utils/redis");
-const {
+} from "../models/index";
+import { redisClient } from "../utils/redis";
+import {
   cancelCommentUpvote,
   cancelCommentDownvote,
   turnCommentDownvoteIntoUpvote,
@@ -18,17 +19,20 @@ const {
   turnPostUpvoteIntoDownvote,
   cancelPostDownvote,
   createNewPostDownvote,
-} = require("./utils");
+} from "./utils";
+import type { AppServer, AppSocket } from "./types";
+
+type SocketMiddlewareNext = (err?: Error) => void;
 
 const throttlePostLikes =
-  (socket) =>
-  async ([event, ...args], next) => {
+  (socket: AppSocket) =>
+  async ([event, ...args]: Event, next: SocketMiddlewareNext) => {
     const throttledEvents = ["likePost", "dislikePost"];
     if (!throttledEvents.includes(event)) {
       return next();
     }
 
-    const userId = socket.data.user.id;
+    const userId = socket.data.user!.id;
     const postId = args[0]?.postId;
 
     if (!postId) {
@@ -48,14 +52,14 @@ const throttlePostLikes =
   };
 
 const throttleCommentLikes =
-  (socket) =>
-  async ([event, ...args], next) => {
+  (socket: AppSocket) =>
+  async ([event, ...args]: Event, next: SocketMiddlewareNext) => {
     const throttledEvents = ["likeComment", "dislikeComment"];
     if (!throttledEvents.includes(event)) {
       return next();
     }
 
-    const userId = socket.data.user.id;
+    const userId = socket.data.user!.id;
     const commentId = args[0]?.commentId;
 
     if (!commentId) {
@@ -75,8 +79,8 @@ const throttleCommentLikes =
   };
 
 const requireAuth =
-  (socket) =>
-  ([event], next) => {
+  (socket: AppSocket) =>
+  ([event]: Event, next: SocketMiddlewareNext) => {
     const protectedEvents = [
       "likePost",
       "dislikePost",
@@ -92,7 +96,7 @@ const requireAuth =
     return next();
   };
 
-module.exports = function (io) {
+export = function (io: AppServer) {
   io.on("connection", (socket) => {
     socket.use(requireAuth(socket));
 

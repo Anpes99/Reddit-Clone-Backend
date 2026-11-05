@@ -1,13 +1,18 @@
-const { SORT_ORDER } = require("../constants/sort-order.constant");
-const { sequelize } = require("../models/Comment");
-const { User, Post, Subreddit } = require("../models/index");
+import type { CountOptions, FindOptions, InferAttributes } from "sequelize";
+import { SORT_ORDER } from "../constants/sort-order.constant";
+import { User, Post, Subreddit } from "../models/index";
+import { sequelize } from "../utils/db";
+import type { AppServer } from "./types";
 
-module.exports = function (io) {
+type PostOptions = FindOptions<InferAttributes<Post>>;
+type PostCountOptions = CountOptions<InferAttributes<Post>>;
+
+export = function (io: AppServer) {
   io.on("connection", (socket) => {
     socket.on(
       "fetch_more_posts",
       async ({ order, sortBy, offset, limit, subredditId, username }, cb) => {
-        const totalCountOptions = { where: { safe: true } };
+        const totalCountOptions: PostCountOptions = { where: { safe: true } };
         if (username) {
           totalCountOptions.include = [
             {
@@ -25,7 +30,7 @@ module.exports = function (io) {
           };
         const totalCount = await Post.count(totalCountOptions);
 
-        const options = {
+        const options: PostOptions = {
           where: { safe: true },
           order: [["createdAt", SORT_ORDER.DESC]],
           offset,
@@ -59,7 +64,7 @@ module.exports = function (io) {
     socket.on(
       "fetch_top_posts",
       async ({ offset, subredditId, username }, cb) => {
-        const totalCountOptions = { where: { safe: true } };
+        const totalCountOptions: PostCountOptions = { where: { safe: true } };
         if (username) {
           totalCountOptions.include = [
             {
@@ -76,7 +81,7 @@ module.exports = function (io) {
           };
         const totalCount = await Post.count(totalCountOptions);
 
-        const options = {
+        const options: PostOptions = {
           where: { safe: true },
           offset,
           limit: 5,

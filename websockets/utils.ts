@@ -1,7 +1,40 @@
-const { UserRatedComments, UserRatedPosts } = require("../models/index");
-const { sequelize } = require("../utils/db");
+import type { Transaction } from "sequelize";
+import { UserRatedComments, UserRatedPosts } from "../models/index";
+import type Comment from "../models/Comment";
+import type Post from "../models/Post";
+import { sequelize } from "../utils/db";
+import type { AppServer } from "./types";
 
-const applyVoteChange = async (writeVoteRow, updateCounters) => {
+type CommentVoteChangeArgs = {
+  dbComment: Comment;
+  dbExistingVoteByUser: UserRatedComments;
+  io: AppServer;
+};
+
+type NewCommentVoteArgs = {
+  dbComment: Comment;
+  userId: number;
+  io: AppServer;
+};
+
+type PostVoteChangeArgs = {
+  dbPost: Post;
+  dbExistingPostVoteByUser: UserRatedPosts;
+  postId: number;
+  io: AppServer;
+};
+
+type NewPostVoteArgs = {
+  dbPost: Post;
+  postId: number;
+  userId: number;
+  io: AppServer;
+};
+
+const applyVoteChange = async (
+  writeVoteRow: (transaction: Transaction) => Promise<unknown>,
+  updateCounters: (transaction: Transaction) => Promise<unknown>,
+) => {
   await sequelize.transaction(async (transaction) => {
     const affectedRows = await writeVoteRow(transaction);
     if (!affectedRows) {
@@ -11,7 +44,11 @@ const applyVoteChange = async (writeVoteRow, updateCounters) => {
   });
 };
 
-const cancelCommentUpvote = async ({ dbComment, dbExistingVoteByUser, io }) => {
+const cancelCommentUpvote = async ({
+  dbComment,
+  dbExistingVoteByUser,
+  io,
+}: CommentVoteChangeArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedComments.destroy({
@@ -30,7 +67,7 @@ const cancelCommentDownvote = async ({
   dbComment,
   dbExistingVoteByUser,
   io,
-}) => {
+}: CommentVoteChangeArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedComments.destroy({
@@ -49,7 +86,7 @@ const turnCommentDownvoteIntoUpvote = async ({
   dbComment,
   dbExistingVoteByUser,
   io,
-}) => {
+}: CommentVoteChangeArgs) => {
   await applyVoteChange(
     async (transaction) => {
       const [updatedRows] = await UserRatedComments.update(
@@ -73,7 +110,7 @@ const turnCommentUpvoteIntoDownvote = async ({
   dbComment,
   dbExistingVoteByUser,
   io,
-}) => {
+}: CommentVoteChangeArgs) => {
   await applyVoteChange(
     async (transaction) => {
       const [updatedRows] = await UserRatedComments.update(
@@ -93,7 +130,11 @@ const turnCommentUpvoteIntoDownvote = async ({
   });
 };
 
-const createNewUpvoteForComment = async ({ dbComment, userId, io }) => {
+const createNewUpvoteForComment = async ({
+  dbComment,
+  userId,
+  io,
+}: NewCommentVoteArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedComments.create(
@@ -108,7 +149,11 @@ const createNewUpvoteForComment = async ({ dbComment, userId, io }) => {
   });
 };
 
-const createNewDownvoteForComment = async ({ dbComment, userId, io }) => {
+const createNewDownvoteForComment = async ({
+  dbComment,
+  userId,
+  io,
+}: NewCommentVoteArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedComments.create(
@@ -128,7 +173,7 @@ const cancelPostUpvote = async ({
   dbExistingPostVoteByUser,
   postId,
   io,
-}) => {
+}: PostVoteChangeArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedPosts.destroy({
@@ -145,7 +190,7 @@ const turnPostDownvoteIntoUpvote = async ({
   dbExistingPostVoteByUser,
   postId,
   io,
-}) => {
+}: PostVoteChangeArgs) => {
   await applyVoteChange(
     async (transaction) => {
       const [updatedRows] = await UserRatedPosts.update(
@@ -162,7 +207,12 @@ const turnPostDownvoteIntoUpvote = async ({
   io.emit("post_likes_changed", { postId, pointsToAddOrMinus: 2 });
 };
 
-const createNewPostUpvote = async ({ dbPost, postId, userId, io }) => {
+const createNewPostUpvote = async ({
+  dbPost,
+  postId,
+  userId,
+  io,
+}: NewPostVoteArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedPosts.create({ userId, postId, rating: 1 }, { transaction }),
@@ -176,7 +226,7 @@ const turnPostUpvoteIntoDownvote = async ({
   postId,
   dbExistingPostVoteByUser,
   io,
-}) => {
+}: PostVoteChangeArgs) => {
   await applyVoteChange(
     async (transaction) => {
       const [updatedRows] = await UserRatedPosts.update(
@@ -193,7 +243,12 @@ const turnPostUpvoteIntoDownvote = async ({
   io.emit("post_likes_changed", { postId, pointsToAddOrMinus: -2 });
 };
 
-const cancelPostDownvote = async ({ dbPost, userId, postId, io }) => {
+const cancelPostDownvote = async ({
+  dbPost,
+  userId,
+  postId,
+  io,
+}: NewPostVoteArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedPosts.destroy({
@@ -205,7 +260,12 @@ const cancelPostDownvote = async ({ dbPost, userId, postId, io }) => {
   io.emit("post_likes_changed", { postId, pointsToAddOrMinus: 1 });
 };
 
-const createNewPostDownvote = async ({ dbPost, postId, userId, io }) => {
+const createNewPostDownvote = async ({
+  dbPost,
+  postId,
+  userId,
+  io,
+}: NewPostVoteArgs) => {
   await applyVoteChange(
     (transaction) =>
       UserRatedPosts.create({ userId, postId, rating: -1 }, { transaction }),
@@ -214,7 +274,7 @@ const createNewPostDownvote = async ({ dbPost, postId, userId, io }) => {
   io.emit("post_likes_changed", { postId, pointsToAddOrMinus: -1 });
 };
 
-module.exports = {
+export {
   cancelCommentUpvote,
   cancelCommentDownvote,
   turnCommentDownvoteIntoUpvote,
