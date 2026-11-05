@@ -2,22 +2,22 @@
 
 ![Backend tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg) ![Frontend tests](https://github.com/Anpes99/Reddit-Clone-Frontend/actions/workflows/test.yml/badge.svg)
 
-A Reddit-style community platform built end to end with **React, Redux Toolkit, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, asynchronous image moderation through a background job queue with persistent user notifications of the outcome, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
+A Reddit-style community platform built end to end with **React, Redux Toolkit, TypeScript, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, asynchronous image moderation through a background job queue with persistent user notifications of the outcome, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
 
 **[Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)** · [Frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) · [Backend repository](https://github.com/Anpes99/Reddit-Clone-Backend)
 
-| Demo login | |
-|---|---|
+| Demo login   |             |
+| ------------ | ----------- |
 | **Username** | `demo_user` |
-| **Password** | `password` |
+| **Password** | `password`  |
 
 ## Tech Stack
 
 - **Frontend:** React 18, Redux Toolkit, React Router, Tailwind CSS, Material UI, Formik + Yup, Socket.IO client
-- **Backend:** Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, BullMQ, Socket.IO, Joi, Pino
+- **Backend:** TypeScript (strict mode), Node.js, Express, PostgreSQL (pgvector, pg_trgm), Sequelize ORM + migrations, Redis, BullMQ, Socket.IO, Joi, Pino
 - **Auth & security:** JWT access tokens, rotating refresh tokens revoked in Redis, email verification, Helmet, CSRF origin checks, Redis-backed rate limiting
 - **Integrations:** Voyage AI embeddings, Sightengine image moderation, OpenAI Moderation API, NewsAPI, AWS S3, Brevo + Nodemailer
-- **Testing & tooling:** Jest, React Testing Library, PostgreSQL integration tests, GitHub Actions CI, Docker Compose, ESLint, Prettier
+- **Testing & tooling:** Jest (ts-jest), React Testing Library, PostgreSQL integration tests, GitHub Actions CI, Docker Compose, ESLint, Prettier
 - **Deployment:** Heroku
 
 ## Engineering Highlights
@@ -75,7 +75,7 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 ### Quality
 
 **250+ tests in CI**
-177 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 84 frontend tests (React Testing Library) run on every push with GitHub Actions, and the backend pipeline also enforces ESLint and Prettier checks. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
+177 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 84 frontend tests (React Testing Library) run on every push with GitHub Actions. The backend pipeline also fails on ESLint errors, Prettier formatting, strict TypeScript type errors or a broken production build before running the tests against a pgvector PostgreSQL service container. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
 
 ## Features
 
