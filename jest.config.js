@@ -1,5 +1,6 @@
 module.exports = {
   testEnvironment: "node",
+  modulePathIgnorePatterns: ["<rootDir>/dist/"],
   transform: {
     // Type checking is left to `npm run typecheck`, so tests stay fast
     "^.+\\.ts$": ["ts-jest", { diagnostics: false }],

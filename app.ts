@@ -91,7 +91,8 @@ app.use("/api/notifications", notificationsRouter);
 
 if (runtime.NODE_ENV === "production") {
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "build", "index.html"));
+    // Relative to the working directory, like express.static("build") above
+    res.sendFile(path.resolve("build", "index.html"));
   });
 }
 app.use(middleware.unknownEndpoint);

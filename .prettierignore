@@ -1,4 +1,5 @@
 build/
+dist/
 migrations_old/
 node_modules/
 package-lock.json

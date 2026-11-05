@@ -1,0 +1,15 @@
+{
+  // Compiles the app to dist/ for production; tsconfig.json is for type checking
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "allowJs": false,
+    "checkJs": false,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "build", "dist", "tests"]
+}

@@ -20,5 +20,5 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "build", "migrations_old"]
+  "exclude": ["node_modules", "build", "dist", "migrations_old"]
 }

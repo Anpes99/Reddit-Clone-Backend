@@ -14,6 +14,7 @@ COPY Reddit-Clone-Backend/package.json Reddit-Clone-Backend/package-lock.json ./
 RUN npm ci
 COPY Reddit-Clone-Backend/ ./
 COPY --from=frontend /frontend/build ./build
+RUN npm run build
 
 ENV NODE_ENV=production
 EXPOSE 3001

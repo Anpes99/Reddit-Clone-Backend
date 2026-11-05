@@ -4,7 +4,7 @@ const tseslint = require("typescript-eslint");
 
 module.exports = [
   {
-    ignores: ["build/", "migrations_old/"],
+    ignores: ["build/", "dist/", "migrations_old/"],
   },
   js.configs.recommended,
   {
