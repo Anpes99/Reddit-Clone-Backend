@@ -1,13 +1,28 @@
-require("express-async-errors");
-const runtime = require("./utils/runtime");
-const { connectToDatabase } = require("./utils/db");
-const { connectRedis } = require("./utils/redis");
+
+import "express-async-errors";
+import path from "path";
+import cors from "cors";
+import express from "express";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import * as runtime from "./utils/runtime";
+import { connectToDatabase } from "./utils/db";
+import { connectRedis } from "./utils/redis";
+import * as middleware from "./utils/middleware/middleware";
+import { generalRequestLimiter } from "./utils/middleware/requestRateLimiters";
+import usersRouter from "./controllers/users";
+import authRouter from "./controllers/auth";
+import postsRouter from "./controllers/posts";
+import newsRouter from "./controllers/news";
+import commentRouter from "./controllers/comments";
+import subredditsRouter from "./controllers/subreddits";
+import utilsRouter from "./controllers/utils";
+import searchRouter from "./controllers/search";
+import loggedInUserRouter from "./controllers/loggedInUser";
+import verifyEmailRouter from "./controllers/verifyEmail";
+import notificationsRouter from "./controllers/notifications";
+
 connectRedis();
-const cors = require("cors");
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const helmet = require("helmet");
-const middleware = require("./utils/middleware/middleware");
 const app = express();
 
 app.use(middleware.httpLogger);
@@ -47,28 +62,11 @@ app.use(
     credentials: true,
   }),
 );
-const {
-  generalRequestLimiter,
-} = require("./utils/middleware/requestRateLimiters");
-
 app.use(generalRequestLimiter);
 
 app.use(express.static("build"));
 app.use(express.json());
 app.use(cookieParser());
-
-const usersRouter = require("./controllers/users");
-const authRouter = require("./controllers/auth");
-const postsRouter = require("./controllers/posts");
-const newsRouter = require("./controllers/news");
-const commentRouter = require("./controllers/comments");
-const subredditsRouter = require("./controllers/subreddits");
-const utilsRouter = require("./controllers/utils");
-const path = require("path");
-const searchRouter = require("./controllers/search");
-const loggedInUserRouter = require("./controllers/loggedInUser");
-const verifyEmailRouter = require("./controllers/verifyEmail");
-const notificationsRouter = require("./controllers/notifications");
 
 connectToDatabase();
 
@@ -99,4 +97,4 @@ if (runtime.NODE_ENV === "production") {
 app.use(middleware.unknownEndpoint);
 app.use(middleware.errorHandler);
 
-module.exports = app;
+export = app;
