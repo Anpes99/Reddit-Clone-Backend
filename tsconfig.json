@@ -9,7 +9,7 @@
 
     "allowJs": true,
 
-    "checkJs": false,
+    "checkJs": true,
 
     "strict": true,
     "noFallthroughCasesInSwitch": true,

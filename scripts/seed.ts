@@ -1,12 +1,13 @@
 // Fills a local database with demo users, communities, posts, comments and
 // votes. Run in Docker with: docker compose exec app npm run seed
 // Every seeded user logs in with the password "password".
-require("dotenv").config();
+import "dotenv/config";
 
-const bcrypt = require("bcrypt");
-const moment = require("moment");
-const { sequelize } = require("../utils/db");
-const {
+import bcrypt from "bcrypt";
+import moment from "moment";
+import type { Transaction } from "sequelize";
+import { disableQueryLogging, sequelize } from "../utils/db";
+import {
   User,
   Subreddit,
   SubredditModerators,
@@ -17,20 +18,26 @@ const {
   UserRatedComments,
   SubredditLeaderboard,
   SubredditLeaderboardSubreddit,
-} = require("../models");
-const { SUBREDDIT_MODERATOR_ROLE } = require("../constants/subreddit.constant");
+} from "../models/index";
+import type CommentModel from "../models/Comment";
+import type PostModel from "../models/Post";
+import type SubredditModel from "../models/Subreddit";
+import type UserModel from "../models/User";
+import { SUBREDDIT_MODERATOR_ROLE } from "../constants/subreddit.constant";
 
 const LOCAL_DATABASE_HOSTS = ["localhost", "127.0.0.1", "db"];
 const PASSWORD = "password";
 
 // Deterministic random numbers so every seed run produces the same data.
-const createRandom = (seed) => () => {
+const createRandom = (seed: number) => () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
   return seed / 4294967296;
 };
 const random = createRandom(42);
-const randomInt = (min, max) => min + Math.floor(random() * (max - min + 1));
-const pick = (items) => items[Math.floor(random() * items.length)];
+const randomInt = (min: number, max: number) =>
+  min + Math.floor(random() * (max - min + 1));
+const pick = <T>(items: readonly T[]): T =>
+  items[Math.floor(random() * items.length)];
 
 const LOREM_WORDS =
   `lorem ipsum dolor sit amet consectetur adipiscing elit sed do
@@ -40,12 +47,12 @@ duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla
 pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia
 deserunt mollit anim id est laborum`.split(/\s+/);
 
-const loremWords = (count) => {
+const loremWords = (count: number) => {
   const words = Array.from({ length: count }, () => pick(LOREM_WORDS));
   const text = words.join(" ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
-const loremSentences = (count) =>
+const loremSentences = (count: number) =>
   Array.from({ length: count }, () => `${loremWords(randomInt(6, 14))}.`).join(
     " ",
   );
@@ -76,7 +83,12 @@ const SUBREDDITS = Array.from({ length: SUBREDDIT_COUNT }, (_, index) => {
 });
 
 // Comments are [author, text, replies], nested up to two replies deep.
-const createLoremComments = (authors, depth) => {
+type SeedComment = [author: string, text: string, replies: SeedComment[]];
+
+const createLoremComments = (
+  authors: string[],
+  depth: number,
+): SeedComment[] => {
   const count = depth === 0 ? randomInt(0, 3) : randomInt(0, 2);
 
   return Array.from({ length: count }, () => [
@@ -106,7 +118,7 @@ const createRandomEmbedding = () => {
 };
 
 const assertLocalDatabase = () => {
-  const host = new URL(process.env.DATABASE_URI).hostname;
+  const host = new URL(process.env.DATABASE_URI as string).hostname;
 
   if (!LOCAL_DATABASE_HOSTS.includes(host)) {
     throw new Error(
@@ -116,7 +128,12 @@ const assertLocalDatabase = () => {
 };
 
 // Backdate rows so the feed spans the past week instead of the last second.
-const setCreatedAt = async (table, id, createdAt, transaction) => {
+const setCreatedAt = async (
+  table: string,
+  id: number,
+  createdAt: Date,
+  transaction: Transaction,
+) => {
   await sequelize.query(
     `UPDATE ${table} SET created_at = :createdAt, updated_at = :createdAt WHERE id = :id`,
     { replacements: { createdAt, id }, transaction },
@@ -125,10 +142,15 @@ const setCreatedAt = async (table, id, createdAt, transaction) => {
 
 // Each user other than the author votes with some probability, mostly up.
 // Returns the vote totals for the post or comment.
-const createVotes = async (
-  { Model, idField, id, authorId, users },
-  transaction,
-) => {
+const createVotes = async ({
+  createVote,
+  authorId,
+  users,
+}: {
+  createVote: (userId: number, rating: number) => Promise<unknown>;
+  authorId: number | null;
+  users: UserModel[];
+}) => {
   let upVotes = 0;
   let downVotes = 0;
 
@@ -139,19 +161,24 @@ const createVotes = async (
     if (rating === 1) upVotes++;
     else downVotes++;
 
-    await Model.create(
-      { userId: user.id, [idField]: id, rating },
-      { transaction },
-    );
+    await createVote(user.id, rating);
   }
 
   return { upVotes, downVotes };
 };
 
+type CreateCommentsContext = {
+  post: PostModel;
+  parentComment: CommentModel | null;
+  createdAt: Date;
+  usersByName: Record<string, UserModel>;
+  users: UserModel[];
+};
+
 const createComments = async (
-  comments,
-  { post, parentComment, createdAt, usersByName, users },
-  transaction,
+  comments: SeedComment[],
+  { post, parentComment, createdAt, usersByName, users }: CreateCommentsContext,
+  transaction: Transaction,
 ) => {
   for (const [author, text, replies] of comments) {
     const commentCreatedAt = moment(createdAt)
@@ -169,16 +196,15 @@ const createComments = async (
     );
     await setCreatedAt("comments", comment.id, commentCreatedAt, transaction);
 
-    const votes = await createVotes(
-      {
-        Model: UserRatedComments,
-        idField: "commentId",
-        id: comment.id,
-        authorId: comment.userId,
-        users,
-      },
-      transaction,
-    );
+    const votes = await createVotes({
+      createVote: (userId, rating) =>
+        UserRatedComments.create(
+          { userId, commentId: comment.id, rating },
+          { transaction },
+        ),
+      authorId: comment.userId,
+      users,
+    });
     await comment.update(votes, { transaction, silent: true });
 
     await createComments(
@@ -196,7 +222,11 @@ const createComments = async (
 };
 
 // Replaces any leaderboard the hourly job already made for this date.
-const createLeaderboard = async (date, subreddits, transaction) => {
+const createLeaderboard = async (
+  date: string,
+  subreddits: SubredditModel[],
+  transaction: Transaction,
+) => {
   await SubredditLeaderboard.destroy({ where: { date }, transaction });
 
   const leaderboard = await SubredditLeaderboard.create(
@@ -218,7 +248,7 @@ const createLeaderboard = async (date, subreddits, transaction) => {
 
 const seed = async () => {
   assertLocalDatabase();
-  sequelize.options.logging = false;
+  disableQueryLogging();
 
   if (await User.findOne({ where: { username: USERS[0].username } })) {
     console.log(
@@ -230,7 +260,7 @@ const seed = async () => {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 
   await sequelize.transaction(async (transaction) => {
-    const users = [];
+    const users: UserModel[] = [];
     for (const { username, introduction } of USERS) {
       users.push(
         await User.create(
@@ -247,7 +277,7 @@ const seed = async () => {
     }
     const usersByName = Object.fromEntries(users.map((u) => [u.username, u]));
 
-    const subredditsByName = {};
+    const subredditsByName: Record<string, SubredditModel> = {};
     for (const {
       name,
       description,
@@ -305,16 +335,15 @@ const seed = async () => {
       );
       await setCreatedAt("posts", post.id, createdAt, transaction);
 
-      const votes = await createVotes(
-        {
-          Model: UserRatedPosts,
-          idField: "postId",
-          id: post.id,
-          authorId: post.userId,
-          users,
-        },
-        transaction,
-      );
+      const votes = await createVotes({
+        createVote: (userId, rating) =>
+          UserRatedPosts.create(
+            { userId, postId: post.id, rating },
+            { transaction },
+          ),
+        authorId: post.userId,
+        users,
+      });
       await post.update(votes, { transaction, silent: true });
 
       await createComments(

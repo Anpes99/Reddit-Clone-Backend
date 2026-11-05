@@ -1,6 +1,8 @@
-require("express-async-errors");
-const http = require("node:http");
-const express = require("express");
+import "express-async-errors";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
+import type { NextFunction, Request, Response } from "express";
 
 jest.mock("../models/index", () => ({
   User: {},
@@ -16,7 +18,7 @@ jest.mock("../models/index", () => ({
 
 jest.mock("../utils/db", () => ({
   sequelize: {
-    literal: jest.fn((sql) => ({ literal: sql })),
+    literal: jest.fn((sql: string) => ({ literal: sql })),
   },
 }));
 
@@ -36,19 +38,20 @@ jest.mock("../utils/middleware/middleware", () => {
   const actual = jest.requireActual("../utils/middleware/middleware");
   return {
     ...actual,
-    requireAuth: (req, res, next) => {
+    requireAuth: (req: Request, res: Response, next: NextFunction) => {
       if (!req.get("authorization")) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      req.user = { id: 12 };
+      req.user = { id: 12, username: "test-user" };
       next();
     },
   };
 });
 
 jest.mock("../utils/middleware/requestRateLimiters", () => ({
-  createPostRequestLimiter: (req, res, next) => next(),
+  createPostRequestLimiter: (req: Request, res: Response, next: NextFunction) =>
+    next(),
 }));
 
 jest.mock("../constants/post.constant", () => ({
@@ -65,26 +68,40 @@ jest.mock("../queues/moderation.queue", () => ({
   moderationQueue: { add: jest.fn() },
 }));
 
-const { User, Comment, Post, Subreddit } = require("../models/index");
-const { sequelize } = require("../utils/db");
-const { generateEmbedding } = require("../utils/embeddings");
-const { moderationQueue } = require("../queues/moderation.queue");
-const postsRouter = require("../controllers/posts");
+import { User, Comment, Post, Subreddit } from "../models/index";
+import { sequelize } from "../utils/db";
+import { generateEmbedding } from "../utils/embeddings";
+import { moderationQueue } from "../queues/moderation.queue";
+import postsRouter from "../controllers/posts";
+import { errorHandler } from "../utils/middleware/middleware";
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const app = express();
 app.use(express.json());
 app.use("/posts", postsRouter);
-app.use(require("../utils/middleware/middleware").errorHandler);
+app.use(errorHandler);
 
-let server;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const request = (method, path, payload, headers = {}) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+
+const request = (
+  method: string,
+  path: string,
+  payload?: unknown,
+  headers: http.OutgoingHttpHeaders = {},
+) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = payload === undefined ? "" : JSON.stringify(payload);
     const httpRequest = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path,
         method,
         headers: {
@@ -101,7 +118,7 @@ const request = (method, path, payload, headers = {}) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -118,13 +135,13 @@ const request = (method, path, payload, headers = {}) =>
   });
 
 beforeAll(async () => {
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 });
@@ -136,9 +153,9 @@ beforeEach(() => {
 describe("POST /posts", () => {
   it("creates an authenticated post with a document embedding", async () => {
     const embedding = [0.1, 0.2, 0.3];
-    Subreddit.findOne.mockResolvedValue({ id: 34 });
-    generateEmbedding.mockResolvedValue(embedding);
-    Post.create.mockResolvedValue({ id: 56 });
+    asMock(Subreddit.findOne).mockResolvedValue({ id: 34 });
+    asMock(generateEmbedding).mockResolvedValue(embedding);
+    asMock(Post.create).mockResolvedValue({ id: 56 });
 
     const response = await request(
       "POST",
@@ -192,7 +209,7 @@ describe("POST /posts", () => {
   });
 
   it("rejects a post when its subreddit does not exist", async () => {
-    Subreddit.findOne.mockResolvedValue(null);
+    asMock(Subreddit.findOne).mockResolvedValue(null);
 
     const response = await request(
       "POST",
@@ -219,7 +236,7 @@ describe("POST /posts", () => {
 describe("GET /posts/:id", () => {
   it("retrieves the post with its direct comments and default comment ordering", async () => {
     const post = { id: 56, title: "A useful title" };
-    Post.findOne.mockResolvedValue(post);
+    asMock(Post.findOne).mockResolvedValue(post);
 
     const response = await request("GET", "/posts/56");
 
@@ -260,7 +277,7 @@ describe("GET /posts/:id", () => {
 
   it("uses the requested comment sort field and order", async () => {
     const post = { id: 56, title: "A useful title" };
-    Post.findOne.mockResolvedValue(post);
+    asMock(Post.findOne).mockResolvedValue(post);
 
     const response = await request(
       "GET",
@@ -278,7 +295,7 @@ describe("GET /posts/:id", () => {
   });
 
   it("returns 404 when the post does not exist", async () => {
-    Post.findOne.mockResolvedValue(null);
+    asMock(Post.findOne).mockResolvedValue(null);
 
     const response = await request("GET", "/posts/56");
 

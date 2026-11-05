@@ -1,8 +1,6 @@
 module.exports = {
   testEnvironment: "node",
   transform: {
-    // Same as Jest's default for JS files
-    "^.+\\.js$": "babel-jest",
     // Type checking is left to `npm run typecheck`, so tests stay fast
     "^.+\\.ts$": ["ts-jest", { diagnostics: false }],
   },

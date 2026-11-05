@@ -46,19 +46,28 @@ const FOREIGN_KEY_INDEXES = [
   { table: "comments", column: "user_id" },
 ];
 
+/** @param {import("../types/migration").TableColumn} foreignKey */
 const constraintName = ({ table, column }) => `${table}_${column}_fkey`;
+/** @param {import("../types/migration").TableColumn} foreignKey */
 const indexName = ({ table, column }) => `${table}_${column}_idx`;
 
 // Some databases already have a foreign key on these columns, possibly under
 // another name or with other rules. Dropping whatever exists before adding the
 // intended constraint gives every database the same end state.
+/**
+ * @param {import("../types/migration").QueryInterface} queryInterface
+ * @param {import("../types/migration").TableColumn} foreignKey
+ * @param {import("../types/migration").Transaction} transaction
+ */
 const dropForeignKeysOnColumn = async (
   queryInterface,
   { table, column },
   transaction,
 ) => {
-  const [constraints] = await queryInterface.sequelize.query(
-    `
+  const [constraints] =
+    /** @type {import("../types/migration").RawQueryResult<{ name: string }>} */ (
+      await queryInterface.sequelize.query(
+        `
       SELECT quote_ident(constraint_info.conname) AS name
       FROM pg_catalog.pg_constraint constraint_info
       JOIN pg_catalog.pg_attribute attribute
@@ -68,8 +77,9 @@ const dropForeignKeysOnColumn = async (
         AND constraint_info.conrelid = CAST(:table AS regclass)
         AND attribute.attname = :column;
     `,
-    { replacements: { table: `public.${table}`, column }, transaction },
-  );
+        { replacements: { table: `public.${table}`, column }, transaction },
+      )
+    );
 
   for (const { name } of constraints) {
     await queryInterface.sequelize.query(
@@ -79,13 +89,16 @@ const dropForeignKeysOnColumn = async (
   }
 };
 
+/** @type {import("../types/migration").Migration} */
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
       const orphans = [];
       for (const foreignKey of FOREIGN_KEYS) {
-        const [[{ count }]] = await queryInterface.sequelize.query(
-          `
+        const [[{ count }]] =
+          /** @type {import("../types/migration").RawQueryResult<{ count: number }>} */ (
+            await queryInterface.sequelize.query(
+              `
             SELECT COUNT(*)::integer AS count
             FROM public.${foreignKey.table} child
             WHERE child.${foreignKey.column} IS NOT NULL
@@ -94,8 +107,9 @@ module.exports = {
                 WHERE parent.id = child.${foreignKey.column}
               );
           `,
-          { transaction },
-        );
+              { transaction },
+            )
+          );
         if (count > 0) {
           orphans.push(
             `${foreignKey.table}.${foreignKey.column}: ${count} row(s) reference a missing ${foreignKey.references}.id`,

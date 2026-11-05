@@ -1,8 +1,10 @@
-const crypto = require("node:crypto");
+import crypto from "node:crypto";
 
 jest.mock("pgvector/sequelize", () => {
-  const { DataTypes } = jest.requireActual("sequelize");
-  DataTypes.VECTOR = () => DataTypes.STRING;
+  const { DataTypes } =
+    jest.requireActual<typeof import("sequelize")>("sequelize");
+  (DataTypes as unknown as { VECTOR: () => unknown }).VECTOR = () =>
+    DataTypes.STRING;
   return {};
 });
 
@@ -14,50 +16,56 @@ jest.mock("../constants/subreddit.constant", () => ({
   },
 }));
 
-const { QueryTypes } = require("sequelize");
-const { sequelize } = require("../utils/db");
-const {
+import { QueryTypes } from "sequelize";
+import { disableQueryLogging, sequelize } from "../utils/db";
+import {
   Comment,
   Post,
   UserRatedComments,
   UserRatedPosts,
-} = require("../models");
-const registerLikeHandlers = require("../websockets/likes");
+} from "../models/index";
+import registerLikeHandlers from "../websockets/likes";
+import type { AppServer } from "../websockets/types";
 
-sequelize.options.logging = false;
+disableQueryLogging();
 
-let authorId;
-let voterId;
-let subredditId;
-let postId;
-let commentId;
-let socketHandlers;
-let io;
+type SocketHandler = (...args: unknown[]) => Promise<unknown>;
+const asMock = (fn: unknown) => fn as jest.Mock;
 
-const createSocketHarness = (userId) => {
-  const handlers = {};
+type VoteResponse = { success: boolean; newRating?: number };
+
+let authorId: number;
+let voterId: number;
+let subredditId: number;
+let postId: number;
+let commentId: number;
+let socketHandlers: Record<string, SocketHandler>;
+let io: { emit: jest.Mock };
+
+const createSocketHarness = (userId: number) => {
+  const handlers: Record<string, SocketHandler> = {};
   const socket = {
     data: { user: { id: userId } },
     use: () => {},
-    on: (eventName, handler) => {
+    on: (eventName: string, handler: SocketHandler) => {
       handlers[eventName] = handler;
     },
   };
   const socketServer = {
     emit: jest.fn(),
-    on: (eventName, handler) => {
+    on: (eventName: string, handler: (s: typeof socket) => void) => {
       if (eventName === "connection") {
         handler(socket);
       }
     },
   };
 
-  registerLikeHandlers(socketServer);
+  registerLikeHandlers(socketServer as unknown as AppServer);
   return { handlers, socketServer };
 };
 
-const insertFixtureUser = async (username) => {
-  const [user] = await sequelize.query(
+const insertFixtureUser = async (username: string) => {
+  const [user] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.users
       (username, password_hash, email, email_verified, created_at, updated_at)
      VALUES
@@ -74,8 +82,17 @@ const insertFixtureUser = async (username) => {
   return user.id;
 };
 
-const getVoteState = async (tableName, resourceIdColumn, resourceId) => {
-  const [state] = await sequelize.query(
+const getVoteState = async (
+  tableName: "user_rated_posts" | "user_rated_comments",
+  resourceIdColumn: "post_id" | "comment_id",
+  resourceId: number,
+) => {
+  const [state] = await sequelize.query<{
+    up_votes: number;
+    down_votes: number;
+    karma: number;
+    rating: number;
+  }>(
     `SELECT
         resource.up_votes,
         resource.down_votes,
@@ -102,14 +119,14 @@ beforeAll(async () => {
     );
   }
 
-  require("../scripts/verify-test-database");
+  jest.requireActual("../scripts/verify-test-database");
   await sequelize.authenticate();
 
   const fixtureSuffix = crypto.randomUUID();
   authorId = await insertFixtureUser(`voting-author-${fixtureSuffix}`);
   voterId = await insertFixtureUser(`voting-user-${fixtureSuffix}`);
 
-  const [subreddit] = await sequelize.query(
+  const [subreddit] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.subreddits
       (name, description, creator_id, created_at, updated_at)
      VALUES
@@ -125,19 +142,19 @@ beforeAll(async () => {
   );
   subredditId = subreddit.id;
 
-  const [vectorExtensions] = await sequelize.query(`
+  const [vectorExtensions] = (await sequelize.query(`
     SELECT quote_ident(namespace.nspname) AS schema
     FROM pg_catalog.pg_extension extension
     JOIN pg_catalog.pg_namespace namespace
       ON namespace.oid = extension.extnamespace
     WHERE extension.extname = 'vector';
-  `);
+  `)) as [{ schema: string }[], unknown];
   const vectorExtension = vectorExtensions[0];
   if (!vectorExtension?.schema) {
     throw new Error("The vector extension schema could not be determined.");
   }
 
-  const [post] = await sequelize.query(
+  const [post] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.posts
       (title, text, user_id, subreddit_id, created_at, updated_at, embedding)
      VALUES
@@ -155,7 +172,7 @@ beforeAll(async () => {
   );
   postId = post.id;
 
-  const [comment] = await sequelize.query(
+  const [comment] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.comments
       (text, direct_reply_to_post, user_id, post_id, created_at, updated_at)
      VALUES
@@ -312,7 +329,7 @@ describe("concurrent votes", () => {
   });
 
   afterEach(() => {
-    console.log.mockRestore();
+    asMock(console.log).mockRestore();
   });
 
   test("concurrent first votes on a post are counted once", async () => {
@@ -322,7 +339,7 @@ describe("concurrent votes", () => {
     );
 
     const succeeded = results.filter((result) =>
-      result.mock.calls.some(([response]) => response.success),
+      result.mock.calls.some(([response]: [VoteResponse]) => response.success),
     );
     expect(succeeded.length).toBeGreaterThanOrEqual(1);
     expect(

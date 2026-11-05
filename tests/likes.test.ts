@@ -21,33 +21,39 @@ jest.mock("../utils/db", () => ({
 
 const mockTransaction = { id: "test-transaction" };
 
-const {
+import {
   Comment,
   Post,
   UserRatedComments,
   UserRatedPosts,
-} = require("../models/index");
-const registerLikeHandlers = require("../websockets/likes");
+} from "../models/index";
+import registerLikeHandlers from "../websockets/likes";
+import type { AppServer } from "../websockets/types";
+
+type SocketHandler = (...args: unknown[]) => Promise<unknown>;
+type FakeVote = { id: number; [field: string]: unknown };
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 const createSocketHarness = () => {
-  const socketHandlers = {};
+  const socketHandlers: Record<string, SocketHandler> = {};
   const socket = {
     data: { user: { id: 8 } },
     use: jest.fn(),
-    on: jest.fn((eventName, handler) => {
+    on: jest.fn((eventName: string, handler: SocketHandler) => {
       socketHandlers[eventName] = handler;
     }),
   };
   const io = {
     emit: jest.fn(),
-    on: jest.fn((eventName, handler) => {
+    on: jest.fn((eventName: string, handler: (s: typeof socket) => void) => {
       if (eventName === "connection") {
         handler(socket);
       }
     }),
   };
 
-  registerLikeHandlers(io);
+  registerLikeHandlers(io as unknown as AppServer);
   return { io, socketHandlers };
 };
 
@@ -59,17 +65,19 @@ describe("repeated upvotes", () => {
   it("toggles off the user's second upvote on the same post", async () => {
     const post = {
       id: 21,
-      increment: jest.fn().mockResolvedValue(),
-      decrement: jest.fn().mockResolvedValue(),
+      increment: jest.fn().mockResolvedValue(undefined),
+      decrement: jest.fn().mockResolvedValue(undefined),
     };
-    let existingVote = null;
-    Post.findByPk.mockResolvedValue(post);
-    UserRatedPosts.findOne.mockImplementation(async () => existingVote);
-    UserRatedPosts.create.mockImplementation(async (vote) => {
-      existingVote = { id: 34, ...vote };
-      return existingVote;
-    });
-    UserRatedPosts.destroy.mockImplementation(async () => {
+    let existingVote: FakeVote | null = null;
+    asMock(Post.findByPk).mockResolvedValue(post);
+    asMock(UserRatedPosts.findOne).mockImplementation(async () => existingVote);
+    asMock(UserRatedPosts.create).mockImplementation(
+      async (vote: Record<string, unknown>) => {
+        existingVote = { id: 34, ...vote };
+        return existingVote;
+      },
+    );
+    asMock(UserRatedPosts.destroy).mockImplementation(async () => {
       existingVote = null;
       return 1;
     });
@@ -109,17 +117,21 @@ describe("repeated upvotes", () => {
   it("toggles off the user's second upvote on the same comment", async () => {
     const comment = {
       id: 55,
-      increment: jest.fn().mockResolvedValue(),
-      decrement: jest.fn().mockResolvedValue(),
+      increment: jest.fn().mockResolvedValue(undefined),
+      decrement: jest.fn().mockResolvedValue(undefined),
     };
-    let existingVote = null;
-    Comment.findByPk.mockResolvedValue(comment);
-    UserRatedComments.findOne.mockImplementation(async () => existingVote);
-    UserRatedComments.create.mockImplementation(async (vote) => {
-      existingVote = { id: 89, ...vote };
-      return existingVote;
-    });
-    UserRatedComments.destroy.mockImplementation(async () => {
+    let existingVote: FakeVote | null = null;
+    asMock(Comment.findByPk).mockResolvedValue(comment);
+    asMock(UserRatedComments.findOne).mockImplementation(
+      async () => existingVote,
+    );
+    asMock(UserRatedComments.create).mockImplementation(
+      async (vote: Record<string, unknown>) => {
+        existingVote = { id: 89, ...vote };
+        return existingVote;
+      },
+    );
+    asMock(UserRatedComments.destroy).mockImplementation(async () => {
       existingVote = null;
       return 1;
     });
@@ -157,17 +169,19 @@ describe("repeated downvotes", () => {
   it("toggles off the user's second downvote on the same post", async () => {
     const post = {
       id: 21,
-      increment: jest.fn().mockResolvedValue(),
-      decrement: jest.fn().mockResolvedValue(),
+      increment: jest.fn().mockResolvedValue(undefined),
+      decrement: jest.fn().mockResolvedValue(undefined),
     };
-    let existingVote = null;
-    Post.findByPk.mockResolvedValue(post);
-    UserRatedPosts.findOne.mockImplementation(async () => existingVote);
-    UserRatedPosts.create.mockImplementation(async (vote) => {
-      existingVote = { id: 34, ...vote };
-      return existingVote;
-    });
-    UserRatedPosts.destroy.mockImplementation(async () => {
+    let existingVote: FakeVote | null = null;
+    asMock(Post.findByPk).mockResolvedValue(post);
+    asMock(UserRatedPosts.findOne).mockImplementation(async () => existingVote);
+    asMock(UserRatedPosts.create).mockImplementation(
+      async (vote: Record<string, unknown>) => {
+        existingVote = { id: 34, ...vote };
+        return existingVote;
+      },
+    );
+    asMock(UserRatedPosts.destroy).mockImplementation(async () => {
       existingVote = null;
       return 1;
     });
@@ -207,17 +221,21 @@ describe("repeated downvotes", () => {
   it("toggles off the user's second downvote on the same comment", async () => {
     const comment = {
       id: 55,
-      increment: jest.fn().mockResolvedValue(),
-      decrement: jest.fn().mockResolvedValue(),
+      increment: jest.fn().mockResolvedValue(undefined),
+      decrement: jest.fn().mockResolvedValue(undefined),
     };
-    let existingVote = null;
-    Comment.findByPk.mockResolvedValue(comment);
-    UserRatedComments.findOne.mockImplementation(async () => existingVote);
-    UserRatedComments.create.mockImplementation(async (vote) => {
-      existingVote = { id: 89, ...vote };
-      return existingVote;
-    });
-    UserRatedComments.destroy.mockImplementation(async () => {
+    let existingVote: FakeVote | null = null;
+    asMock(Comment.findByPk).mockResolvedValue(comment);
+    asMock(UserRatedComments.findOne).mockImplementation(
+      async () => existingVote,
+    );
+    asMock(UserRatedComments.create).mockImplementation(
+      async (vote: Record<string, unknown>) => {
+        existingVote = { id: 89, ...vote };
+        return existingVote;
+      },
+    );
+    asMock(UserRatedComments.destroy).mockImplementation(async () => {
       existingVote = null;
       return 1;
     });

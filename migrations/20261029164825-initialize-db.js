@@ -25,6 +25,7 @@ const EXTENSION_OBJECTS = {
   pg_trgm: ["gin_trgm_ops"],
 };
 
+/** @type {import("../types/migration").Migration} */
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
@@ -37,15 +38,18 @@ module.exports = {
         { transaction },
       );
 
-      const [tables] = await queryInterface.sequelize.query(
-        `
+      const [tables] =
+        /** @type {import("../types/migration").RawQueryResult<{ tablename: string }>} */ (
+          await queryInterface.sequelize.query(
+            `
           SELECT tablename
           FROM pg_catalog.pg_tables
           WHERE schemaname = 'public'
             AND tablename IN (:baselineTables);
         `,
-        { replacements: { baselineTables: BASELINE_TABLES }, transaction },
-      );
+            { replacements: { baselineTables: BASELINE_TABLES }, transaction },
+          )
+        );
 
       if (tables.length === BASELINE_TABLES.length) {
         console.log(
@@ -64,8 +68,10 @@ module.exports = {
         );
       }
 
-      const [extensions] = await queryInterface.sequelize.query(
-        `
+      const [extensions] =
+        /** @type {import("../types/migration").RawQueryResult<{ name: string, schema: string }>} */ (
+          await queryInterface.sequelize.query(
+            `
           SELECT extension.extname AS name,
             quote_ident(namespace.nspname) AS schema
           FROM pg_catalog.pg_extension extension
@@ -73,11 +79,12 @@ module.exports = {
             ON namespace.oid = extension.extnamespace
           WHERE extension.extname IN (:extensionNames);
         `,
-        {
-          replacements: { extensionNames: Object.keys(EXTENSION_OBJECTS) },
-          transaction,
-        },
-      );
+            {
+              replacements: { extensionNames: Object.keys(EXTENSION_OBJECTS) },
+              transaction,
+            },
+          )
+        );
 
       let sql = fs.readFileSync(
         path.join(__dirname, "baseline-schema.sql"),

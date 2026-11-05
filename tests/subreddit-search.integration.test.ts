@@ -1,10 +1,13 @@
-const crypto = require("node:crypto");
-const http = require("node:http");
-const express = require("express");
+import crypto from "node:crypto";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
 
 jest.mock("pgvector/sequelize", () => {
-  const { DataTypes } = jest.requireActual("sequelize");
-  DataTypes.VECTOR = () => DataTypes.STRING;
+  const { DataTypes } =
+    jest.requireActual<typeof import("sequelize")>("sequelize");
+  (DataTypes as unknown as { VECTOR: () => unknown }).VECTOR = () =>
+    DataTypes.STRING;
   return {};
 });
 
@@ -53,29 +56,35 @@ jest.mock("../websockets/onlineCount", () => ({
   getOnlineSubredditUserCount: jest.fn(() => 0),
 }));
 
-const { QueryTypes } = require("sequelize");
-const { sequelize } = require("../utils/db");
-const searchRouter = require("../controllers/search");
+import { QueryTypes } from "sequelize";
+import { disableQueryLogging, sequelize } from "../utils/db";
+import searchRouter from "../controllers/search";
 
-sequelize.options.logging = false;
+disableQueryLogging();
 
 const app = express();
 app.use(express.json());
 app.use(searchRouter);
 
-let server;
-let fixtureUserId;
-const fixtureSubredditIds = [];
-let exactMatchName;
-let nearMatchName;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const searchSubreddits = (payload) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+let fixtureUserId: number;
+const fixtureSubredditIds: number[] = [];
+let exactMatchName: string;
+let nearMatchName: string;
+
+const searchSubreddits = (payload: unknown) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = JSON.stringify(payload);
     const request = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path: "/subreddits",
         method: "POST",
         headers: {
@@ -87,7 +96,7 @@ const searchSubreddits = (payload) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -103,8 +112,14 @@ const searchSubreddits = (payload) =>
     request.end(body);
   });
 
-const insertSubreddit = async ({ name, memberCount }) => {
-  const [subreddit] = await sequelize.query(
+const insertSubreddit = async ({
+  name,
+  memberCount,
+}: {
+  name: string;
+  memberCount: number;
+}) => {
+  const [subreddit] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.subreddits
       (name, description, creator_id, member_count, created_at, updated_at)
      VALUES
@@ -126,11 +141,11 @@ beforeAll(async () => {
     );
   }
 
-  require("../scripts/verify-test-database");
+  jest.requireActual("../scripts/verify-test-database");
   await sequelize.authenticate();
 
   const fixtureSuffix = crypto.randomUUID();
-  const [user] = await sequelize.query(
+  const [user] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.users
       (username, password_hash, email, email_verified, created_at, updated_at)
      VALUES
@@ -152,7 +167,7 @@ beforeAll(async () => {
   await insertSubreddit({ name: exactMatchName, memberCount: 1 });
   await insertSubreddit({ name: nearMatchName, memberCount: 500 });
 
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
@@ -172,7 +187,7 @@ afterAll(async () => {
     }
   } finally {
     if (server?.listening) {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
       });
     }
@@ -191,7 +206,7 @@ test("ranks a closer subreddit name ahead of a more popular weaker match", async
   expect(Number(response.body.totalCount)).toBeGreaterThanOrEqual(2);
 
   const resultNames = response.body.subreddits.map(
-    (subreddit) => subreddit.name,
+    (subreddit: { name: string }) => subreddit.name,
   );
   const exactMatchIndex = resultNames.indexOf(exactMatchName);
   const nearMatchIndex = resultNames.indexOf(nearMatchName);

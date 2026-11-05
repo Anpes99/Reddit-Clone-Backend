@@ -5,13 +5,20 @@
 
 // The existing constraint may have another name in some databases, so it is
 // found by column instead of by name.
+/**
+ * @param {import("../types/migration").QueryInterface} queryInterface
+ * @param {import("../types/migration").TableColumn} foreignKey
+ * @param {import("../types/migration").Transaction} transaction
+ */
 const dropForeignKeysOnColumn = async (
   queryInterface,
   { table, column },
   transaction,
 ) => {
-  const [constraints] = await queryInterface.sequelize.query(
-    `
+  const [constraints] =
+    /** @type {import("../types/migration").RawQueryResult<{ name: string }>} */ (
+      await queryInterface.sequelize.query(
+        `
       SELECT quote_ident(constraint_info.conname) AS name
       FROM pg_catalog.pg_constraint constraint_info
       JOIN pg_catalog.pg_attribute attribute
@@ -21,8 +28,9 @@ const dropForeignKeysOnColumn = async (
         AND constraint_info.conrelid = CAST(:table AS regclass)
         AND attribute.attname = :column;
     `,
-    { replacements: { table: `public.${table}`, column }, transaction },
-  );
+        { replacements: { table: `public.${table}`, column }, transaction },
+      )
+    );
 
   for (const { name } of constraints) {
     await queryInterface.sequelize.query(
@@ -32,6 +40,11 @@ const dropForeignKeysOnColumn = async (
   }
 };
 
+/**
+ * @param {import("../types/migration").QueryInterface} queryInterface
+ * @param {string} onDelete
+ * @param {import("../types/migration").Transaction} transaction
+ */
 const setCommentParentForeignKey = async (
   queryInterface,
   onDelete,
@@ -53,6 +66,7 @@ const setCommentParentForeignKey = async (
   );
 };
 
+/** @type {import("../types/migration").Migration} */
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {

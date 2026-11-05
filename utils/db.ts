@@ -37,3 +37,10 @@ export const connectToDatabase = async () => {
 
   return null;
 };
+
+// For scripts and integration tests. Sequelize reads options.logging on each
+// query, but its types don't expose options.
+export const disableQueryLogging = () => {
+  (sequelize as unknown as { options: { logging: boolean } }).options.logging =
+    false;
+};

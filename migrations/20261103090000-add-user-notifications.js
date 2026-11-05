@@ -1,5 +1,6 @@
 "use strict";
 
+/** @type {import("../types/migration").Migration} */
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {

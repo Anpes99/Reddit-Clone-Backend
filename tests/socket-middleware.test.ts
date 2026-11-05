@@ -2,32 +2,39 @@ jest.mock("../models/index", () => ({}));
 jest.mock("../utils/db", () => ({ sequelize: {} }));
 jest.mock("../utils/redis", () => ({ redisClient: { set: jest.fn() } }));
 
-const { redisClient } = require("../utils/redis");
-const registerLikeHandlers = require("../websockets/likes");
+import { redisClient } from "../utils/redis";
+import registerLikeHandlers from "../websockets/likes";
+import type { AppServer, SocketUser } from "../websockets/types";
+
+type Packet = [event: string, ...args: unknown[]];
+type Middleware = (packet: Packet, next: (error?: Error) => void) => unknown;
+type Outcome = { calledNext: true; error?: Error } | { calledNext: false };
+
+const asMock = (fn: unknown) => fn as jest.Mock;
 
 // Registers the vote handlers on a fake socket and returns the middleware
 // functions they added with socket.use, in order.
-const getMiddlewares = (user) => {
-  const middlewares = [];
+const getMiddlewares = (user: Pick<SocketUser, "id"> | null) => {
+  const middlewares: Middleware[] = [];
   const socket = {
     data: { user },
-    use: (middleware) => middlewares.push(middleware),
+    use: (middleware: Middleware) => middlewares.push(middleware),
     on: () => {},
   };
   registerLikeHandlers({
-    on: (eventName, handler) => {
+    on: (eventName: string, handler: (s: typeof socket) => void) => {
       if (eventName === "connection") handler(socket);
     },
-  });
+  } as unknown as AppServer);
   return middlewares;
 };
 
 // Runs a packet through the middlewares the way Socket.IO does. A middleware
 // that returns without calling next() blocks the event, which leaves the
 // client waiting for a reply forever.
-const runMiddlewares = async (middlewares, packet) => {
+const runMiddlewares = async (middlewares: Middleware[], packet: Packet) => {
   for (const middleware of middlewares) {
-    const outcome = await new Promise((resolve) => {
+    const outcome = await new Promise<Outcome>((resolve) => {
       const result = middleware(packet, (error) =>
         resolve({ calledNext: true, error }),
       );
@@ -42,10 +49,10 @@ const runMiddlewares = async (middlewares, packet) => {
 };
 
 beforeEach(() => {
-  redisClient.set.mockReset().mockResolvedValue("OK");
+  asMock(redisClient.set).mockReset().mockResolvedValue("OK");
 });
 
-describe.each([
+describe.each<[string, Pick<SocketUser, "id"> | null]>([
   ["a logged-out socket", null],
   ["a logged-in socket", { id: 8 }],
 ])("socket middleware for %s", (_, user) => {
@@ -91,7 +98,7 @@ describe("vote events", () => {
   });
 
   it("rejects a repeated vote inside the throttle window", async () => {
-    redisClient.set.mockResolvedValue(null);
+    asMock(redisClient.set).mockResolvedValue(null);
 
     await expect(
       runMiddlewares(getMiddlewares({ id: 8 }), [

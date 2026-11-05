@@ -1,23 +1,26 @@
-const crypto = require("node:crypto");
-const { QueryTypes } = require("sequelize");
-const { sequelize } = require("../utils/db");
+import crypto from "node:crypto";
+import { QueryTypes } from "sequelize";
+import { disableQueryLogging, sequelize } from "../utils/db";
 
-sequelize.options.logging = false;
+disableQueryLogging();
 
-let authorId;
-let memberId;
-let subredditId;
-let postId;
+let authorId: number;
+let memberId: number;
+let subredditId: number;
+let postId: number;
 
-const insertReturningId = async (sql, replacements) => {
-  const [row] = await sequelize.query(sql, {
+const insertReturningId = async (
+  sql: string,
+  replacements: Record<string, unknown>,
+) => {
+  const [row] = await sequelize.query<{ id: number }>(sql, {
     replacements,
     type: QueryTypes.SELECT,
   });
   return row.id;
 };
 
-const insertFixtureUser = (username) =>
+const insertFixtureUser = (username: string) =>
   insertReturningId(
     `INSERT INTO public.users
       (username, password_hash, email, email_verified, created_at, updated_at)
@@ -27,7 +30,7 @@ const insertFixtureUser = (username) =>
     { username, email: `${username}@example.test` },
   );
 
-const insertComment = (parentCommentId) =>
+const insertComment = (parentCommentId: number | null) =>
   insertReturningId(
     `INSERT INTO public.comments
       (text, direct_reply_to_post, user_id, post_id, comment_id,
@@ -44,21 +47,21 @@ const insertComment = (parentCommentId) =>
     },
   );
 
-const deleteComment = (id) =>
+const deleteComment = (id: number) =>
   sequelize.query("DELETE FROM public.comments WHERE id = :id", {
     replacements: { id },
   });
 
-const getDescendantCounts = async (ids) => {
-  const rows = await sequelize.query(
+const getDescendantCounts = async (ids: number[]) => {
+  const rows = await sequelize.query<{ id: number; descendant_count: number }>(
     "SELECT id, descendant_count FROM public.comments WHERE id IN (:ids)",
     { replacements: { ids }, type: QueryTypes.SELECT },
   );
-  return ids.map((id) => rows.find((row) => row.id === id).descendant_count);
+  return ids.map((id) => rows.find((row) => row.id === id)!.descendant_count);
 };
 
 const getPostCommentCount = async () => {
-  const [post] = await sequelize.query(
+  const [post] = await sequelize.query<{ comment_count: number }>(
     "SELECT comment_count FROM public.posts WHERE id = :postId",
     { replacements: { postId }, type: QueryTypes.SELECT },
   );
@@ -66,21 +69,21 @@ const getPostCommentCount = async () => {
 };
 
 const getSubredditMemberCount = async () => {
-  const [subreddit] = await sequelize.query(
+  const [subreddit] = await sequelize.query<{ member_count: number }>(
     "SELECT member_count FROM public.subreddits WHERE id = :subredditId",
     { replacements: { subredditId }, type: QueryTypes.SELECT },
   );
   return subreddit.member_count;
 };
 
-const joinSubreddit = (userId) =>
+const joinSubreddit = (userId: number) =>
   sequelize.query(
     `INSERT INTO public.user_subreddits (user_id, subreddit_id)
      VALUES (:userId, :subredditId);`,
     { replacements: { userId, subredditId } },
   );
 
-const leaveSubreddit = (userId) =>
+const leaveSubreddit = (userId: number) =>
   sequelize.query(
     `DELETE FROM public.user_subreddits
      WHERE user_id = :userId AND subreddit_id = :subredditId;`,
@@ -94,7 +97,7 @@ beforeAll(async () => {
     );
   }
 
-  require("../scripts/verify-test-database");
+  jest.requireActual("../scripts/verify-test-database");
   await sequelize.authenticate();
 
   const fixtureSuffix = crypto.randomUUID();
@@ -110,13 +113,13 @@ beforeAll(async () => {
     { name: `counters-test-${fixtureSuffix}`, authorId },
   );
 
-  const [vectorExtensions] = await sequelize.query(`
+  const [vectorExtensions] = (await sequelize.query(`
     SELECT quote_ident(namespace.nspname) AS schema
     FROM pg_catalog.pg_extension extension
     JOIN pg_catalog.pg_namespace namespace
       ON namespace.oid = extension.extnamespace
     WHERE extension.extname = 'vector';
-  `);
+  `)) as [{ schema: string }[], unknown];
   const vectorSchema = vectorExtensions[0]?.schema;
   if (!vectorSchema) {
     throw new Error("The vector extension schema could not be determined.");

@@ -1,6 +1,7 @@
-const crypto = require("node:crypto");
-const http = require("node:http");
-const express = require("express");
+import crypto from "node:crypto";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
+import express from "express";
 
 jest.mock("../models/index", () => ({
   Post: {},
@@ -36,30 +37,36 @@ jest.mock("../websockets/onlineCount", () => ({
   getOnlineSubredditUserCount: jest.fn(),
 }));
 
-const { QueryTypes } = require("sequelize");
-const { sequelize } = require("../utils/db");
-const { generateEmbedding } = require("../utils/embeddings");
-const searchRouter = require("../controllers/search");
+import { QueryTypes } from "sequelize";
+import { disableQueryLogging, sequelize } from "../utils/db";
+import { generateEmbedding } from "../utils/embeddings";
+import searchRouter from "../controllers/search";
 
-sequelize.options.logging = false;
+disableQueryLogging();
 
 const app = express();
 app.use(express.json());
 app.use(searchRouter);
 
-let server;
-let fixtureUserId;
-let fixtureSubredditId;
-let queryVector;
-let exactMatchPostId;
+type TestResponse = {
+  statusCode?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any;
+};
 
-const searchPosts = (payload) =>
-  new Promise((resolve, reject) => {
+let server: http.Server;
+let fixtureUserId: number;
+let fixtureSubredditId: number;
+let queryVector: number[];
+let exactMatchPostId: number;
+
+const searchPosts = (payload: unknown) =>
+  new Promise<TestResponse>((resolve, reject) => {
     const body = JSON.stringify(payload);
     const request = http.request(
       {
         host: "127.0.0.1",
-        port: server.address().port,
+        port: (server.address() as AddressInfo).port,
         path: "/posts",
         method: "POST",
         headers: {
@@ -71,7 +78,7 @@ const searchPosts = (payload) =>
       (response) => {
         let responseBody = "";
         response.setEncoding("utf8");
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: string) => {
           responseBody += chunk;
         });
         response.on("end", () => {
@@ -87,8 +94,18 @@ const searchPosts = (payload) =>
     request.end(body);
   });
 
-const insertPost = async ({ title, embedding, userId, subredditId }) => {
-  const [post] = await sequelize.query(
+const insertPost = async ({
+  title,
+  embedding,
+  userId,
+  subredditId,
+}: {
+  title: string;
+  embedding: number[];
+  userId: number;
+  subredditId: number;
+}) => {
+  const [post] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.posts
       (title, text, user_id, subreddit_id, created_at, updated_at, embedding, safe, moderation_status)
      VALUES
@@ -116,11 +133,11 @@ beforeAll(async () => {
     );
   }
 
-  require("../scripts/verify-test-database");
+  jest.requireActual("../scripts/verify-test-database");
   await sequelize.authenticate();
 
   const fixtureSuffix = crypto.randomUUID();
-  const [user] = await sequelize.query(
+  const [user] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.users
       (username, password_hash, email, email_verified, created_at, updated_at)
      VALUES
@@ -136,7 +153,7 @@ beforeAll(async () => {
   );
   fixtureUserId = user.id;
 
-  const [subreddit] = await sequelize.query(
+  const [subreddit] = await sequelize.query<{ id: number }>(
     `INSERT INTO public.subreddits
       (name, description, creator_id, created_at, updated_at)
      VALUES
@@ -169,7 +186,7 @@ beforeAll(async () => {
     subredditId: fixtureSubredditId,
   });
 
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);
   });
 });
@@ -197,7 +214,7 @@ afterAll(async () => {
     }
   } finally {
     if (server?.listening) {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
       });
     }
@@ -207,7 +224,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  generateEmbedding.mockResolvedValue(queryVector);
+  (generateEmbedding as jest.Mock).mockResolvedValue(queryVector);
 });
 
 test("top post search ranks the exact vector match first in PostgreSQL", async () => {

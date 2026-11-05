@@ -6,21 +6,29 @@ const CASE_INSENSITIVE_COLUMNS = [
   { table: "users", column: "email" },
 ];
 
+/**
+ * @param {import("../types/migration").QueryInterface} queryInterface
+ * @param {import("../types/migration").TableColumn} tableColumn
+ * @param {import("../types/migration").Transaction} transaction
+ */
 const assertNoCaseInsensitiveDuplicates = async (
   queryInterface,
   { table, column },
   transaction,
 ) => {
-  const [duplicates] = await queryInterface.sequelize.query(
-    `
+  const [duplicates] =
+    /** @type {import("../types/migration").RawQueryResult<{ value: string, ids: number[] }>} */ (
+      await queryInterface.sequelize.query(
+        `
       SELECT LOWER(TRIM(${column})) AS value, array_agg(id ORDER BY id) AS ids
       FROM public.${table}
       WHERE ${column} IS NOT NULL
       GROUP BY LOWER(TRIM(${column}))
       HAVING COUNT(*) > 1;
     `,
-    { transaction },
-  );
+        { transaction },
+      )
+    );
 
   if (duplicates.length > 0) {
     const list = duplicates
@@ -32,6 +40,7 @@ const assertNoCaseInsensitiveDuplicates = async (
   }
 };
 
+/** @type {import("../types/migration").Migration} */
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
@@ -47,16 +56,19 @@ module.exports = {
         "CREATE EXTENSION IF NOT EXISTS citext;",
         { transaction },
       );
-      const [[{ schema }]] = await queryInterface.sequelize.query(
-        `
+      const [[{ schema }]] =
+        /** @type {import("../types/migration").RawQueryResult<{ schema: string }>} */ (
+          await queryInterface.sequelize.query(
+            `
           SELECT quote_ident(namespace.nspname) AS schema
           FROM pg_catalog.pg_extension extension
           JOIN pg_catalog.pg_namespace namespace
             ON namespace.oid = extension.extnamespace
           WHERE extension.extname = 'citext';
         `,
-        { transaction },
-      );
+            { transaction },
+          )
+        );
 
       await queryInterface.sequelize.query(
         `ALTER TABLE public.users ALTER COLUMN username TYPE ${schema}.citext;`,
