@@ -33,18 +33,6 @@ module.exports = [
       "require-atomic-updates": "off",
     },
   },
-  {
-    // These files use import/export syntax; Node loads them through require(esm).
-    files: [
-      "jobs/**/*.js",
-      "queries/**/*.js",
-      "utils/embeddings.js",
-      "utils/middleware/requestRateLimiters.js",
-    ],
-    languageOptions: {
-      sourceType: "module",
-    },
-  },
   ...tseslint.configs.recommended.map((config) => ({
     ...config,
     files: ["**/*.ts"],

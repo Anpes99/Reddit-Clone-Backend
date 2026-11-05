@@ -1,8 +1,8 @@
 import cron from "node-cron";
-import { SubredditLeaderboard } from "../models/index.js";
-import moment from "moment";
-import { sequelize } from "../utils/db.js";
-import logger from "../utils/logger.js";
+import { SubredditLeaderboard } from "../models/index";
+import moment from "moment-timezone";
+import { sequelize } from "../utils/db";
+import logger from "../utils/logger";
 
 export function startUpdateTopCommunitiesTask() {
   cron.schedule(
