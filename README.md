@@ -140,7 +140,7 @@ Backend tests use a separate test database and refuse to run if it points at the
 
 ## Architecture
 
-<img width="1206" height="816" alt="Application architecture" src="https://github.com/user-attachments/assets/038a3d84-a1be-458c-9ec5-4401749e41b7" />
+<img width="864" height="590" alt="Application architecture" src="https://github.com/user-attachments/assets/c2020191-b307-440e-b057-dbe1d3bcf377" />
 
 ## Database Diagram
 
