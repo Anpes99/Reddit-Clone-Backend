@@ -173,7 +173,7 @@ usersRouter.get(
               ]
             : [["createdAt", SORT_ORDER.DESC]],
         offset,
-        limit: 5,
+        limit: 10,
         include: [
           {
             model: User,
@@ -215,7 +215,7 @@ usersRouter.get(
               ]
             : [["createdAt", SORT_ORDER.DESC]],
         offset,
-        limit: 5,
+        limit: 10,
         include: [
           {
             model: User,

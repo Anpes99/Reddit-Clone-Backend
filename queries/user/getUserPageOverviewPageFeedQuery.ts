@@ -110,6 +110,6 @@ SELECT
   post
 FROM combined
 ORDER BY "createdAt" DESC
-LIMIT 100
+LIMIT 18
 OFFSET :offset;
 `;
