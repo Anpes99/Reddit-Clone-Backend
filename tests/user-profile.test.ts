@@ -220,7 +220,7 @@ describe("GET /users/:username/feed", () => {
         where: { userId: 12, safe: true },
         order: [["createdAt", "DESC"]],
         offset: 5,
-        limit: 5,
+        limit: 10,
         include: expect.arrayContaining([
           {
             model: User,
@@ -255,7 +255,7 @@ describe("GET /users/:username/feed", () => {
           ["createdAt", "DESC"],
         ],
         offset: 0,
-        limit: 5,
+        limit: 10,
       }),
     );
     expect(sequelize.literal).toHaveBeenCalledWith('"up_votes"-"down_votes"');
@@ -312,7 +312,7 @@ describe("GET /users/:username/feed", () => {
           ["createdAt", "DESC"],
         ],
         offset: 10,
-        limit: 5,
+        limit: 10,
       }),
     );
     expect(Comment.count).not.toHaveBeenCalled();

@@ -18,6 +18,7 @@
     "db:migrate:undo:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate:undo --config config/sequelize-cli.js",
     "seed": "tsx scripts/seed.ts",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "tsc",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
