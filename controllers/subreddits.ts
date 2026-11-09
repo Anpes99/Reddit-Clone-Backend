@@ -9,6 +9,7 @@ import { AppError } from "../errors";
 import logger from "../utils/logger";
 import {
   Subreddit,
+  User,
   UserSubreddits,
   SubredditModerators,
   UserNotifications,
@@ -106,6 +107,15 @@ subredditsRouter.get(
     const name = req.params.name;
     const result = await Subreddit.findOne({
       where: { name },
+      include: [
+        {
+          model: User,
+          as: "moderators",
+          attributes: ["username", "avatarImageUrl"],
+          through: { attributes: ["role"] },
+          required: false,
+        },
+      ],
     });
     if (!result) {
       throw new AppError({
@@ -121,9 +131,20 @@ subredditsRouter.get(
         })
       : undefined;
 
+    const subredditData: Record<string, unknown> = { ...result.dataValues };
+    delete subredditData.moderators;
+    const roleOrder: string[] = Object.values(SUBREDDIT_MODERATOR_ROLE);
+
     const subreddit = {
-      ...result.dataValues,
+      ...subredditData,
       currentUserRole: userSubredditModerator?.dataValues?.role || "",
+      moderators: (result.moderators ?? [])
+        .map((moderator) => ({
+          username: moderator.username,
+          avatarImageUrl: moderator.avatarImageUrl,
+          role: moderator.subredditModerators.role,
+        }))
+        .sort((a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role)),
     };
 
     return res.send({ ...subreddit });

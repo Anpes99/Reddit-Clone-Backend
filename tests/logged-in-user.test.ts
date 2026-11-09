@@ -114,8 +114,21 @@ describe("GET /api/loggedInUser", () => {
     asMock(User.findOne).mockResolvedValue({
       username: "test-user",
       id: 12,
-      subreddits: [{ id: 3, name: "cats" }],
+      subreddits: [
+        {
+          id: 3,
+          name: "subreddit123",
+          iconUrl: "https://cdn.example.test/icon.png",
+        },
+      ],
       ratedPosts: [{ id: 41, UserRatedPosts: { rating: -1 } }],
+      subredditsModerated: [
+        {
+          name: "subreddit123",
+          iconUrl: "https://cdn.example.test/icon.png",
+          subredditModerators: { role: "moderator" },
+        },
+      ],
       avatarImageUrl: "https://cdn.example.test/avatar.png",
       profilePageBackgroundImageUrl: null,
     });
@@ -134,8 +147,21 @@ describe("GET /api/loggedInUser", () => {
     expect(response.body).toEqual({
       username: "test-user",
       id: 12,
-      subreddits: [{ id: 3, name: "cats" }],
+      subreddits: [
+        {
+          id: 3,
+          name: "subreddit123",
+          iconUrl: "https://cdn.example.test/icon.png",
+        },
+      ],
       ratedPosts: [{ id: 41, rating: -1 }],
+      moderatedSubreddits: [
+        {
+          name: "subreddit123",
+          iconUrl: "https://cdn.example.test/icon.png",
+          role: "moderator",
+        },
+      ],
       avatarImageUrl: "https://cdn.example.test/avatar.png",
       profilePageBackgroundImageUrl: null,
     });

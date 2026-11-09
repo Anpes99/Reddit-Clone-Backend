@@ -10,6 +10,7 @@ import {
 import { sequelize } from "../utils/db";
 import type Post from "./Post";
 import type Subreddit from "./Subreddit";
+import type SubredditModerators from "./SubredditModerators";
 import type UserNotifications from "./UserNotifications";
 import type UserRatedPosts from "./UserRatedPosts";
 
@@ -33,6 +34,9 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
     (Post & { UserRatedPosts: UserRatedPosts })[]
   >;
   declare notifications?: NonAttribute<UserNotifications[]>;
+  declare subredditsModerated?: NonAttribute<
+    (Subreddit & { subredditModerators: SubredditModerators })[]
+  >;
 }
 
 User.init(

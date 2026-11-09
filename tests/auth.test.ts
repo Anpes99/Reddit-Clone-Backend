@@ -117,6 +117,13 @@ const createUser = () => ({
   emailVerified: true,
   subreddits: [],
   ratedPosts: [],
+  subredditsModerated: [
+    {
+      name: "subreddit123",
+      iconUrl: "https://example.com/icon.png",
+      subredditModerators: { role: "owner" },
+    },
+  ],
   avatarImageUrl: "https://example.com/avatar.png",
 });
 
@@ -173,6 +180,13 @@ describe("POST /login", () => {
       username: "test-user",
       id: 12,
       avatarImageUrl: "https://example.com/avatar.png",
+      moderatedSubreddits: [
+        {
+          name: "subreddit123",
+          iconUrl: "https://example.com/icon.png",
+          role: "owner",
+        },
+      ],
     });
     expect(response.body.token).toEqual(expect.any(String));
     expect(response.headers["set-cookie"]).toEqual(

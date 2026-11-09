@@ -4,9 +4,12 @@ import {
   type CreationOptional,
   type InferAttributes,
   type InferCreationAttributes,
+  type NonAttribute,
 } from "sequelize";
 
 import { sequelize } from "../utils/db";
+import type SubredditModerators from "./SubredditModerators";
+import type User from "./User";
 
 class Subreddit extends Model<
   InferAttributes<Subreddit>,
@@ -21,6 +24,11 @@ class Subreddit extends Model<
   declare memberCount: CreationOptional<number>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+
+  // Association from models/index, only set when included in a query
+  declare moderators?: NonAttribute<
+    (User & { subredditModerators: SubredditModerators })[]
+  >;
 }
 
 Subreddit.init(

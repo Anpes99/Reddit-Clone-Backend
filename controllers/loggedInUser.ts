@@ -15,7 +15,7 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
     include: [
       {
         model: Subreddit,
-        attributes: ["name", "id"],
+        attributes: ["name", "id", "iconUrl"],
         as: "subreddits",
         required: false,
       },
@@ -26,6 +26,13 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
         through: {
           attributes: ["rating"],
         },
+        required: false,
+      },
+      {
+        model: Subreddit,
+        as: "subredditsModerated",
+        attributes: ["name", "iconUrl"],
+        through: { attributes: ["role"] },
         required: false,
       },
       {
@@ -60,6 +67,11 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
     avatarImageUrl: user.avatarImageUrl,
     profilePageBackgroundImageUrl: user.profilePageBackgroundImageUrl,
     notifications: user.notifications,
+    moderatedSubreddits: (user.subredditsModerated ?? []).map((subreddit) => ({
+      name: subreddit.name,
+      iconUrl: subreddit.iconUrl,
+      role: subreddit.subredditModerators.role,
+    })),
   });
 });
 
