@@ -9,6 +9,7 @@ jest.mock("../models/index", () => ({
   Comment: {},
   Post: {
     findOne: jest.fn(),
+    findByPk: jest.fn(),
     create: jest.fn(),
   },
   Subreddit: {
@@ -305,5 +306,98 @@ describe("GET /posts/:id", () => {
       message: "post not found",
       details: {},
     });
+  });
+});
+
+describe("PATCH /posts/:id", () => {
+  const auth = { Authorization: "Bearer test-token" };
+
+  it("lets the author update the post and regenerates its embedding", async () => {
+    const embedding = [0.4, 0.5];
+    const post = {
+      id: 7,
+      userId: 12,
+      title: "Old title",
+      text: "Old text",
+      update: jest.fn(async function (this: object, values: object) {
+        Object.assign(this, values);
+      }),
+    };
+    asMock(Post.findByPk).mockResolvedValue(post);
+    asMock(generateEmbedding).mockResolvedValue(embedding);
+
+    const response = await request(
+      "PATCH",
+      "/posts/7",
+      { text: "New text" },
+      auth,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({
+      post: { id: 7, title: "Old title", text: "New text" },
+    });
+    expect(generateEmbedding).toHaveBeenCalledWith(
+      "Old title\n\nNew text",
+      "document",
+    );
+    expect(post.update).toHaveBeenCalledWith({ text: "New text", embedding });
+  });
+
+  it("rejects a request without authentication", async () => {
+    const response = await request("PATCH", "/posts/7", { text: "New text" });
+
+    expect(response.statusCode).toBe(401);
+    expect(Post.findByPk).not.toHaveBeenCalled();
+  });
+
+  it("rejects an update without text", async () => {
+    const response = await request("PATCH", "/posts/7", {}, auth);
+
+    expect(response.statusCode).toBe(400);
+    expect(Post.findByPk).not.toHaveBeenCalled();
+  });
+
+  it("rejects an attempt to change the title", async () => {
+    const response = await request(
+      "PATCH",
+      "/posts/7",
+      { title: "New title", text: "New text" },
+      auth,
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(Post.findByPk).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the post does not exist", async () => {
+    asMock(Post.findByPk).mockResolvedValue(null);
+
+    const response = await request(
+      "PATCH",
+      "/posts/7",
+      { text: "New text" },
+      auth,
+    );
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body.code).toBe("POST_NOT_FOUND");
+  });
+
+  it("forbids updating another user's post", async () => {
+    const post = { id: 7, userId: 99, update: jest.fn() };
+    asMock(Post.findByPk).mockResolvedValue(post);
+
+    const response = await request(
+      "PATCH",
+      "/posts/7",
+      { text: "New text" },
+      auth,
+    );
+
+    expect(response.statusCode).toBe(403);
+    expect(response.body.code).toBe("FORBIDDEN");
+    expect(generateEmbedding).not.toHaveBeenCalled();
+    expect(post.update).not.toHaveBeenCalled();
   });
 });

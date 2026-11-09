@@ -11,8 +11,10 @@ import { createPostRequestLimiter } from "../utils/middleware/requestRateLimiter
 import {
   getPostSchema,
   postNewPostSchema,
+  updatePostSchema,
   type GetPostQuery,
   type PostNewPostBody,
+  type UpdatePostBody,
 } from "../validators/post.validator";
 
 const postsRouter = Router();
@@ -129,6 +131,45 @@ postsRouter.post(
     }
 
     return res.status(201).json("New post created");
+  },
+);
+
+postsRouter.patch(
+  "/:id",
+  requireAuth,
+  validate(updatePostSchema),
+  async (req: Request<{ id: string }, unknown, UpdatePostBody>, res) => {
+    const { text } = req.body;
+
+    const post = await Post.findByPk(req.params.id);
+    if (!post) {
+      throw new AppError({
+        status: 404,
+        code: "POST_NOT_FOUND",
+        message: "post not found",
+        details: {},
+      });
+    }
+
+    if (post.userId !== req.user!.id) {
+      throw new AppError({
+        status: 403,
+        code: "FORBIDDEN",
+        message: "forbidden",
+        details: {},
+      });
+    }
+
+    const embedding = await generateEmbedding(
+      `${post.title}\n\n${text}`,
+      "document",
+    );
+
+    await post.update({ text, embedding });
+
+    return res.json({
+      post: { id: post.id, title: post.title, text: post.text },
+    });
   },
 );
 

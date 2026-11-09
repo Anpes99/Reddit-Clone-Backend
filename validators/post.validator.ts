@@ -35,3 +35,11 @@ export const postNewPostSchema = Joi.object<PostNewPostBody>({
     .max(4096),
   subredditName: Joi.string().min(1).max(25).required(),
 }).unknown(false);
+
+export type UpdatePostBody = {
+  text: string;
+};
+
+export const updatePostSchema = Joi.object<UpdatePostBody>({
+  text: Joi.string().min(1).max(40000).required(),
+}).unknown(false);
