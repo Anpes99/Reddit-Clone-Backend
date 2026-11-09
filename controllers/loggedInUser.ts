@@ -31,7 +31,7 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
       {
         model: Subreddit,
         as: "subredditsModerated",
-        attributes: ["name", "iconUrl"],
+        attributes: ["name"],
         through: { attributes: ["role"] },
         required: false,
       },
@@ -69,7 +69,6 @@ loggedInUserRouter.get("/", requireAuth, async (request, response) => {
     notifications: user.notifications,
     moderatedSubreddits: (user.subredditsModerated ?? []).map((subreddit) => ({
       name: subreddit.name,
-      iconUrl: subreddit.iconUrl,
       role: subreddit.subredditModerators.role,
     })),
   });

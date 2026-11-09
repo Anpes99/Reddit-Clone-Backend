@@ -102,7 +102,18 @@ usersRouter.post(
 usersRouter.get("/:username", async (request, response) => {
   const username = request.params.username;
 
-  const user = await User.findOne({ where: { username } });
+  const user = await User.findOne({
+    where: { username },
+    include: [
+      {
+        model: Subreddit,
+        as: "subredditsModerated",
+        attributes: ["name", "iconUrl"],
+        through: { attributes: ["role"] },
+        required: false,
+      },
+    ],
+  });
   if (!user) {
     throw new AppError({
       status: 404,
@@ -139,6 +150,11 @@ usersRouter.get("/:username", async (request, response) => {
     subredditsJoinedCount,
     contributionsCount: contributionsCount[0].totalcount,
     karma: user.karma,
+    moderatedSubreddits: (user.subredditsModerated ?? []).map((subreddit) => ({
+      name: subreddit.name,
+      iconUrl: subreddit.iconUrl,
+      role: subreddit.subredditModerators.role,
+    })),
   });
 });
 

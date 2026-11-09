@@ -150,6 +150,13 @@ describe("GET /users/:username profile", () => {
       profilePageBackgroundImageUrl: "https://example.test/background.png",
       createdAt,
       karma: 42,
+      subredditsModerated: [
+        {
+          name: "subreddit123",
+          iconUrl: "https://example.test/icon.png",
+          subredditModerators: { role: "owner" },
+        },
+      ],
     });
     asMock(UserSubreddits.count).mockResolvedValue(3);
     asMock(sequelize.query).mockResolvedValue([{ totalcount: "9" }]);
@@ -166,6 +173,13 @@ describe("GET /users/:username profile", () => {
       subredditsJoinedCount: 3,
       contributionsCount: "9",
       karma: 42,
+      moderatedSubreddits: [
+        {
+          name: "subreddit123",
+          iconUrl: "https://example.test/icon.png",
+          role: "owner",
+        },
+      ],
     });
     expect(UserSubreddits.count).toHaveBeenCalledWith({
       where: { userId: 12 },

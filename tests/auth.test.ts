@@ -120,7 +120,6 @@ const createUser = () => ({
   subredditsModerated: [
     {
       name: "subreddit123",
-      iconUrl: "https://example.com/icon.png",
       subredditModerators: { role: "owner" },
     },
   ],
@@ -183,7 +182,6 @@ describe("POST /login", () => {
       moderatedSubreddits: [
         {
           name: "subreddit123",
-          iconUrl: "https://example.com/icon.png",
           role: "owner",
         },
       ],

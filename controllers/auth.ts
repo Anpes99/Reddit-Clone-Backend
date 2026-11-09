@@ -71,7 +71,7 @@ authRouter.post(
         {
           model: Subreddit,
           as: "subredditsModerated",
-          attributes: ["name", "iconUrl"],
+          attributes: ["name"],
           through: { attributes: ["role"] },
           required: false,
         },
@@ -160,7 +160,6 @@ authRouter.post(
       moderatedSubreddits: (user.subredditsModerated ?? []).map(
         (subreddit) => ({
           name: subreddit.name,
-          iconUrl: subreddit.iconUrl,
           role: subreddit.subredditModerators.role,
         }),
       ),

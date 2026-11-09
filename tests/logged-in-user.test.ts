@@ -125,7 +125,6 @@ describe("GET /api/loggedInUser", () => {
       subredditsModerated: [
         {
           name: "subreddit123",
-          iconUrl: "https://cdn.example.test/icon.png",
           subredditModerators: { role: "moderator" },
         },
       ],
@@ -158,7 +157,6 @@ describe("GET /api/loggedInUser", () => {
       moderatedSubreddits: [
         {
           name: "subreddit123",
-          iconUrl: "https://cdn.example.test/icon.png",
           role: "moderator",
         },
       ],
