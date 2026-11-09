@@ -2,7 +2,15 @@ import { Router, type Request } from "express";
 import type { FindOptions, InferAttributes } from "sequelize";
 import { POST_MODERATION_STATUS } from "../constants/post.constant";
 import { AppError } from "../errors";
-import { User, Comment, Post, Subreddit } from "../models/index";
+import { hasSubredditPermission } from "../config/subreddit-moderator-permissions";
+import { SUBREDDIT_PERMISSIONS } from "../constants/subreddit.constant";
+import {
+  User,
+  Comment,
+  Post,
+  Subreddit,
+  SubredditModerators,
+} from "../models/index";
 import { moderationQueue } from "../queues/moderation.queue";
 import { sequelize } from "../utils/db";
 import { generateEmbedding } from "../utils/embeddings";
@@ -170,6 +178,50 @@ postsRouter.patch(
     return res.json({
       post: { id: post.id, title: post.title, text: post.text },
     });
+  },
+);
+
+postsRouter.delete(
+  "/:id",
+  requireAuth,
+  async (req: Request<{ id: string }>, res) => {
+    const userId = req.user!.id;
+
+    const post = await Post.findByPk(req.params.id);
+    if (!post) {
+      throw new AppError({
+        status: 404,
+        code: "POST_NOT_FOUND",
+        message: "post not found",
+        details: {},
+      });
+    }
+
+    if (post.userId !== userId) {
+      const moderator = await SubredditModerators.findOne({
+        where: { subredditId: post.subredditId, userId },
+        attributes: ["role"],
+      });
+
+      if (
+        !moderator ||
+        !hasSubredditPermission(
+          moderator.role,
+          SUBREDDIT_PERMISSIONS.POSTS_MANAGE,
+        )
+      ) {
+        throw new AppError({
+          status: 403,
+          code: "FORBIDDEN",
+          message: "forbidden",
+          details: {},
+        });
+      }
+    }
+
+    await post.destroy();
+
+    return res.status(204).end();
   },
 );
 

@@ -15,6 +15,9 @@ jest.mock("../models/index", () => ({
   Subreddit: {
     findOne: jest.fn(),
   },
+  SubredditModerators: {
+    findOne: jest.fn(),
+  },
 }));
 
 jest.mock("../utils/db", () => ({
@@ -69,7 +72,14 @@ jest.mock("../queues/moderation.queue", () => ({
   moderationQueue: { add: jest.fn() },
 }));
 
-import { User, Comment, Post, Subreddit } from "../models/index";
+import {
+  User,
+  Comment,
+  Post,
+  Subreddit,
+  SubredditModerators,
+} from "../models/index";
+import { hasSubredditPermission } from "../config/subreddit-moderator-permissions";
 import { sequelize } from "../utils/db";
 import { generateEmbedding } from "../utils/embeddings";
 import { moderationQueue } from "../queues/moderation.queue";
@@ -399,5 +409,70 @@ describe("PATCH /posts/:id", () => {
     expect(response.body.code).toBe("FORBIDDEN");
     expect(generateEmbedding).not.toHaveBeenCalled();
     expect(post.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /posts/:id", () => {
+  const auth = { Authorization: "Bearer test-token" };
+
+  it("lets the author delete the post", async () => {
+    const post = { id: 7, userId: 12, subredditId: 3, destroy: jest.fn() };
+    asMock(Post.findByPk).mockResolvedValue(post);
+
+    const response = await request("DELETE", "/posts/7", undefined, auth);
+
+    expect(response.statusCode).toBe(204);
+    expect(post.destroy).toHaveBeenCalled();
+    expect(SubredditModerators.findOne).not.toHaveBeenCalled();
+  });
+
+  it("lets a subreddit moderator with post permissions delete the post", async () => {
+    const post = { id: 7, userId: 99, subredditId: 3, destroy: jest.fn() };
+    asMock(Post.findByPk).mockResolvedValue(post);
+    asMock(SubredditModerators.findOne).mockResolvedValue({
+      role: "moderator",
+    });
+    asMock(hasSubredditPermission).mockReturnValue(true);
+
+    const response = await request("DELETE", "/posts/7", undefined, auth);
+
+    expect(response.statusCode).toBe(204);
+    expect(SubredditModerators.findOne).toHaveBeenCalledWith({
+      where: { subredditId: 3, userId: 12 },
+      attributes: ["role"],
+    });
+    expect(hasSubredditPermission).toHaveBeenCalledWith(
+      "moderator",
+      "posts.manage",
+    );
+    expect(post.destroy).toHaveBeenCalled();
+  });
+
+  it("forbids deleting another user's post without moderator permissions", async () => {
+    const post = { id: 7, userId: 99, subredditId: 3, destroy: jest.fn() };
+    asMock(Post.findByPk).mockResolvedValue(post);
+    asMock(SubredditModerators.findOne).mockResolvedValue(null);
+
+    const response = await request("DELETE", "/posts/7", undefined, auth);
+
+    expect(response.statusCode).toBe(403);
+    expect(response.body.code).toBe("FORBIDDEN");
+    expect(post.destroy).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the post does not exist", async () => {
+    asMock(Post.findByPk).mockResolvedValue(null);
+
+    const response = await request("DELETE", "/posts/7", undefined, auth);
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body.code).toBe("POST_NOT_FOUND");
+  });
+
+  it("rejects a request without authentication", async () => {
+    const response = await request("DELETE", "/posts/7");
+
+    expect(response.statusCode).toBe(401);
+    expect(Post.findByPk).not.toHaveBeenCalled();
   });
 });
