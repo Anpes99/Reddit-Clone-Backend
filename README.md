@@ -2,7 +2,7 @@
 
 ![Backend tests](https://github.com/Anpes99/Reddit-Clone-Backend/actions/workflows/test.yml/badge.svg) ![Frontend tests](https://github.com/Anpes99/Reddit-Clone-Frontend/actions/workflows/test.yml/badge.svg)
 
-A Reddit-style community platform built end to end with **React, Redux Toolkit, TypeScript, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, asynchronous image moderation through a background job queue with persistent user notifications of the outcome, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, and **250+ automated tests** that run in CI on both the frontend and the backend.
+A Reddit-style community platform built end to end with **React, Redux Toolkit, TypeScript, Node.js/Express, PostgreSQL and Redis**. It has semantic post search with vector embeddings, asynchronous image moderation through a background job queue with persistent user notifications of the outcome, AI moderation of third-party news content, real-time voting and presence over authenticated WebSockets, JWT auth with refresh-token rotation, role-based moderator permissions, and **280+ automated tests** that run in CI on both the frontend and the backend.
 
 **[Live demo](https://reddit-clone-app-1234512345-fecf0e20e036.herokuapp.com/)** · [Frontend repository](https://github.com/Anpes99/Reddit-Clone-Frontend) · [Backend repository](https://github.com/Anpes99/Reddit-Clone-Backend)
 
@@ -54,10 +54,13 @@ Every failure goes through a single Express error handler, so the API always ans
 Access tokens last 15 minutes. Each refresh token has an ID stored in Redis. Refreshing deletes the old ID and issues a new token, so a stolen refresh token stops working after one use, and logging out revokes it immediately. The refresh token lives in an httpOnly, SameSite cookie scoped to `/api/auth`, so page scripts can't read it.
 
 **CSRF protection and security headers**
-Every state-changing request is rejected unless its `Origin` header matches the frontend's origin. Helmet sets a Content Security Policy, blocks the site from being framed to prevent clickjacking, and enables HSTS in production. Passwords are hashed with bcrypt, and moderator actions are checked against a role-to-permission map for each subreddit. Unexpected errors reach the client only as a generic 500, so stack traces and other internal details are never sent.
+Every state-changing request is rejected unless its `Origin` header matches the frontend's origin. Helmet sets a Content Security Policy, blocks the site from being framed to prevent clickjacking, and enables HSTS in production. Passwords are hashed with bcrypt. Unexpected errors reach the client only as a generic 500, so stack traces and other internal details are never sent.
 
 **Rate limiting on every entry point**
 Login (30 per minute per IP), sign-up (5 per 15 minutes and 20 per day per IP), posting and commenting (5 per minute per user) are limited in Redis, so the limits hold across server instances. All API traffic also has a general limit of 300 requests per minute, and socket votes are limited as described below.
+
+**Role-based moderation**
+Each subreddit has owners, moderators and limited moderators, and each role maps to a set of permissions: managing posts, users, settings or the moderator team. Authors can edit and delete their own posts and comments. Moderators with the post permission can remove content in their communities but can't rewrite it. The API returns the signed-in user's moderator roles at login, so the UI only offers edit and delete actions to people who are allowed to use them.
 
 ### Real-time
 
@@ -72,10 +75,13 @@ An Axios interceptor catches expired access tokens, refreshes them once and retr
 **Direct-to-S3 image uploads**
 Images are uploaded straight from the browser to S3 with presigned POST fields, with file size limits enforced on the server, so image data never passes through the API.
 
+**Error, loading and empty states**
+Pages tell a missing resource apart from a failed request and show a dedicated not-found or error page for each, with skeleton placeholders while data loads. All navigation goes through React Router, so the app never does a full page reload.
+
 ### Quality
 
-**250+ tests in CI**
-177 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 84 frontend tests (React Testing Library) run on every push with GitHub Actions. The backend pipeline also fails on ESLint errors, Prettier formatting, strict TypeScript type errors or a broken production build before running the tests against a pgvector PostgreSQL service container. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
+**280+ tests in CI**
+188 backend tests (unit tests plus integration tests against a real PostgreSQL database) and 93 frontend tests (React Testing Library) run on every push with GitHub Actions. Both pipelines fail on ESLint errors, Prettier formatting or a broken production build before any test runs. The backend pipeline also fails on strict TypeScript type errors and runs its tests against a pgvector PostgreSQL service container. The schema is built entirely from versioned migrations, with foreign keys and cascade rules that keep data consistent when users, posts or subreddits are deleted.
 
 ## Features
 
@@ -83,10 +89,12 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 - Sign-up with mandatory email verification (hashed, expiring tokens, with resend)
 - Login and logout, plus password recovery by email with 30-minute reset links
 - Profile page with overview, posts and comments tabs, and an editable avatar, background image and introduction
+- Hover cards that preview any user or subreddit without leaving the page
 
 **Communities**
 - Create, join, leave and search subreddits
 - Owners and moderators can edit the icon, background image and description
+- Three moderator roles (owner, moderator, limited moderator) with different permissions, shown on the subreddit page's moderator list and on each moderator's profile
 - Live count of signed-in users viewing each subreddit
 - Top communities leaderboard with week-over-week rank-change indicators
 
@@ -94,8 +102,10 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 - Create posts with images, then upvote and downvote them, with scores updating live for every viewer
 - Uploaded images are moderated in the background, and posts only appear once their image passes
 - Notifications when a post is approved or rejected, delivered on the next visit if the user is offline
+- Authors can edit and delete their posts and comments, and moderators can remove them from their communities
 - Feeds sorted by new or top, with infinite scrolling
 - Nested comment threads with voting, replies and on-demand loading of deeper replies
+- Deleted comments leave a placeholder so their replies stay in the thread
 
 **Search**
 - Semantic post search that matches meaning, not just keywords
@@ -110,8 +120,8 @@ Images are uploaded straight from the browser to S3 with presigned POST fields, 
 
 | | Tests | What's covered |
 |---|---|---|
-| **Backend** | 177 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, the central error handler and error response format, logout when the token can't be revoked, image moderation jobs queued on post creation and unmoderated posts hidden from post pages and profiles, community-created notifications (and subreddit creation still succeeding when the notification can't be saved), socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
-| **Frontend** | 84 | Sign-in, sign-up and password-reset forms, logout failure handling, the Axios token-refresh interceptor, socket reconnection on token change, post and comment voting, nested comment threads, post and comment creation, joining subreddits, Redux state and S3 uploads |
+| **Backend** | 188 | API routes, auth middleware, JWT handling, CSRF protection, Joi validation, the central error handler and error response format, logout when the token can't be revoked, image moderation jobs queued on post creation and unmoderated posts hidden from post pages and profiles, post editing and deletion permissions for authors and moderators, moderator role permissions, community-created notifications (and subreddit creation still succeeding when the notification can't be saved), socket auth and vote rate limiting, plus integration tests against PostgreSQL for vector search, trigram search, voting and karma, and trigger-maintained counters |
+| **Frontend** | 93 | Sign-in, sign-up and password-reset forms, logout failure handling, the Axios token-refresh interceptor, socket reconnection on token change, post and comment voting, nested comment threads, post and comment creation, joining subreddits, Redux state and S3 uploads |
 
 Backend tests use a separate test database and refuse to run if it points at the main database.
 
