@@ -1,6 +1,9 @@
 import { Router, type Request } from "express";
+import { hasSubredditPermission } from "../config/subreddit-moderator-permissions";
+import { DELETED_COMMENT_TEXT } from "../constants/comment.constant";
+import { SUBREDDIT_PERMISSIONS } from "../constants/subreddit.constant";
 import { AppError } from "../errors";
-import { Comment, User } from "../models/index";
+import { Comment, Post, SubredditModerators, User } from "../models/index";
 import { validate, requireAuth } from "../utils/middleware/middleware";
 import { createCommentRequestLimiter } from "../utils/middleware/requestRateLimiters";
 import {
@@ -113,9 +116,65 @@ commentRouter.patch(
       });
     }
 
+    if (comment.isDeleted) {
+      throw new AppError({
+        status: 409,
+        code: "COMMENT_DELETED",
+        message: "deleted comments can't be edited",
+        details: {},
+      });
+    }
+
     await comment.update({ text });
 
     return res.json({ comment: { id: comment.id, text: comment.text } });
   },
 );
+
+commentRouter.delete(
+  "/:id",
+  requireAuth,
+  async (req: Request<{ id: string }>, res) => {
+    const userId = req.user!.id;
+
+    const comment = await Comment.findByPk(req.params.id, {
+      include: [{ model: Post, attributes: ["subredditId"] }],
+    });
+    if (!comment) {
+      throw new AppError({
+        status: 404,
+        code: "COMMENT_NOT_FOUND",
+        message: "comment not found",
+        details: {},
+      });
+    }
+
+    if (comment.userId !== userId) {
+      const moderator = await SubredditModerators.findOne({
+        where: { subredditId: comment.post!.subredditId, userId },
+        attributes: ["role"],
+      });
+
+      if (
+        !moderator ||
+        !hasSubredditPermission(
+          moderator.role,
+          SUBREDDIT_PERMISSIONS.POSTS_MANAGE,
+        )
+      ) {
+        throw new AppError({
+          status: 403,
+          code: "FORBIDDEN",
+          message: "forbidden",
+          details: {},
+        });
+      }
+    }
+
+    await comment.update({ isDeleted: true, text: DELETED_COMMENT_TEXT });
+
+    return res.status(204).end();
+  },
+);
+
 export = commentRouter;

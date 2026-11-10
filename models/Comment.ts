@@ -23,6 +23,7 @@ class Comment extends Model<
   declare directReplyToPost: boolean;
   declare text: string;
   declare descendantCount: CreationOptional<number>;
+  declare isDeleted: CreationOptional<boolean>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -76,6 +77,11 @@ Comment.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+    },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,
