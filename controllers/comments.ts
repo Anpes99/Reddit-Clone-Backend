@@ -5,7 +5,9 @@ import { validate, requireAuth } from "../utils/middleware/middleware";
 import { createCommentRequestLimiter } from "../utils/middleware/requestRateLimiters";
 import {
   postNewPostCommentSchema,
+  updateCommentSchema,
   type PostNewPostCommentBody,
+  type UpdateCommentBody,
 } from "../validators/comment.validator";
 
 const commentRouter = Router();
@@ -85,4 +87,35 @@ commentRouter.get("/moreComments/:id", async (req, res) => {
   return res.json(comments);
 });
 
+commentRouter.patch(
+  "/:id",
+  requireAuth,
+  validate(updateCommentSchema),
+  async (req: Request<{ id: string }, unknown, UpdateCommentBody>, res) => {
+    const { text } = req.body;
+
+    const comment = await Comment.findByPk(req.params.id);
+    if (!comment) {
+      throw new AppError({
+        status: 404,
+        code: "COMMENT_NOT_FOUND",
+        message: "comment not found",
+        details: {},
+      });
+    }
+
+    if (comment.userId !== req.user!.id) {
+      throw new AppError({
+        status: 403,
+        code: "FORBIDDEN",
+        message: "forbidden",
+        details: {},
+      });
+    }
+
+    await comment.update({ text });
+
+    return res.json({ comment: { id: comment.id, text: comment.text } });
+  },
+);
 export = commentRouter;

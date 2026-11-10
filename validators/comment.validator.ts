@@ -15,3 +15,11 @@ export const postNewPostCommentSchema = Joi.object<PostNewPostCommentBody>({
   subredditId: Joi.number().integer().required(),
   postId: Joi.number().integer().required(),
 }).unknown(false);
+
+export type UpdateCommentBody = {
+  text: string;
+};
+
+export const updateCommentSchema = Joi.object<UpdateCommentBody>({
+  text: Joi.string().min(1).max(10000).required(),
+}).unknown(false);
