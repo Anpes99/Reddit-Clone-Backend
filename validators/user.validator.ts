@@ -15,7 +15,7 @@ export type PostNewUserBody = {
 export const postNewUserSchema = Joi.object<PostNewUserBody>({
   username: Joi.string()
     .trim()
-    .min(2)
+    .min(3)
     .max(25)
     .regex(
       /^[A-Za-z0-9_-]+$/,
