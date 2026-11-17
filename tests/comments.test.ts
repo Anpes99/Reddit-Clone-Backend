@@ -251,5 +251,14 @@ test("retrieves replies for a parent comment with author details", async () => {
         required: true,
       },
     ],
+    order: [
+      [
+        expect.objectContaining({
+          val: '"comment"."up_votes" - "comment"."down_votes"',
+        }),
+        "DESC",
+      ],
+      ["createdAt", "ASC"],
+    ],
   });
 });

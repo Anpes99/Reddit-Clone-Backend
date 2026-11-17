@@ -4,6 +4,7 @@ import { DELETED_COMMENT_TEXT } from "../constants/comment.constant";
 import { SUBREDDIT_PERMISSIONS } from "../constants/subreddit.constant";
 import { AppError } from "../errors";
 import { Comment, Post, SubredditModerators, User } from "../models/index";
+import { sequelize } from "../utils/db";
 import { validate, requireAuth } from "../utils/middleware/middleware";
 import { createCommentRequestLimiter } from "../utils/middleware/requestRateLimiters";
 import {
@@ -85,6 +86,10 @@ commentRouter.get("/moreComments/:id", async (req, res) => {
         attributes: ["username", "avatarImageUrl"],
         required: true,
       },
+    ],
+    order: [
+      [sequelize.literal('"comment"."up_votes" - "comment"."down_votes"'), "DESC"],
+      ["createdAt", "ASC"],
     ],
   });
   return res.json(comments);
