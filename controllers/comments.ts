@@ -88,7 +88,10 @@ commentRouter.get("/moreComments/:id", async (req, res) => {
       },
     ],
     order: [
-      [sequelize.literal('"comment"."up_votes" - "comment"."down_votes"'), "DESC"],
+      [
+        sequelize.literal('"comment"."up_votes" - "comment"."down_votes"'),
+        "DESC",
+      ],
       ["createdAt", "ASC"],
     ],
   });
