@@ -151,7 +151,8 @@ DECLARE
   old_owner_id INTEGER;
   new_owner_id INTEGER;
 BEGIN
-  IF TG_OP != 'INSERT' THEN
+  -- Undo the old vote (row is being changed or removed)
+  IF TG_OP IN ('UPDATE', 'DELETE') THEN
     IF TG_TABLE_NAME = 'user_rated_posts' THEN
       SELECT user_id INTO old_owner_id
       FROM posts
@@ -169,7 +170,8 @@ BEGIN
     END IF;
   END IF;
 
-  IF TG_OP != 'DELETE' THEN
+  -- Apply the new vote (row is being added or changed)
+  IF TG_OP IN ('INSERT', 'UPDATE') THEN
     IF TG_TABLE_NAME = 'user_rated_posts' THEN
       SELECT user_id INTO new_owner_id
       FROM posts
