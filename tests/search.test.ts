@@ -233,10 +233,16 @@ test("new post search returns text matches with pagination and total count", asy
     offset: 1,
     limit: 2,
     order: [["createdAt", "DESC"]],
-    include: [
-      { model: expect.anything(), attributes: ["username"] },
-      { model: expect.anything(), attributes: ["name", "iconUrl"] },
+    attributes: [
+      "id",
+      "title",
+      "imageUrl",
+      "upVotes",
+      "downVotes",
+      "commentCount",
+      "createdAt",
     ],
+    include: [{ model: expect.anything(), attributes: ["name", "iconUrl"] }],
   });
   expect(options.where[Op.or]).toBeDefined();
   expect(sequelize.fn).toHaveBeenCalledWith(

@@ -6,7 +6,7 @@ import {
   type FindOptions,
   type InferAttributes,
 } from "sequelize";
-import { Subreddit, Post, User } from "../models/index";
+import { Subreddit, Post } from "../models/index";
 import { sequelize } from "../utils/db";
 import { validate } from "../utils/middleware/middleware";
 import {
@@ -100,17 +100,19 @@ searchRouter.post(
             ),
           ],
         },
-        attributes: { exclude: ["embedding"] },
+        attributes: [
+          "id",
+          "title",
+          "imageUrl",
+          "upVotes",
+          "downVotes",
+          "commentCount",
+          "createdAt",
+        ],
         offset,
         limit,
         order: [["createdAt", "DESC"]],
-        include: [
-          {
-            model: User,
-            attributes: ["username"],
-          },
-          { model: Subreddit, attributes: ["name", "iconUrl"] },
-        ],
+        include: [{ model: Subreddit, attributes: ["name", "iconUrl"] }],
       };
 
       const countOptions: CountOptions<InferAttributes<Post>> = {
