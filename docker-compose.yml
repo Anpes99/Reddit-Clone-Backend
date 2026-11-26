@@ -4,7 +4,7 @@
 services:
   app:
     build:
-      # Parent directory, so the image can build both repositories
+      # Parent directory, so the image can build both repositories (frontend and backend)
       context: ..
       dockerfile: Reddit-Clone-Backend/Dockerfile
     ports:
@@ -24,7 +24,7 @@ services:
       REFRESH_SECRET: ${REFRESH_SECRET:-local-docker-refresh-secret}
       # Emails (signup verification, password reset) are caught by Mailpit
       BREVO_SMTP_HOST: mailpit
-      BREVO_SMTP_PORT: 1025
+      BREVO_SMTP_PORT: 1025 # 1025 is Mailpit's SMTP port, reached over the internal Docker network
       BREVO_SMTP_USER: local
       BREVO_SMTP_KEY: local
       MAIL_FROM: noreply@reddit-clone.local
@@ -61,7 +61,7 @@ services:
   mailpit:
     image: axllent/mailpit:v1.27
     ports:
-      - "8025:8025"
+      - "8025:8025" # web ui port
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
