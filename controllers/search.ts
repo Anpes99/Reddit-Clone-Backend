@@ -100,6 +100,7 @@ searchRouter.post(
             ),
           ],
         },
+        attributes: { exclude: ["embedding"] },
         offset,
         limit,
         order: [["createdAt", "DESC"]],

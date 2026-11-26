@@ -36,6 +36,7 @@ postsRouter.get(
 
     const options: FindOptions<InferAttributes<Post>> = {
       where: { id: req.params.id, safe: true },
+      attributes: { exclude: ["embedding"] },
       include: [
         {
           model: Comment,

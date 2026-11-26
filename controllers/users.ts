@@ -181,6 +181,7 @@ usersRouter.get(
     if (contentType === USER_PAGE_CONTENT_TYPES.POSTS) {
       const options: FindOptions<InferAttributes<Post>> = {
         where: { userId: user.id, safe: true },
+        attributes: { exclude: ["embedding"] },
         order:
           sortByType === USER_PAGE_CONTENT_SORT_BY_TYPES.TOP
             ? [

@@ -24,7 +24,6 @@ export type FetchMorePostsPayload = {
   order?: string;
   sortBy?: string;
   offset?: number;
-  limit?: number;
   subredditId?: Subreddit["id"];
 };
 

@@ -7,11 +7,23 @@ import type { AppServer } from "./types";
 type PostOptions = FindOptions<InferAttributes<Post>>;
 type PostCountOptions = CountOptions<InferAttributes<Post>>;
 
+const FEED_PAGE_SIZE = 5;
+
+const FEED_POST_ATTRIBUTES = [
+  "id",
+  "title",
+  "imageUrl",
+  "upVotes",
+  "downVotes",
+  "commentCount",
+  "createdAt",
+] as const;
+
 export = function (io: AppServer) {
   io.on("connection", (socket) => {
     socket.on(
       "fetch_more_posts",
-      async ({ order, sortBy, offset, limit, subredditId }, cb) => {
+      async ({ order, sortBy, offset, subredditId }, cb) => {
         const totalCountOptions: PostCountOptions = { where: { safe: true } };
 
         if (subredditId)
@@ -23,9 +35,10 @@ export = function (io: AppServer) {
 
         const options: PostOptions = {
           where: { safe: true },
+          attributes: [...FEED_POST_ATTRIBUTES],
           order: [["createdAt", SORT_ORDER.DESC]],
           offset,
-          limit,
+          limit: FEED_PAGE_SIZE,
           include: [
             {
               model: User,
@@ -62,8 +75,9 @@ export = function (io: AppServer) {
 
       const options: PostOptions = {
         where: { safe: true },
+        attributes: [...FEED_POST_ATTRIBUTES],
         offset,
-        limit: 5,
+        limit: FEED_PAGE_SIZE,
         include: [
           {
             model: User,
@@ -72,7 +86,7 @@ export = function (io: AppServer) {
           {
             model: Subreddit,
             as: "subreddit",
-            attributes: ["name", "id", "iconUrl"],
+            attributes: ["name", "iconUrl"],
           },
         ],
         order: [
