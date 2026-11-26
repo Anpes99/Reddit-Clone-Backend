@@ -26,13 +26,11 @@ export type FetchMorePostsPayload = {
   offset?: number;
   limit?: number;
   subredditId?: Subreddit["id"];
-  username?: User["username"];
 };
 
 export type FetchTopPostsPayload = {
   offset?: number;
   subredditId?: Subreddit["id"];
-  username?: User["username"];
 };
 
 export type ClientToServerEvents = {
